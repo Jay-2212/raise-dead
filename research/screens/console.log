@@ -1,0 +1,10 @@
+[error] Failed to load resource: net::ERR_FAILED
+[log] %c %c %c %c %c Phaser v3.90.0 (WebGL | Web Audio) %c https://phaser.io/v390 background: #ff0000 background: #ffff00 background: #00ff00 background: #00ffff color: #ffffff; background: #000000 background: transparent
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[note] click did not enter graveyard; using __RD.goto
+__RD present: true scenes: GraveyardWorld,UIScene
+fps 5.14090838143602
+[note] F did not start ritual; using __RD.raise
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+overlay at 29969ms
