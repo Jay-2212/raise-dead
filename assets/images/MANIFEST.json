@@ -1,0 +1,1407 @@
+{
+ "project": "Raise Dead",
+ "artPixelScale": "world camera zoom 2, pixelArt true, tile 32 art px = 64 screen px",
+ "count": 200,
+ "files": [
+  {
+   "path": "assets/images/STYLE.md",
+   "purpose": "Style guide",
+   "size": "-",
+   "source": "original",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/backgrounds/sky_moon.png",
+   "purpose": "Night sky + full moon layer (title screen backdrop / parallax behind graveyard edges)",
+   "size": "1920x1080",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/backgrounds/title_keyart.png",
+   "purpose": "Title / key art, empty sky space top-center for the logo text",
+   "size": "1920x1080",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/fog_puff.png",
+   "purpose": "Soft fog puff particle (big, slow, low alpha)",
+   "size": "256x256",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/fog_tile.png",
+   "purpose": "Tileable fog layer (pale cyan-white, alpha); scroll 2-3 TileSprites at different speeds/alpha 0.25-0.5",
+   "size": "512x256",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/glow_moon.png",
+   "purpose": "Cool cyan light pool for player/rune/wisp lighting; ADD blend",
+   "size": "256x256",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/glow_warm.png",
+   "purpose": "Warm pumpkin light pool; ADD blend under/around jack-o-lanterns, flicker",
+   "size": "128x128",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/holy_light_burst.png",
+   "purpose": "Holy white-gold light burst with god-rays; center on grave, scale up to fill screen, ADD blend, then white fullscreen flash",
+   "size": "1024x1024",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/rune_circle.png",
+   "purpose": "Exorcism rune circle, transparent (normal or ADD blend)",
+   "size": "512x512",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/fx/rune_circle_add.png",
+   "purpose": "Exorcism rune circle on black: use blendMode ADD, scale-in + slow rotate",
+   "size": "512x512",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/firefly_dot.png",
+   "purpose": "Tiny firefly core dot (warm); combine with wisp glow",
+   "size": "8x8",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_1.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "10x9",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_2.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "9x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_3.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "8x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_4.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "8x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_5.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "10x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_6.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "10x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_7.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "8x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaf_8.png",
+   "purpose": "Falling leaf particle frame",
+   "size": "9x10",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/leaves_strip.png",
+   "purpose": "All leaf particles as a spritesheet: frameWidth 12, frameHeight 12, 8 frames",
+   "size": "96x12",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/particles/wisp.png",
+   "purpose": "Wisp/firefly glow particle (mint #9effc8); ADD blend, wander + pulse alpha",
+   "size": "32x32",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/portraits/medal_clippy.png",
+   "purpose": "Portrait medallion for the clippy grave (tombstone inset + overlay header)",
+   "size": "256x256",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/portraits/medal_reader.png",
+   "purpose": "Portrait medallion for the reader grave (tombstone inset + overlay header)",
+   "size": "256x256",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/portraits/medal_roadrash.png",
+   "purpose": "Portrait medallion for the roadrash grave (tombstone inset + overlay header)",
+   "size": "256x256",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/portraits/medal_unmarked.png",
+   "purpose": "Portrait medallion for the unmarked grave (tombstone inset + overlay header)",
+   "size": "256x256",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/portraits/medal_winamp.png",
+   "purpose": "Portrait medallion for the winamp grave (tombstone inset + overlay header)",
+   "size": "256x256",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_crow_sheet.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_ground_grass.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1024x1024",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_ground_path.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1024x1024",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_jackolantern.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_keyart.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1376x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_leaves_sheet.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_medal_clippy.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_medal_reader.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_medal_roadrash.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_medal_unmarked.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_medal_winamp.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_rune_circle.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_rune_circle2.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_sky_moon.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1376x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tomb_cracked.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tomb_plain.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tomb_rubble.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tomb_variants.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tree_1.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tree_2.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tree_3.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_tree_4.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1408x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/src/rd_ui_frame.png",
+   "purpose": "Hi-res generated original (source/marketing only, not for runtime)",
+   "size": "1376x768",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/ui/frame_panel.png",
+   "purpose": "App-overlay window frame; use as 9-slice (see STYLE.md for insets)",
+   "size": "720x385",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/ui/vignette_moonlit.png",
+   "purpose": "Fullscreen navy vignette overlay (scrollFactor 0, top depth below UI)",
+   "size": "1920x1080",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/circle_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/circle_b.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/circle_c.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/circle_rings_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/circle_rings_b.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/cone_a_blur.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/cone_composed_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/fan_a_gradient.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/foliage_canopy_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/foliage_canopy_b.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/foliage_canopy_c.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/ring_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/ring_b.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/shape_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/streaks_composed_a.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/streaks_composed_b.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-light-masks/streaks_composed_c.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Light Masks, https://kenney.nl/assets/light-masks",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/circle_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/circle_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/circle_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/circle_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/circle_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/dirt_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/dirt_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/dirt_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/fire_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/fire_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flame_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flame_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flame_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flame_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flame_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flame_06.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/flare_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/light_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/light_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/light_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/magic_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/magic_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/magic_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/magic_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/magic_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/muzzle_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/muzzle_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/muzzle_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/muzzle_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/muzzle_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/scorch_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/scorch_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/scorch_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/scratch_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/slash_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/slash_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/slash_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/slash_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_06.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_07.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_08.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_09.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/smoke_10.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_06.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/spark_07.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_06.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_07.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_08.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/star_09.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/symbol_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/symbol_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_06.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/trace_07.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/twirl_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/twirl_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/twirl_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/window_01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/window_02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/window_03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-particle-pack/window_04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "512x512",
+   "source": "vendor: Kenney Particle Pack, https://kenney.nl/assets/particle-pack",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff00.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "381x346",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff01.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "345x374",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff02.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "382x360",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff03.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "353x383",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff04.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "375x378",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff05.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "337x378",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff06.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "400x383",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff07.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "367x362",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff08.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "419x384",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff09.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "368x405",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff10.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "349x417",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff11.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "406x370",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff12.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "348x385",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff13.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "367x401",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff14.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "392x350",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff15.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "394x377",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff16.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "361x384",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff17.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "385x345",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff18.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "360x364",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff19.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "377x411",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff20.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "379x384",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff21.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "371x376",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff22.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "361x391",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff23.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "381x409",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/kenney-smoke-particles/whitePuff24.png",
+   "purpose": "Tintable particle/light texture (white/greyscale)",
+   "size": "370x362",
+   "source": "vendor: Kenney Smoke Particles, https://kenney.nl/assets/smoke-particles",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/attack_behind.png",
+   "purpose": "Wizard cast facing up, 6 frames",
+   "size": "384x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/attack_front.png",
+   "purpose": "Wizard cast/attack facing down, 7 frames 64x64 (exorcism)",
+   "size": "448x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/attack_left.png",
+   "purpose": "Wizard cast facing left, 7 frames",
+   "size": "448x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/attack_right.png",
+   "purpose": "Wizard cast facing right, 7 frames",
+   "size": "448x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/mage_idle.png",
+   "purpose": "Wizard idle front, 7 frames 64x64",
+   "size": "448x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/mage_idle1.png",
+   "purpose": "Wizard idle alt, 2 frames 64x64",
+   "size": "128x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/walk_down.png",
+   "purpose": "Wizard walk down, 4 frames 64x64",
+   "size": "256x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/walk_left.png",
+   "purpose": "Wizard walk left, 5 frames 64x64",
+   "size": "320x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/walk_right.png",
+   "purpose": "Wizard walk right, 5 frames 64x64",
+   "size": "320x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/movicx-wizard/walk_up.png",
+   "purpose": "Wizard walk up, 4 frames 64x64",
+   "size": "256x64",
+   "source": "vendor: \"Wizard sprite sheet\" by Movicx, https://opengameart.org/content/wizard-sprite-sheet",
+   "license": "CC-BY 3.0 (attribution required)"
+  },
+  {
+   "path": "assets/images/vendor/sollision-mage/player_mage_32x64_grid.png",
+   "purpose": "Alt CC0 hooded mage repacked to 32x64 grid: rows idle back/front/side/side (5f), walk back/front/side/side (10f)",
+   "size": "320x512",
+   "source": "vendor: \"Mage Sprites (Idle and Walking)\" by Sollision, https://opengameart.org/content/mage-sprites-idle-and-walking",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/vendor/sollision-mage/player_mage_sheet.png",
+   "purpose": "Alt CC0 hooded mage (original sheet)",
+   "size": "320x582",
+   "source": "vendor: \"Mage Sprites (Idle and Walking)\" by Sollision, https://opengameart.org/content/mage-sprites-idle-and-walking",
+   "license": "CC0"
+  },
+  {
+   "path": "assets/images/world/crow_flying.png",
+   "purpose": "Crow flying (tween across screen; flip X for direction)",
+   "size": "32x32",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/crow_perched.png",
+   "purpose": "Crow sitting (place on branches/tombs)",
+   "size": "24x18",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/ground_grass.png",
+   "purpose": "Tileable graveyard grass ground (use as TileSprite; 256px = 8x8 art tiles of 32px)",
+   "size": "256x256",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/ground_path.png",
+   "purpose": "Tileable gravel footpath ground (procedural, matches palette)",
+   "size": "256x256",
+   "source": "procedural (Python/PIL script, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/jackolantern_lit.png",
+   "purpose": "Lit jack-o-lantern; pair with fx/glow_warm.png (ADD blend) and a slow flicker tween",
+   "size": "28x25",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tomb_cracked.png",
+   "purpose": "Launch grave mid-ritual: cracked open, holy light leaking; all three share canvas, anchor bottom-center (origin 0.5,1)",
+   "size": "73x55",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tomb_deco_cross.png",
+   "purpose": "Decorative (non-interactive) grave marker for Killed-by-Google style rows",
+   "size": "30x44",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tomb_deco_obelisk.png",
+   "purpose": "Decorative (non-interactive) grave marker for Killed-by-Google style rows",
+   "size": "30x44",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tomb_deco_square.png",
+   "purpose": "Decorative (non-interactive) grave marker for Killed-by-Google style rows",
+   "size": "43x44",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tomb_plain.png",
+   "purpose": "Interactive launch grave, idle state (blank face: draw name/years/epitaph as text); all three share canvas, anchor bottom-center (origin 0.5,1)",
+   "size": "73x55",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tomb_rubble.png",
+   "purpose": "Launch grave after ritual: broken rubble / open mound; all three share canvas, anchor bottom-center (origin 0.5,1)",
+   "size": "73x55",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tree_1.png",
+   "purpose": "Bare twisted tree variant; anchor bottom-center",
+   "size": "141x160",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tree_2.png",
+   "purpose": "Bare twisted tree variant; anchor bottom-center",
+   "size": "158x176",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tree_3.png",
+   "purpose": "Bare twisted tree variant; anchor bottom-center",
+   "size": "211x128",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  },
+  {
+   "path": "assets/images/world/tree_4.png",
+   "purpose": "Bare twisted tree variant; anchor bottom-center",
+   "size": "196x144",
+   "source": "generated (Hark image model, original)",
+   "license": "Original work for this project"
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+# Credits
+
+Every third-party asset or code used in Raise Dead, with source, author and license.
+
+## Images (assets/images/vendor/)
+
+| Folder | Asset | Author | License | Source |
+|---|---|---|---|---|
+| vendor/movicx-wizard/ | "Wizard sprite sheet" (walk/attack 4 directions, idle) | Movicx | CC-BY 3.0 (attribution required) | https://opengameart.org/content/wizard-sprite-sheet (file: https://opengameart.org/sites/default/files/mage_zip.zip) |
+| vendor/sollision-mage/ | "Mage Sprites (Idle and Walking)" | Sollision | CC0 | https://opengameart.org/content/mage-sprites-idle-and-walking (file: https://opengameart.org/sites/default/files/player_mage_sheet.png) |
+| vendor/kenney-particle-pack/ | Particle Pack 1.1 (80 transparent PNGs) | Kenney (kenney.nl) | CC0 | https://kenney.nl/assets/particle-pack |
+| vendor/kenney-light-masks/ | Light Masks (17 selected transparent PNGs) | Kenney (kenney.nl) | CC0 | https://kenney.nl/assets/light-masks |
+| vendor/kenney-smoke-particles/ | Smoke Particles, "White puff" set (25 PNGs) | Kenney (kenney.nl) | CC0 | https://kenney.nl/assets/smoke-particles |
+
+Required in-game/README attribution line: **"Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0."** Kenney and Sollision are CC0 (credit given as courtesy).
+
+All other images in assets/images/ (world/, ui/, fx/, particles/, portraits/, backgrounds/, src/) are original to this project: generated with an AI image model from our own prompts or drawn procedurally by script. They contain no third-party logos or screenshots; portrait medallions are generic tributes (motorbike racer, RSS newspaper, paperclip helper, retro media player, unmarked stone) and use no trademarks.
+vendor/sollision-mage/player_mage_32x64_grid.png is our re-packed copy of the CC0 sheet onto a uniform grid.
+
+
+## Audio (assets/audio/, assets/voice/)
+
+Full per-file list (purpose, duration, loop, loudness, source, license, author) is in `assets/audio/MANIFEST.json`. Every file ships as `.ogg` + `.mp3`; all were trimmed, filtered, looped and/or loudness-normalized by us with ffmpeg/numpy.
+
+| Files | Author | License | Source |
+|---|---|---|---|
+| audio/exorcism/wind_swell | Joseph Sardin / BigSoundBank + Raise Dead team | CC0 1.0 + CC0 1.0 (project original) | https://bigsoundbank.com/wind-s0595.html + Original synthesis for Raise Dead (numpy/scipy script) |
+| audio/exorcism/ground_rumble | Raise Dead team + mieki256 + cinameng | CC0 1.0 (project original) + CC0 1.0 | Original synthesis for Raise Dead (numpy/scipy script) + https://opengameart.org/content/earthquake-and-open-sesame + https://opengameart.org/content/rumble-fx |
+| audio/exorcism/chant_drone_loop | Raise Dead team + OwlishMedia | CC0 1.0 (project original) + CC0 1.0 | Original synthesis for Raise Dead (numpy/scipy script) + https://opengameart.org/content/creepy-incoherent-chanting |
+| audio/exorcism/stone_crack_crumble | rubberduck + Raise Dead team | CC0 1.0 + CC0 1.0 (project original) | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx + Original synthesis for Raise Dead (numpy/scipy script) |
+| audio/exorcism/holy_light_burst | pyranostudios + Raise Dead team | CC0 1.0 + CC0 1.0 (project original) | https://opengameart.org/content/air-whoosh + Original synthesis for Raise Dead (numpy/scipy script) |
+| audio/exorcism/app_sink | Raise Dead team + rubberduck | CC0 1.0 (project original) + CC0 1.0 | Original synthesis for Raise Dead (numpy/scipy script) + https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx |
+| audio/ambient/wind_howl_loop | Joseph Sardin / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/wind-s0595.html |
+| audio/ambient/wind_whistle_loop | Joseph Sardin / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/whistling-of-the-wind-1-s0147.html |
+| audio/ambient/night_crickets_loop | Wolfgang_ | CC0 1.0 | https://opengameart.org/content/crickets-ambient-noise-loopable |
+| audio/ambient/ghost_whispers_loop | qubodup (sounds from Independent.nu ljudbank) | CC0 1.0 | https://opengameart.org/content/4-atmospheric-ghostly-loops |
+| audio/ambient/ghost_moans_drone_loop | Paul Wortmann | CC0 1.0 | https://opengameart.org/content/dark-cavern-ambient |
+| audio/ambient/owl_hoot_01 | Joseph Sardin / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/tawny-owl-1-s1763.html |
+| audio/ambient/owl_hoot_02 | Joseph Sardin / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/owls-s0429.html |
+| audio/ambient/crows_distant_01 | IgnasD (crystalgames.space) | CC0 1.0 | https://opengameart.org/content/crows-singing |
+| audio/ambient/crow_caw_02 | zeroisnotnull | CC0 1.0 | https://opengameart.org/content/crow-caw |
+| audio/ambient/ (ghost_moan_01, ghost_moan_02, ghost_moan_03, ghost_moan_04, ghost_moan_05) | qubodup | CC0 1.0 | https://opengameart.org/content/ghost-monster-voice-moaning-growling |
+| audio/ambient/ghost_breath | qubodup | CC0 1.0 | https://opengameart.org/content/ghost-breath |
+| audio/ambient/tree_creak_01 | AntumDeluge (from Department64) | CC0 1.0 | https://opengameart.org/content/tree-creaking |
+| audio/ambient/gate_creak_01 | DenisChardonnet / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/grinding-metal-gate-1-s0303.html |
+| audio/ambient/gate_creak_02 | DenisChardonnet / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/grinding-metal-gate-2-s0304.html |
+| audio/ambient/gate_creak_long | Joseph Sardin / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/grinding-metal-gate-s0683.html |
+| audio/music/moonlit_lullaby_loop | Tsorthan Grove | CC0 1.0 | https://opengameart.org/content/moonlit-lullaby-for-the-lost |
+| audio/music/title_musicbox_spooky_waltz, audio/music/musicbox_sad_tune | Aureolus_Omicron | CC0 1.0 | https://opengameart.org/content/4-music-box-tracks |
+| audio/footsteps/ (dirt_01, dirt_02, dirt_03, dirt_04, dirt_05, dirt_06, dirt_07, dirt_08) | congusbongus (from 'footstep-grass.wav' by swuing) | CC-BY 3.0 | https://opengameart.org/content/footsteps-on-different-surfaces (grass set, derived from https://freesound.org/people/swuing/sounds/38874/) |
+| audio/footsteps/ (gravel_01, gravel_02, gravel_03, gravel_04, gravel_05, gravel_06, gravel_07, gravel_08) | congusbongus (from Ali_6868) | CC0 1.0 | https://opengameart.org/content/footsteps-on-different-surfaces (gravel set, derived from https://freesound.org/people/Ali_6868/packs/21608/) |
+| audio/footsteps/ (soil_soft_01, soil_soft_02, soil_soft_03, soil_soft_04, soil_soft_05, soil_soft_06) | Kenney (kenney.nl) | CC0 1.0 | https://opengameart.org/content/50-rpg-sound-effects (Kenney RPG Audio) |
+| audio/footsteps/mud_01 | TinyWorlds | CC0 1.0 | https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud |
+| audio/leaves/ (leaves_rustle_01, leaves_rustle_02, leaves_rustle_03, leaves_rustle_04, leaves_rustle_05, leaves_rustle_06) | qubodup | CC0 1.0 | https://opengameart.org/content/20-rustles-dry-leaves |
+| audio/leaves/wind_through_leaves_loop | Joseph Sardin / BigSoundBank | CC0 1.0 | https://bigsoundbank.com/strong-wind-4-s0154.html |
+| audio/ui/ (hover, hover_alt, select, confirm, back, error, open_panel, close_panel) | Kenney (kenney.nl) | CC0 1.0 | https://opengameart.org/content/interface-sounds (Kenney Interface Sounds) |
+| voice/ (incant_roadrash, incant_googlereader, incant_clippy, incant_winamp, incant_unmarked, incant_generic, farewell_requiescat) | Raise Dead team | CC0 1.0 (project original; TTS output, original script) | Synthesized with Piper TTS (https://github.com/OHF-Voice/piper1-gpl) using voice en_US-norman-medium (https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/norman/medium; trained on public-domain LibriVox recordings, dataset license: public domain per MODEL_CARD); pitch-down, sub-octave double and hall reverb via ffmpeg rubberband + numpy convolution |
+| exorcism/ (wind_swell, ground_rumble, chant_drone_loop, rune_sparkles, rune_sparkle_short, stone_crack_crumble, holy_light_burst, choir_aah, app_open_shimmer, app_sink, rip_bell_toll), ui/prompt_press_f, ui/ritual_confirm | Raise Dead team (original synthesis; some layered with the CC0 recordings listed above: BigSoundBank wind, mieki256 earthquake, cinameng rumble, rubberduck rocks, pyranostudios whoosh, OwlishMedia chants) | CC0 1.0 (our synthesis) + CC0 sources | original synthesis script (not in repo) |
+
+**Required attribution (CC-BY 3.0):** "Footstep sounds (dirt) by congusbongus, from 'footstep-grass.wav' by swuing (freesound.org), CC-BY 3.0 — https://opengameart.org/content/footsteps-on-different-surfaces". Put this line in the in-game credits/README. Everything else in audio is CC0 (credit given as courtesy: Kenney, BigSoundBank/Joseph Sardin, qubodup, Tsorthan Grove, Aureolus_Omicron, IgnasD, Wolfgang_, and the others above).
+
+**Voice lines (assets/voice/):** our own original incantation scripts, synthesized with Piper TTS (https://github.com/OHF-Voice/piper1-gpl, GPL-3.0 — used only as an offline tool; no Piper code is in the repo) using the voice model `en_US-norman-medium` (https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/norman/medium), whose model card lists its training data as public-domain LibriVox recordings. Processed with ffmpeg (rubberband pitch-down, sub-octave double) and numpy convolution reverb. Subtitles/scripts: `assets/voice/voice_lines.json`. We release the voice files as CC0.

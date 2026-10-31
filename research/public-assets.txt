@@ -1,0 +1,167 @@
+/CREDITS.md 
+/assets/audio/ambient/crow_caw_02.mp3 
+/assets/audio/ambient/crow_caw_02.ogg 
+/assets/audio/ambient/crows_distant_01.mp3 
+/assets/audio/ambient/crows_distant_01.ogg 
+/assets/audio/ambient/gate_creak_01.mp3 
+/assets/audio/ambient/gate_creak_01.ogg 
+/assets/audio/ambient/ghost_whispers_loop.mp3 
+/assets/audio/ambient/ghost_whispers_loop.ogg 
+/assets/audio/ambient/night_crickets_loop.mp3 
+/assets/audio/ambient/night_crickets_loop.ogg 
+/assets/audio/ambient/owl_hoot_01.mp3 
+/assets/audio/ambient/owl_hoot_01.ogg 
+/assets/audio/ambient/owl_hoot_02.mp3 
+/assets/audio/ambient/owl_hoot_02.ogg 
+/assets/audio/ambient/tree_creak_01.mp3 
+/assets/audio/ambient/tree_creak_01.ogg 
+/assets/audio/ambient/wind_howl_loop.mp3 
+/assets/audio/ambient/wind_howl_loop.ogg 
+/assets/audio/exorcism/app_open_shimmer.mp3 
+/assets/audio/exorcism/app_open_shimmer.ogg 
+/assets/audio/exorcism/app_sink.mp3 
+/assets/audio/exorcism/app_sink.ogg 
+/assets/audio/exorcism/chant_drone_loop.mp3 
+/assets/audio/exorcism/chant_drone_loop.ogg 
+/assets/audio/exorcism/choir_aah.mp3 
+/assets/audio/exorcism/choir_aah.ogg 
+/assets/audio/exorcism/ground_rumble.mp3 
+/assets/audio/exorcism/ground_rumble.ogg 
+/assets/audio/exorcism/holy_light_burst.mp3 
+/assets/audio/exorcism/holy_light_burst.ogg 
+/assets/audio/exorcism/rip_bell_toll.mp3 
+/assets/audio/exorcism/rip_bell_toll.ogg 
+/assets/audio/exorcism/rune_sparkle_short.mp3 
+/assets/audio/exorcism/rune_sparkle_short.ogg 
+/assets/audio/exorcism/rune_sparkles.mp3 
+/assets/audio/exorcism/rune_sparkles.ogg 
+/assets/audio/exorcism/stone_crack_crumble.mp3 
+/assets/audio/exorcism/stone_crack_crumble.ogg 
+/assets/audio/exorcism/wind_swell.mp3 
+/assets/audio/exorcism/wind_swell.ogg 
+/assets/audio/footsteps/dirt_01.mp3 
+/assets/audio/footsteps/dirt_01.ogg 
+/assets/audio/footsteps/dirt_02.mp3 
+/assets/audio/footsteps/dirt_02.ogg 
+/assets/audio/footsteps/dirt_03.mp3 
+/assets/audio/footsteps/dirt_03.ogg 
+/assets/audio/footsteps/dirt_04.mp3 
+/assets/audio/footsteps/dirt_04.ogg 
+/assets/audio/footsteps/dirt_05.mp3 
+/assets/audio/footsteps/dirt_05.ogg 
+/assets/audio/footsteps/dirt_06.mp3 
+/assets/audio/footsteps/dirt_06.ogg 
+/assets/audio/footsteps/dirt_07.mp3 
+/assets/audio/footsteps/dirt_07.ogg 
+/assets/audio/footsteps/dirt_08.mp3 
+/assets/audio/footsteps/dirt_08.ogg 
+/assets/audio/footsteps/gravel_01.mp3 
+/assets/audio/footsteps/gravel_01.ogg 
+/assets/audio/footsteps/gravel_02.mp3 
+/assets/audio/footsteps/gravel_02.ogg 
+/assets/audio/footsteps/gravel_03.mp3 
+/assets/audio/footsteps/gravel_03.ogg 
+/assets/audio/footsteps/gravel_04.mp3 
+/assets/audio/footsteps/gravel_04.ogg 
+/assets/audio/footsteps/gravel_05.mp3 
+/assets/audio/footsteps/gravel_05.ogg 
+/assets/audio/footsteps/gravel_06.mp3 
+/assets/audio/footsteps/gravel_06.ogg 
+/assets/audio/footsteps/gravel_07.mp3 
+/assets/audio/footsteps/gravel_07.ogg 
+/assets/audio/footsteps/gravel_08.mp3 
+/assets/audio/footsteps/gravel_08.ogg 
+/assets/audio/music/moonlit_lullaby_loop.mp3 
+/assets/audio/music/moonlit_lullaby_loop.ogg 
+/assets/audio/music/title_musicbox_spooky_waltz.mp3 
+/assets/audio/music/title_musicbox_spooky_waltz.ogg 
+/assets/audio/ui/back.mp3 
+/assets/audio/ui/back.ogg 
+/assets/audio/ui/close_panel.mp3 
+/assets/audio/ui/close_panel.ogg 
+/assets/audio/ui/hover.mp3 
+/assets/audio/ui/hover.ogg 
+/assets/audio/ui/open_panel.mp3 
+/assets/audio/ui/open_panel.ogg 
+/assets/audio/ui/prompt_press_f.mp3 
+/assets/audio/ui/prompt_press_f.ogg 
+/assets/audio/ui/ritual_confirm.mp3 
+/assets/audio/ui/ritual_confirm.ogg 
+/assets/audio/ui/select.mp3 
+/assets/audio/ui/select.ogg 
+/assets/images/backgrounds/sky_moon.jpg 1920x1080
+/assets/images/backgrounds/title_keyart.jpg 1920x1080
+/assets/images/fx/fog_puff.png 256x256
+/assets/images/fx/fog_tile.png 512x256
+/assets/images/fx/glow_moon.png 256x256
+/assets/images/fx/glow_warm.png 128x128
+/assets/images/fx/holy_light_burst.png 1024x1024
+/assets/images/fx/rune_circle.png 512x512
+/assets/images/fx/rune_circle_add.png 512x512
+/assets/images/kenney/light_01.png 512x512
+/assets/images/kenney/magic_01.png 512x512
+/assets/images/kenney/magic_03.png 512x512
+/assets/images/kenney/smoke_04.png 512x512
+/assets/images/kenney/spark_01.png 512x512
+/assets/images/kenney/spark_04.png 512x512
+/assets/images/kenney/star_01.png 512x512
+/assets/images/kenney/twirl_01.png 512x512
+/assets/images/particles/firefly_dot.png 8x8
+/assets/images/particles/leaf_1.png 10x9
+/assets/images/particles/leaf_2.png 9x10
+/assets/images/particles/leaf_3.png 8x10
+/assets/images/particles/leaf_4.png 8x10
+/assets/images/particles/leaf_5.png 10x10
+/assets/images/particles/leaf_6.png 10x10
+/assets/images/particles/leaf_7.png 8x10
+/assets/images/particles/leaf_8.png 9x10
+/assets/images/particles/leaves_strip.png 96x12
+/assets/images/particles/wisp.png 32x32
+/assets/images/portraits/medal_clippy.png 256x256
+/assets/images/portraits/medal_reader.png 256x256
+/assets/images/portraits/medal_roadrash.png 256x256
+/assets/images/portraits/medal_unmarked.png 256x256
+/assets/images/portraits/medal_winamp.png 256x256
+/assets/images/ui/frame_panel.png 720x385
+/assets/images/ui/vignette_moonlit.png 1920x1080
+/assets/images/wizard/attack_behind.png 384x64
+/assets/images/wizard/attack_front.png 448x64
+/assets/images/wizard/attack_left.png 448x64
+/assets/images/wizard/attack_right.png 448x64
+/assets/images/wizard/mage_idle.png 448x64
+/assets/images/wizard/mage_idle1.png 128x64
+/assets/images/wizard/walk_down.png 256x64
+/assets/images/wizard/walk_left.png 320x64
+/assets/images/wizard/walk_right.png 320x64
+/assets/images/wizard/walk_up.png 256x64
+/assets/images/world/crow_flying.png 32x32
+/assets/images/world/crow_perched.png 24x18
+/assets/images/world/ground_grass.png 256x256
+/assets/images/world/ground_path.png 256x256
+/assets/images/world/jackolantern_lit.png 28x25
+/assets/images/world/tomb_cracked.png 73x55
+/assets/images/world/tomb_deco_cross.png 30x44
+/assets/images/world/tomb_deco_obelisk.png 30x44
+/assets/images/world/tomb_deco_square.png 43x44
+/assets/images/world/tomb_plain.png 73x55
+/assets/images/world/tomb_rubble.png 73x55
+/assets/images/world/tree_1.png 141x160
+/assets/images/world/tree_2.png 158x176
+/assets/images/world/tree_3.png 211x128
+/assets/images/world/tree_4.png 196x144
+/assets/voice/farewell_requiescat.mp3 
+/assets/voice/farewell_requiescat.ogg 
+/assets/voice/incant_clippy.mp3 
+/assets/voice/incant_clippy.ogg 
+/assets/voice/incant_generic.mp3 
+/assets/voice/incant_generic.ogg 
+/assets/voice/incant_googlereader.mp3 
+/assets/voice/incant_googlereader.ogg 
+/assets/voice/incant_roadrash.mp3 
+/assets/voice/incant_roadrash.ogg 
+/assets/voice/incant_unmarked.mp3 
+/assets/voice/incant_unmarked.ogg 
+/assets/voice/incant_winamp.mp3 
+/assets/voice/incant_winamp.ogg 
+/data/graves.json 
+/data/voice_lines.json 

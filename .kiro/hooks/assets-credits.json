@@ -1,0 +1,15 @@
+{
+  "name": "assets-credits",
+  "description": "Warns when a file under public/assets/ has no matching entry in CREDITS.md. Run automatically when files under public/assets/ change.",
+  "trigger": {
+    "type": "file_change",
+    "pattern": "public/assets/**"
+  },
+  "steps": [
+    {
+      "name": "check-credits",
+      "command": "node .kiro/hooks/assets-credits.mjs",
+      "on_failure": "warn"
+    }
+  ]
+}

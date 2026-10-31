@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Raise Dead: Graveyard of Lost Apps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Pixelify+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: #0b1020;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #game-container {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+      }
+
+      #game-container canvas {
+        display: block;
+      }
+
+      /* Loading screen before Phaser takes over */
+      #loading-screen {
+        position: absolute;
+        inset: 0;
+        background: #0b1020;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        color: #d9f2ee;
+        font-family: 'Cinzel', serif;
+        font-size: 1.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="loading-screen">Loading…</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+[
+  {
+    "id": "incant_roadrash",
+    "grave": "Road Rash",
+    "subtitle": "Surge, eques viae! Rider of the roaring road, kick-start thy restless soul, and ride once more!",
+    "tts_input": "Soor-geh, eh-kwes vee-eye! Rider of the roaring road... kick-start thy restless soul, and ride once more!",
+    "files": [
+      "assets/voice/incant_roadrash.ogg",
+      "assets/voice/incant_roadrash.mp3"
+    ],
+    "duration": 10.462
+  },
+  {
+    "id": "incant_googlereader",
+    "grave": "Google Reader",
+    "subtitle": "Surge, lector fidelis! From the ashes of the server, gather thy scattered feeds, and read again!",
+    "tts_input": "Soor-geh, lek-tor fee-day-lees! From the ashes of the server... gather thy scattered feeds, and read again!",
+    "files": [
+      "assets/voice/incant_googlereader.ogg",
+      "assets/voice/incant_googlereader.mp3"
+    ],
+    "duration": 9.773
+  },
+  {
+    "id": "incant_clippy",
+    "grave": "Clippy",
+    "subtitle": "Expergiscere, adiutor parve! It looks like thou art trying to rise. Let me help thee... RISE!",
+    "tts_input": "Ex-pair-giss-keh-reh, ad-yoo-tor par-veh! It looks like thou art trying to rise. Let me help thee... Rise!",
+    "files": [
+      "assets/voice/incant_clippy.ogg",
+      "assets/voice/incant_clippy.mp3"
+    ],
+    "duration": 10.487
+  },
+  {
+    "id": "incant_winamp",
+    "grave": "Winamp",
+    "subtitle": "Resona, carmen antiquum! Ancient keeper of the playlist, let the visualiser burn, and the music live again!",
+    "tts_input": "Reh-so-nah, kar-men an-tee-kwum! Ancient keeper of the playlist... let the visualiser burn, and the music live again!",
+    "files": [
+      "assets/voice/incant_winamp.ogg",
+      "assets/voice/incant_winamp.mp3"
+    ],
+    "duration": 10.233
+  },
+  {
+    "id": "incant_unmarked",
+    "grave": "Unmarked Grave",
+    "subtitle": "Nomen ignotum, surge! Nameless one, forgotten by all. Speak thy name, and I shall give thee form!",
+    "tts_input": "No-men ig-no-tum, soor-geh! Nameless one, forgotten by all. Speak thy name... and I shall give thee form!",
+    "files": [
+      "assets/voice/incant_unmarked.ogg",
+      "assets/voice/incant_unmarked.mp3"
+    ],
+    "duration": 11.924
+  },
+  {
+    "id": "incant_generic",
+    "grave": "Generic / decorative graves",
+    "subtitle": "Per lunam et lucem: surge, anima perdita! From the ashes of the server, rise!",
+    "tts_input": "Pair loo-nam et loo-kem... soor-geh, ah-nee-mah pair-dee-tah! From the ashes of the server, rise!",
+    "files": [
+      "assets/voice/incant_generic.ogg",
+      "assets/voice/incant_generic.mp3"
+    ],
+    "duration": 9.412
+  },
+  {
+    "id": "farewell_requiescat",
+    "grave": "Exit (all graves)",
+    "subtitle": "Requiescat in pace. Return to the quiet earth, old friend... until thou art needed again.",
+    "tts_input": "Reh-kwee-ess-kat in pah-cheh. Return to the quiet earth, old friend... until thou art needed again.",
+    "files": [
+      "assets/voice/farewell_requiescat.ogg",
+      "assets/voice/farewell_requiescat.mp3"
+    ],
+    "duration": 8.588
+  }
+]
