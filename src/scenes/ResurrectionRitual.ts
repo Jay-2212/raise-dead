@@ -40,6 +40,10 @@ export class ResurrectionRitual extends Phaser.Scene {
   private voiceSound: Phaser.Sound.BaseSound | null = null;
   private incantationKey = '';
 
+  // P1-2: Track emitters for cleanup
+  private sparkEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+  private dustEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+
   private cancelled = false;
   private phase: RitualPhase = 'ritual';
   private overlay: GraveOverlay | null = null;
@@ -59,7 +63,17 @@ export class ResurrectionRitual extends Phaser.Scene {
 
   init(initData: RitualData): void {
     this.ritualData = initData;
+    // P0-1: Reset all instance fields for re-entrancy safety
     this.cancelled = false;
+    this.phase = 'ritual';
+    this.ritualDelays = [];
+    this.ritualTweens = [];
+    this.overlay = null;
+    this.chantLoop = null;
+    this.voiceSound = null;
+    // P1-2: Reset emitters
+    this.sparkEmitter = null;
+    this.dustEmitter = null;
   }
 
   create(): void {
@@ -219,37 +233,41 @@ export class ResurrectionRitual extends Phaser.Scene {
       this.sound.play('wind_swell', { volume: 0.7 });
       this.sound.play('ground_rumble', { volume: 0.6 });
 
-      // Kenney sparks from the grave
-      const sparkEmitter = this.add.particles(
+      // P1-2: Kenney sparks from the grave (store reference)
+      this.sparkEmitter = this.add.particles(
         this.graveScreenX,
         this.graveScreenY - 20,
         'kenney_spark_01',
         {
           speed: { min: 40, max: 120 },
           angle: 270,
-          scale: { start: 0.6, end: 0 },
-          alpha: { start: 1, end: 0 },
+          scale: { start: 0.12, end: 0 }, // P1-3: Scaled down from 0.6
+          alpha: { start: 0.7, end: 0 }, // P1-3: Reduced from 1
           lifespan: 1200,
-          quantity: 3,
-          frequency: 80,
+          quantity: 2, // P1-3: Limited from 3
+          frequency: 120, // P1-3: Reduced from 80 (longer between emissions)
           duration: 2000,
           tint: [0x7fd1d8, 0x9effc8, 0xffe9a8],
+          blendMode: Phaser.BlendModes.ADD, // P1-3: Use ADD blend mode
         }
       ) as unknown as Phaser.GameObjects.Particles.ParticleEmitter;
-      sparkEmitter.setDepth(22);
+      this.sparkEmitter.setDepth(22);
 
       // Camera shake build-up
       const gwScene = this.scene.get('GraveyardWorld') as Phaser.Scene;
-      this.tweens.addCounter({
+      const counterTween = this.tweens.addCounter({
         from: 0.004,
         to: 0.012,
         duration: 1800,
         onUpdate: (tween) => {
           if (this.cancelled) return;
           const value = tween.getValue() as number;
+          // P1-16: Shake both GraveyardWorld camera and this scene's camera
           (gwScene?.cameras?.main as Phaser.Cameras.Scene2D.Camera).shake(80, value);
+          (this.cameras?.main as Phaser.Cameras.Scene2D.Camera).shake(80, value);
         },
       });
+      this.ritualTweens.push(counterTween);
     });
     this.ritualDelays.push(t2);
 
@@ -266,15 +284,18 @@ export class ResurrectionRitual extends Phaser.Scene {
     const t4 = this.time.delayedCall(stoneSwapAt + 600, () => {
       if (this.cancelled) return;
       this.swapStone('rubble');
-      const dustEmitter = this.add.particles(this.graveScreenX, this.graveScreenY - 10, 'kenney_smoke_04', {
+      // P1-7: Make dust cloud less opaque and use gentler scale/angle to avoid hiding wizard
+      this.dustEmitter = this.add.particles(this.graveScreenX, this.graveScreenY - 24, 'kenney_smoke_04', {
         speed: { min: 20, max: 60 },
-        scale: { start: 0.5, end: 0 },
-        alpha: { start: 0.6, end: 0 },
+        angle: { min: 200, max: 340 }, // P1-7: Upward fan instead of all directions
+        scale: { start: 0.18, end: 0.05 }, // P1-7: Much smaller (from 0.5 to 0.18-0.05)
+        alpha: { start: 0.45, end: 0 }, // P1-7: More transparent (from 0.6 to 0.45)
         lifespan: 1000,
         quantity: 6,
         tint: 0x9aa8b8,
+        speedY: -30, // P1-7: Upward drift
       }) as unknown as Phaser.GameObjects.Particles.ParticleEmitter;
-      dustEmitter.setDepth(23);
+      this.dustEmitter.setDepth(22); // P1-7: Lower depth than current (23 to 22) to stay behind wizard
     });
     this.ritualDelays.push(t4);
 
@@ -330,11 +351,13 @@ export class ResurrectionRitual extends Phaser.Scene {
     const words = subtitle.split(' ');
     const chunkSize = Math.ceil(words.length / 3);
 
-    this.tweens.add({
+    // P1-2: Track the show tween
+    const showTween = this.tweens.add({
       targets: [this.subtitleBg, this.subtitleText],
       alpha: 1,
       duration: 300,
     });
+    this.ritualTweens.push(showTween);
 
     let elapsed = 0;
     for (let i = 0; i < 3; i++) {
@@ -348,14 +371,15 @@ export class ResurrectionRitual extends Phaser.Scene {
       elapsed = delay + duration / 3;
     }
 
-    // Fade out subtitles
+    // P1-2: Track the fade-out tween
     const tFade = this.time.delayedCall(elapsed + 200, () => {
       if (this.cancelled) return;
-      this.tweens.add({
+      const fadeTween = this.tweens.add({
         targets: [this.subtitleBg, this.subtitleText],
         alpha: 0,
         duration: 400,
       });
+      this.ritualTweens.push(fadeTween);
     });
     this.ritualDelays.push(tFade);
   }
@@ -381,8 +405,24 @@ export class ResurrectionRitual extends Phaser.Scene {
     // Pause GraveyardWorld
     this.scene.pause('GraveyardWorld');
 
+    // P1-2: Use onExit callback, drop the rip-exit window listener
     this.overlay = new GraveOverlay();
     this.overlay.mount(this.grave, () => this.startExitRitual());
+
+    // P1-17: Fade out chant drone to silence
+    if (this.chantLoop && 'setVolume' in this.chantLoop) {
+      const droneTween = this.tweens.add({
+        targets: this.chantLoop,
+        volume: 0,
+        duration: 800,
+        onComplete: () => {
+          if (this.chantLoop) {
+            this.chantLoop.stop();
+          }
+        },
+      });
+      this.ritualTweens.push(droneTween);
+    }
 
     // White fill fades out
     this.tweens.add({
@@ -391,13 +431,6 @@ export class ResurrectionRitual extends Phaser.Scene {
       duration: 600,
       delay: 200,
     });
-
-    // Listen for DOM rip-exit event
-    const handler = () => {
-      window.removeEventListener('rip-exit', handler);
-      this.startExitRitual();
-    };
-    window.addEventListener('rip-exit', handler);
   }
 
   // ─── Exit ritual ─────────────────────────────────────────────────────────
@@ -412,7 +445,8 @@ export class ResurrectionRitual extends Phaser.Scene {
     this.sound.play('rip_bell_toll', { volume: 0.7 });
 
     // Play farewell voice (optional)
-    if (this.sound.get('farewell_requiescat')) {
+    // P1-1: Check if audio exists in cache before playing
+    if (this.cache.audio.exists('farewell_requiescat')) {
       this.sound.play('farewell_requiescat', { volume: 0.6 });
     }
 
@@ -443,8 +477,20 @@ export class ResurrectionRitual extends Phaser.Scene {
   }
 
   private exitCleanup(): void {
+    // P1-2: Destroy all sounds and emitters
+    this.voiceSound?.stop();
+    this.voiceSound?.destroy();
+    this.voiceSound = null;
+    
+    this.chantLoop?.stop();
     this.chantLoop?.destroy();
     this.chantLoop = null;
+
+    this.sparkEmitter?.destroy();
+    this.sparkEmitter = null;
+    
+    this.dustEmitter?.destroy();
+    this.dustEmitter = null;
 
     // Return stone to plain state
     this.swapStone('plain');
@@ -486,12 +532,31 @@ export class ResurrectionRitual extends Phaser.Scene {
     this.ritualDelays = [];
     this.ritualTweens = [];
 
-    // Stop sounds
+    // P1-2: Stop and destroy all sounds
     this.voiceSound?.stop();
+    this.voiceSound?.destroy();
+    this.voiceSound = null;
+    
+    this.chantLoop?.stop();
     this.chantLoop?.destroy();
     this.chantLoop = null;
+    
     this.sound.stopByKey('wind_swell');
     this.sound.stopByKey('ground_rumble');
+
+    // P1-2: Destroy emitters
+    this.sparkEmitter?.destroy();
+    this.sparkEmitter = null;
+    
+    this.dustEmitter?.destroy();
+    this.dustEmitter = null;
+
+    // P1-2: Hide UI elements immediately
+    this.subtitleBg.setVisible(false);
+    this.subtitleText.setVisible(false);
+    this.runeCircle.setVisible(false);
+    this.holyBurst.setVisible(false);
+    this.whiteFill.setAlpha(0);
 
     // Restore stone
     this.swapStone('plain');
@@ -504,8 +569,8 @@ export class ResurrectionRitual extends Phaser.Scene {
     worldScene?.audio?.restoreAmbient();
     (this.scene.get('GraveyardWorld') as Phaser.Scene)?.cameras.main.resetFX();
 
-    // Fade camera back in
-    this.cameras.main.fadeIn(400);
+    // P1-2: Use shorter fade (250ms instead of 400ms)
+    this.cameras.main.fadeIn(250);
     this.cameras.main.once('camerafadeincomplete', () => {
       const gwScene = this.scene.get('GraveyardWorld') as Phaser.Scene;
       gwScene?.input.keyboard?.enableGlobalCapture();

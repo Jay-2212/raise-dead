@@ -7,7 +7,6 @@ import { GraveEntry } from '../types/graves';
 import { RitualData } from '../types/ritual';
 import { Tombstone } from '../ui/Tombstone';
 import { AudioManager } from '../audio/AudioManager';
-import { Joystick } from '../ui/Joystick';
 import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
 
 const WORLD_W = 2400;
@@ -31,7 +30,6 @@ export class GraveyardWorld extends Phaser.Scene {
     right: Phaser.Input.Keyboard.Key;
   };
   private mKey!: Phaser.Input.Keyboard.Key;
-  private joystick!: Joystick;
 
   // World objects
   public tombstones: Tombstone[] = [];
@@ -84,6 +82,10 @@ export class GraveyardWorld extends Phaser.Scene {
     // Listen for ritual fully ended (when ResurrectionRitual completes the exit sequence)
     this.events.on('ritualFullyEnded', () => {
       this.ritualActive = false;
+      // P0-2: Reset stuck keys after exit
+      this.input.keyboard?.resetKeys();
+      // P0-3: Re-enable proximity checks for plaque/hint by resetting lastProxGraveId
+      this.lastProxGraveId = null;
       this.scene.resume('UIScene');
     });
   }
@@ -411,9 +413,7 @@ export class GraveyardWorld extends Phaser.Scene {
     };
     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
-    this.joystick = new Joystick(this);
-    this.joystick.onFPress(() => this.tryRaiseGrave());
-
+    // P0-5: Joystick now lives in UIScene; F key listener here handles keyboard input
     // F key event listener
     this.input.keyboard!.on('keydown-F', () => this.tryRaiseGrave());
 
@@ -436,7 +436,9 @@ export class GraveyardWorld extends Phaser.Scene {
 
   // ─── Raise grave ─────────────────────────────────────────────────────────
 
-  private tryRaiseGrave(): void {
+  public tryRaiseGrave(): void {
+    // P0-1: Guard against re-entrancy during ritual/overlay
+    if (this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isPaused('ResurrectionRitual')) return;
     if (!this.activeGrave) return;
     if (!this.activeGrave.resurrectable) return;
 
@@ -447,6 +449,15 @@ export class GraveyardWorld extends Phaser.Scene {
       tombstoneWorldX: ts?.x ?? WIZARD_SPAWN.x,
       tombstoneWorldY: ts?.y ?? WIZARD_SPAWN.y,
     };
+
+    // P0-2: Stop wizard sliding and play idle animation
+    this.wizard.setVelocity(0, 0);
+    this.wizard.play('idle', true);
+
+    // P1-4: Move wizard 40 art px below stone before ritual starts
+    if (ts) {
+      this.wizard.setPosition(ts.x, ts.y + 40);
+    }
 
     // Freeze wizard input
     this.input.keyboard!.disableGlobalCapture();
@@ -493,9 +504,10 @@ export class GraveyardWorld extends Phaser.Scene {
     if (this.cursors.up.isDown    || this.wasd.up.isDown)    dy -= 1;
     if (this.cursors.down.isDown  || this.wasd.down.isDown)  dy += 1;
 
-    // Joystick
-    if (this.joystick.active) {
-      const force = this.joystick.getForce();
+    // P0-5: Joystick now lives in UIScene; get normalized force from there
+    const uiScene = this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } };
+    if (uiScene?.joystick?.active) {
+      const force = uiScene.joystick.getForce();
       if (Math.abs(force.forceX) > 0.1) dx = force.forceX;
       if (Math.abs(force.forceY) > 0.1) dy = force.forceY;
     }

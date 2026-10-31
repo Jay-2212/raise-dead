@@ -8,6 +8,7 @@ export class ProximityHint extends Phaser.GameObjects.Container {
   private bg: Phaser.GameObjects.Rectangle;
   private label: Phaser.GameObjects.Text;
   private pulseTween: Phaser.Tweens.Tween | null = null;
+  private fadeTween: Phaser.Tweens.Tween | null = null;
 
   constructor(scene: Phaser.Scene) {
     // Centred horizontally at bottom of HUD
@@ -31,11 +32,20 @@ export class ProximityHint extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  // P2-17: Update text based on whether joystick is active
+  setText(text: string): void {
+    this.label.setText(text);
+  }
+
   show(): void {
     if (this.visible) return;
+    // P0-4: Kill any running fade tween before starting a new one
+    this.fadeTween?.stop();
+    this.fadeTween = null;
+    
     this.setVisible(true);
     this.setAlpha(0);
-    this.scene.tweens.add({
+    this.fadeTween = this.scene.tweens.add({
       targets: this,
       alpha: 1,
       duration: 300,
@@ -51,15 +61,24 @@ export class ProximityHint extends Phaser.GameObjects.Container {
     });
   }
 
-  hide(): void {
+  hide(immediate = false): void {
     if (!this.visible) return;
     this.pulseTween?.stop();
     this.pulseTween = null;
-    this.scene.tweens.add({
-      targets: this,
-      alpha: 0,
-      duration: 200,
-      onComplete: () => this.setVisible(false),
-    });
+    // P0-4: Support immediate hide (kill tweens and set alpha/visible directly)
+    this.fadeTween?.stop();
+    this.fadeTween = null;
+    
+    if (immediate) {
+      this.setAlpha(0);
+      this.setVisible(false);
+    } else {
+      this.fadeTween = this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => this.setVisible(false),
+      });
+    }
   }
 }

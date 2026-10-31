@@ -1,0 +1,24 @@
+[reqfailed] https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Pixelify+Sans:wght@400;500;600&display=swap
+[error] Failed to load resource: net::ERR_FAILED
+[log] %c %c %c %c %c Phaser v3.90.0 (WebGL | Web Audio) %c https://phaser.io/v390 background: #ff0000 background: #ffff00 background: #00ff00 background: #00ffff color: #ffffff; background: #000000 background: transparent
+[info] [Raise Dead] window.__RD debug hooks available: [game, goto, teleportToGrave, raise]
+[ok] title two-step entered graveyard
+fps 7.333950960615766
+UI before ritual: {"hint":false,"plaque":true,"muteBtn":true,"paused":false}
+[test] wizard x during ritual 1268 -> 1268 (PASS no slide)
+[test] F mid-ritual: PASS ritual not restarted
+UI during ritual: {"hint":false,"plaque":false,"muteBtn":true,"paused":true}
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[reqfailed] http://127.0.0.1:4173/graves/clippy/index.ts
+overlay at 18254ms
+[test] F during overlay -> ritual scenes active: ResurrectionRitual
+UI after exit: {"hint":true,"plaque":true,"muteBtn":true,"paused":false}
+overlay DOM left: 0
+[test] credits open, world paused: true
+[test] WASD/F under credits: wizard 1268->1268, ritual active false
+[reqfailed] https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Pixelify+Sans:wght@400;500;600&display=swap
+[error] Failed to load resource: net::ERR_FAILED
+[log] %c %c %c %c %c Phaser v3.90.0 (WebGL | Web Audio) %c https://phaser.io/v390 background: #ff0000 background: #ffff00 background: #00ff00 background: #00ffff color: #ffffff; background: #000000 background: transparent
+[info] [Raise Dead] window.__RD debug hooks available: [game, goto, teleportToGrave, raise]
+mobile canvas rect: {"x":0,"y":312,"width":390,"height":219.375,"top":312,"right":390,"bottom":531.375,"left":0}
+mobile joystick: {"active":true,"fBtn":{"x":1140,"y":580,"vis":true},"base":{"x":140,"y":580,"vis":true}}

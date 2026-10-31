@@ -78,6 +78,8 @@ export class AudioManager {
 
   duckMusic(targetVol: number, duration = 800): void {
     if (!this.musicTrack || !('setVolume' in this.musicTrack)) return;
+    // P1-18: Kill existing tweens before adding a new one
+    this.scene.tweens.killTweensOf(this.musicTrack);
     this.scene.tweens.add({
       targets: this.musicTrack,
       volume: targetVol,
@@ -120,6 +122,8 @@ export class AudioManager {
   duckAmbient(targetVol: number, duration = 800): void {
     this.ambientLoops.forEach((sound) => {
       if ('setVolume' in sound) {
+        // P1-18: Kill existing tweens before adding a new one
+        this.scene.tweens.killTweensOf(sound);
         this.scene.tweens.add({
           targets: sound,
           volume: targetVol,
@@ -138,6 +142,8 @@ export class AudioManager {
     this.ambientLoops.forEach((sound, key) => {
       const vol = defaults[key] ?? 0.25;
       if ('setVolume' in sound) {
+        // P1-18: Kill existing tweens before adding a new one
+        this.scene.tweens.killTweensOf(sound);
         this.scene.tweens.add({
           targets: sound,
           volume: vol,

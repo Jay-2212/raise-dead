@@ -27,12 +27,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        /* P0-6: Touch action none to prevent scrolling/zoom on joystick */
+        touch-action: none;
       }
 
       #game-container {
         position: relative;
-        width: 1280px;
-        height: 720px;
+        /* P0-6: Use viewport dimensions instead of fixed px */
+        width: 100vw;
+        height: 100dvh;
       }
 
       #game-container canvas {

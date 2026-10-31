@@ -1,0 +1,93 @@
+I'll read the research file first to understand what needs to be done.
+[tool] Reading r1-session-a2.md:1
+[tool] status: Completed
+I'll create a task list to track all the fixes, then work through them systematically.
+[tool] Creating task list: Fix 4 issues found in r1-session-a2: plaque layout, Credi...
+[tool] status: Completed
+Now I'll read the relevant source files to understand the current implementation.
+[tool] status: Failed
+Let me list the directories to find the relevant files:
+[tool] Reading listing scenes, listing ui
+[tool] status: Completed
+Now let me read the key files for the fixes:
+[tool] Reading UIScene.ts:1, ResurrectionRitual.ts:1, GraveyardWorld.ts:1
+[tool] status: Completed
+Now I'll read the CreditsScene to understand how Credits are opened and what needs to be changed:
+[tool] Reading CreditsScene.ts:1
+[tool] status: Completed
+Now I have all the context needed. Let me implement the fixes systematically. I'll start with task #1 (plaque layout):
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now I need to update the `updatePlaque()` method to dynamically reposition and resize the panel:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now I'll mark task #1 complete and move to task #2 (Credits visibility fix):
+[tool] Completing #1
+[tool] status: Completed
+Now I'll fix task #2 - hide plaque, hint, and joystick when Credits opens:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now I need to fix the CreditsScene to show the plaque/hint/joystick again on resume, and reset the proximity detection:
+[tool] Editing CreditsScene.ts
+[tool] status: Completed
+Now let me mark task #2 complete and move to task #3 (spark effect fixes):
+[tool] Completing #2
+[tool] status: Completed
+Now I'll fix task #3 - spark effect. I need to modify the sparkEmitter configuration in ResurrectionRitual:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now mark task #3 complete and move to task #4 (wizard positioning):
+[tool] Completing #3
+[tool] status: Completed
+Now I'll fix task #4 - wizard positioning. I need to modify the `tryRaiseGrave()` method in GraveyardWorld to move the wizard 40px below the stone before launching the ritual:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now I also need to update the rune circle positioning in ResurrectionRitual since the wizard is now 40px below the stone. Let me check the current positioning logic:
+
+The spec says "Wizard is 40 art px below grave, so rune center is 20 px below grave". This is already correctly calculated in the current code (the comment already states this). However, I need to verify that the rune circle is positioned correctly. Looking at the code, the rune circle is positioned at `runeCircleScreenY = this.graveScreenY + (20 * cam.zoom)` which is correct - it's 20 art px below the grave (40/2).
+
+Now let me mark task #4 complete and run the build:
+[tool] Completing #4
+[tool] status: Completed
+Now let's run the build to verify all changes compile correctly:
+[tool] Running: cd /workspace/raise-dead && npm run build
+[tool] status: Completed
+I have a TypeScript error. The `get()` function returns `Text | Image`, but I'm trying to cast it to `NineSlice`. I need to get the panel separately:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now let's run the build again:
+[tool] Running: cd /workspace/raise-dead && npm run build
+[tool] status: Completed
+Excellent! The build passes successfully. Let me mark task #5 complete:
+[tool] Completing #5
+[tool] status: Completed
+Perfect! All four issues from the research file have been fixed and the build passes. Here's a summary of the changes made:
+
+## Summary of Changes
+
+**1. Fixed plaque layout (P1-6):**
+   - Widened `PANEL_W` from 440 to 500 px for better text wrapping
+   - Reorganized layout: medallion + name/years in row 1, epitaph below at `contentY + 66`
+   - Cause text positioned directly after epitaph with 8px spacing
+   - Dynamically resize panel height to fit content (minimum 200px)
+   - When medallion is hidden, name/years move to contentX and epitaph moves up to `contentY + 52`
+
+**2. Fixed Credits screen visibility (P1-3):**
+   - Hide plaque, hint, and joystick immediately before pausing UIScene and GraveyardWorld
+   - On Credits close (`goBack()`), reset `lastProxGraveId` in GraveyardWorld to trigger proximity re-detection
+   - This causes plaque/hint to re-show automatically when Credits dismiss
+
+**3. Fixed spark effect (P1-3):**
+   - Reduced scale from `0.6` to `0.12` (8x smaller)
+   - Reduced alpha from `1` to `0.7`
+   - Limited quantity from 3 to 2 sparks
+   - Increased frequency from 80 to 120 (less frequent emissions)
+   - Added `blendMode: ADD` to prevent the spark effect from hiding the wizard
+
+**4. Fixed wizard positioning (P1-4):**
+   - Move wizard 40 art px below stone (`ts.y + 40`) in `GraveyardWorld.tryRaiseGrave()`
+   - This ensures the stone is fully visible above the wizard's head during the ritual crack/crumble sequence
+   - Rune circle is correctly positioned 20 px below the stone (midpoint between wizard and stone)
+
+**Build status:** ✅ Passed successfully
+EXIT_CODE=0

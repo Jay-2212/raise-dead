@@ -15,6 +15,10 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
+    // P1-18: Read saved mute state and apply
+    const isMuted = localStorage.getItem('rd_muted') === '1';
+    this.sound.mute = isMuted;
+
     // Background keyart — scale to cover 1280×720
     const bg = this.add.image(width / 2, height / 2, 'title_keyart');
     const scaleX = width  / bg.width;
@@ -70,16 +74,24 @@ export class TitleScene extends Phaser.Scene {
 
     creditsBtn.on('pointerover', () => creditsBtn.setColor('#c9b98a'));
     creditsBtn.on('pointerout',  () => creditsBtn.setColor('#5d6b80'));
-    creditsBtn.on('pointerdown', () => {
+    creditsBtn.on('pointerdown', (event: Phaser.Input.Pointer) => {
+      // P1-4: Don't process if pointer is over another element
+      // Simple fix: just launch Credits without triggering the input listener
       this.scene.launch('CreditsScene', { from: 'TitleScene' });
     });
 
-    // Input — first click unlocks audio, second click (or same) enters graveyard
+    // Input — first click unlocks audio and starts waltz
     let firstInteraction = true;
-    this.input.once('pointerdown', () => {
-      if (firstInteraction) {
-        firstInteraction = false;
-        this.handleFirstInteraction(clickPrompt);
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // P1-4: Check if Credits scene is active
+      if (!this.scene.isActive('CreditsScene')) {
+        if (firstInteraction) {
+          firstInteraction = false;
+          this.handleFirstInteraction(clickPrompt);
+        } else if (this.audioUnlocked) {
+          // P1-5: Second click to enter graveyard
+          this.enterGraveyard();
+        }
       }
     });
 
@@ -90,24 +102,43 @@ export class TitleScene extends Phaser.Scene {
       if (firstInteraction) {
         firstInteraction = false;
         this.handleFirstInteraction(clickPrompt);
+      } else if (this.audioUnlocked) {
+        // P1-5: Enter key to proceed to graveyard on second press
+        this.enterGraveyard();
       }
     });
     spaceKey.on('down', () => {
       if (firstInteraction) {
         firstInteraction = false;
         this.handleFirstInteraction(clickPrompt);
+      } else if (this.audioUnlocked) {
+        // P1-5: Space key to proceed to graveyard on second press
+        this.enterGraveyard();
       }
     });
   }
 
   private handleFirstInteraction(clickPrompt: Phaser.GameObjects.Text): void {
     if (!this.audioUnlocked) {
+      // P1-5: First interaction unlocks audio and starts waltz, but doesn't enter yet
       this.audioUnlocked = true;
       // Start waltz
-      this.waltz = this.sound.add('title_waltz', { loop: true, volume: 0.45 });
+      this.waltz = this.sound.add('title_waltz', { loop: true, volume: 0 });
       this.waltz.play();
+      
+      // Fade in the waltz so user hears it
+      this.tweens.add({
+        targets: this.waltz,
+        volume: 0.45,
+        duration: 1000,
+      });
+      
+      // Change prompt text
+      clickPrompt.setText('Press Enter to enter the graveyard');
+      return; // Don't proceed to graveyard yet
     }
 
+    // P1-5: Second interaction enters the graveyard
     // Fade out waltz then transition
     clickPrompt.setText('Entering…');
     if (this.waltz && 'setVolume' in this.waltz) {

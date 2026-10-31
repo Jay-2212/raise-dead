@@ -176,9 +176,22 @@ export class CreditsScene extends Phaser.Scene {
   }
 
   private goBack(): void {
+    // P1-3: Guard against fetching if scene stopped
+    // (no additional guards needed now, but structure ready)
+    
     this.scene.stop('CreditsScene');
-    // If GraveyardWorld is running, resume UIScene
+    // If GraveyardWorld is running, resume both UIScene and GraveyardWorld
     if (this.fromScene === 'GraveyardWorld') {
+      // P1-3: Reset keyboard to avoid stuck keys
+      this.input.keyboard?.resetKeys();
+      
+      // P1-3: Reset proximity detection so plaque/hint re-emit on resume
+      const gwScene = this.scene.get('GraveyardWorld') as unknown as { lastProxGraveId: string | null };
+      if (gwScene) {
+        gwScene.lastProxGraveId = null;
+      }
+      
+      this.scene.resume('GraveyardWorld');
       this.scene.resume('UIScene');
     }
   }

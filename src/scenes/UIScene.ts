@@ -1,16 +1,18 @@
 /**
  * UIScene — HUD scene that runs on top of GraveyardWorld at zoom 1.
- * Contains: vignette, proximity hint, grave plaque, mute button, credits link.
+ * Contains: vignette, proximity hint, grave plaque, mute button, credits link, and mobile joystick.
  */
 import Phaser from 'phaser';
 import { GraveEntry, extractYear } from '../types/graves';
 import { ProximityHint } from '../ui/ProximityHint';
+import { Joystick } from '../ui/Joystick';
 
 export class UIScene extends Phaser.Scene {
   private hint!: ProximityHint;
   private plaque!: Phaser.GameObjects.Container;
   private plaqueVisible = false;
   private muteBtn!: Phaser.GameObjects.Text;
+  private joystick!: Joystick;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -35,8 +37,12 @@ export class UIScene extends Phaser.Scene {
     this.plaque.setVisible(false);
     this.plaque.setDepth(95);
 
+    // P1-18: Read saved mute state and apply to sound manager
+    const isMuted = localStorage.getItem('rd_muted') === '1';
+    this.sound.mute = isMuted;
+
     // Mute button
-    this.muteBtn = this.add.text(width - 12, 12, '🔊', {
+    this.muteBtn = this.add.text(width - 12, 12, isMuted ? '🔇' : '🔊', {
       fontSize: '22px',
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
     this.muteBtn.setInteractive({ useHandCursor: true });
@@ -58,8 +64,22 @@ export class UIScene extends Phaser.Scene {
     creditsBtn.on('pointerover', () => creditsBtn.setColor('#c9b98a'));
     creditsBtn.on('pointerout',  () => creditsBtn.setColor('#5d6b80'));
     creditsBtn.on('pointerdown', () => {
+      // P1-3: Hide plaque, hint, joystick before pausing
+      this.hidePlaque();
+      this.hint.hide(true);
+      this.joystick.hide();
+      
+      // P1-3: Pause both UIScene and GraveyardWorld when opening Credits
       this.scene.launch('CreditsScene', { from: 'GraveyardWorld' });
       this.scene.pause('UIScene');
+      this.scene.pause('GraveyardWorld');
+    });
+
+    // P0-5: Create joystick in UIScene (zoom 1, not affected by world camera zoom)
+    this.joystick = new Joystick(this);
+    this.joystick.onFPress(() => {
+      const world = this.scene.get('GraveyardWorld') as { tryRaiseGrave?: () => void };
+      world?.tryRaiseGrave?.();
     });
 
     // Listen for events from GraveyardWorld
@@ -70,13 +90,21 @@ export class UIScene extends Phaser.Scene {
     // Listen for ritual and overlay events
     this.events.on('ritualStarted', () => {
       this.hidePlaque();
-      this.hint.hide();
+      // P0-4: Use immediate hide to prevent faint display under subtitles
+      this.hint.hide(true);
+      // P0-5: Hide joystick during ritual
+      this.joystick.hide();
     });
     this.events.on('overlayOpened', () => {
-      this.hint.hide();
+      // P0-4: Use immediate hide during overlay
+      this.hint.hide(true);
+      // P0-5: Hide joystick during overlay
+      this.joystick.hide();
     });
     this.events.on('ritualEnded', () => {
       // Plaque and hint will be restored by proximity check
+      // P0-5: Show joystick again after ritual
+      this.joystick.show();
     });
   }
 
@@ -86,6 +114,11 @@ export class UIScene extends Phaser.Scene {
 
   private onProximityChanged(grave: GraveEntry | null): void {
     if (grave && grave.resurrectable) {
+      // P2-17: Update text based on whether joystick is active
+      const text = this.joystick.active 
+        ? 'Tap  F  to raise the dead'
+        : 'Press  F  to raise the dead';
+      this.hint.setText(text);
       this.hint.show();
     } else {
       this.hint.hide();
@@ -106,11 +139,11 @@ export class UIScene extends Phaser.Scene {
   private createPlaque(): Phaser.GameObjects.Container {
     const container = this.add.container(640, 24);
 
-    const PANEL_W = 440;
-    const PANEL_H = 200;
-    const PADDING = 36;
-    const PADDING_TOP = 44;
-    const PADDING_SIDE = 36;
+    const PANEL_W = 500; // P1-6: Widened from 440 to 500
+    const PANEL_H = 200; // Will be updated dynamically
+    const PADDING = 64;  // Bottom padding/border
+    const PADDING_TOP = 60; // Top padding inside frame
+    const PADDING_SIDE = 64; // Side padding inside frame
 
     // NineSlice panel
     const panel = this.add.nineslice(
@@ -119,20 +152,20 @@ export class UIScene extends Phaser.Scene {
       60, 64, 60, 60
     );
     panel.setOrigin(0.5, 0);
+    panel.setName('panel');
 
     // Inner content area
     const contentX = -PANEL_W / 2 + PADDING_SIDE;
     const contentY = PADDING_TOP;
     const contentW = PANEL_W - 2 * PADDING_SIDE;
-    const contentH = PANEL_H - PADDING_TOP - PADDING;
 
     // Medallion (for resurrectable graves)
-    const medallion = this.add.image(contentX, contentY + 28, 'medal_generic');
+    const medallion = this.add.image(contentX, contentY, 'medal_generic');
     medallion.setOrigin(0, 0);
     medallion.setDisplaySize(56, 56);
     medallion.setName('medallion');
 
-    // Name text (positioned to the right of medallion)
+    // Name text (positioned to the right of medallion, same row)
     const nameText = this.add.text(contentX + 70, contentY, '', {
       fontFamily: "'Pixelify Sans', sans-serif",
       fontSize: '20px',
@@ -141,7 +174,7 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0, 0);
     nameText.setName('nameText');
 
-    // Years text
+    // Years text (same row as name, offset down slightly)
     const yearsText = this.add.text(contentX + 70, contentY + 28, '', {
       fontFamily: "'Pixelify Sans', sans-serif",
       fontSize: '15px',
@@ -150,8 +183,8 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0, 0);
     yearsText.setName('yearsText');
 
-    // Epitaph text
-    const epitaphText = this.add.text(contentX, contentY + 60, '', {
+    // Epitaph text (starts below medallion row)
+    const epitaphText = this.add.text(contentX, contentY + 66, '', {
       fontFamily: "'Cinzel', serif",
       fontSize: '15px',
       fontStyle: 'italic',
@@ -161,8 +194,8 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0, 0);
     epitaphText.setName('epitaphText');
 
-    // Cause of death text
-    const causeText = this.add.text(contentX, contentY + 120, '', {
+    // Cause of death text (positioned after epitaph)
+    const causeText = this.add.text(contentX, contentY + 66, '', {
       fontFamily: "'Pixelify Sans', sans-serif",
       fontSize: '13px',
       color: '#9aa8b8',
@@ -184,13 +217,20 @@ export class UIScene extends Phaser.Scene {
     const born = extractYear(grave.born);
     const died = extractYear(grave.died);
 
-    (get('nameText') as Phaser.GameObjects.Text).setText(grave.name);
-    (get('yearsText') as Phaser.GameObjects.Text).setText(`${born} – ${died}`);
-    (get('epitaphText') as Phaser.GameObjects.Text).setText(`"${grave.epitaph}"`);
-    (get('causeText') as Phaser.GameObjects.Text).setText(`Cause of death: ${grave.cause_of_death}`);
+    const nameText = get('nameText') as Phaser.GameObjects.Text;
+    const yearsText = get('yearsText') as Phaser.GameObjects.Text;
+    const epitaphText = get('epitaphText') as Phaser.GameObjects.Text;
+    const causeText = get('causeText') as Phaser.GameObjects.Text;
+    const medallion = get('medallion') as Phaser.GameObjects.Image;
+    const panel = this.plaque.getByName('panel') as unknown as Phaser.GameObjects.NineSlice;
+
+    // Set text content
+    nameText.setText(grave.name);
+    yearsText.setText(`${born} – ${died}`);
+    epitaphText.setText(`"${grave.epitaph}"`);
+    causeText.setText(`Cause of death: ${grave.cause_of_death}`);
 
     // Update medallion texture and visibility for resurrectable graves
-    const medallion = get('medallion') as Phaser.GameObjects.Image;
     const medallionKeyMap: Record<string, string> = {
       'road-rash':      'medal_roadrash',
       'google-reader':  'medal_reader',
@@ -199,6 +239,14 @@ export class UIScene extends Phaser.Scene {
       'unmarked-grave': 'medal_unmarked',
     };
     
+    const PANEL_W = 500;
+    const PADDING_TOP = 60;
+    const PADDING_SIDE = 64;
+    const PADDING_BOTTOM = 64;
+    const contentX = -PANEL_W / 2 + PADDING_SIDE;
+    const contentY = PADDING_TOP;
+    const contentW = PANEL_W - 2 * PADDING_SIDE;
+
     if (grave.resurrectable) {
       medallion.setVisible(true);
       const medalKey = medallionKeyMap[grave.id];
@@ -206,9 +254,33 @@ export class UIScene extends Phaser.Scene {
         medallion.setTexture(medalKey);
         medallion.setDisplaySize(56, 56);
       }
+      
+      // Position name/years to the right of medallion
+      nameText.setPosition(contentX + 70, contentY);
+      yearsText.setPosition(contentX + 70, contentY + 28);
+      
+      // Epitaph starts below medallion row
+      epitaphText.setPosition(contentX, contentY + 66);
     } else {
       medallion.setVisible(false);
+      
+      // When no medallion, name/years move to contentX
+      nameText.setPosition(contentX, contentY);
+      yearsText.setPosition(contentX, contentY + 28);
+      
+      // Epitaph moved up when no medallion
+      epitaphText.setPosition(contentX, contentY + 52);
     }
+
+    // Position cause text directly below epitaph with 8px spacing
+    causeText.setPosition(contentX, epitaphText.y + epitaphText.displayHeight + 8);
+
+    // Dynamically resize panel to fit content
+    const panelHeight = Math.max(
+      200,
+      causeText.y + causeText.displayHeight + PADDING_BOTTOM
+    );
+    panel.setSize(PANEL_W, panelHeight);
   }
 
   private showPlaque(): void {
