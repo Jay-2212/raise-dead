@@ -204,6 +204,7 @@ export class UIScene extends Phaser.Scene {
       const medalKey = medallionKeyMap[grave.id];
       if (medalKey) {
         medallion.setTexture(medalKey);
+        medallion.setDisplaySize(56, 56);
       }
     } else {
       medallion.setVisible(false);
@@ -226,11 +227,7 @@ export class UIScene extends Phaser.Scene {
   public hidePlaque(): void {
     if (!this.plaqueVisible) return;
     this.plaqueVisible = false;
-    this.tweens.add({
-      targets: this.plaque,
-      alpha: 0,
-      duration: 200,
-      onComplete: () => this.plaque.setVisible(false),
-    });
+    this.plaque.setVisible(false);
+    this.hint.hide();
   }
 }

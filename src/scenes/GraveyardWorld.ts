@@ -46,6 +46,7 @@ export class GraveyardWorld extends Phaser.Scene {
   private activeGrave: GraveEntry | null = null;
   private lastProxGraveId: string | null = null;
   private promptPlayedFor: string | null = null;
+  private ritualActive = false;
 
   // Audio
   private audio!: AudioManager;
@@ -446,6 +447,7 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // Freeze wizard input
     this.input.keyboard!.disableGlobalCapture();
+    this.ritualActive = true;
 
     this.scene.launch('ResurrectionRitual', ritualData);
     this.scene.pause('UIScene');
@@ -476,6 +478,8 @@ export class GraveyardWorld extends Phaser.Scene {
   }
 
   private moveWizard(delta: number): void {
+    if (this.ritualActive) return;
+
     const speed = WALK_SPEED;
     let dx = 0;
     let dy = 0;
@@ -538,6 +542,8 @@ export class GraveyardWorld extends Phaser.Scene {
   }
 
   private checkProximity(): void {
+    if (this.ritualActive) return;
+
     let closest: GraveEntry | null = null;
     let closestDist = Infinity;
 
@@ -633,6 +639,7 @@ export class GraveyardWorld extends Phaser.Scene {
   // ─── Called when ResurrectionRitual stops and scene resumes ──────────────
 
   private onResume(): void {
+    this.ritualActive = false;
     this.input.keyboard!.enableGlobalCapture();
     this.audio.restoreMusic();
     this.audio.restoreAmbient();
