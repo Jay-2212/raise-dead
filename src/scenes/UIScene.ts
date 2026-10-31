@@ -59,12 +59,25 @@ export class UIScene extends Phaser.Scene {
     creditsBtn.on('pointerout',  () => creditsBtn.setColor('#5d6b80'));
     creditsBtn.on('pointerdown', () => {
       this.scene.launch('CreditsScene', { from: 'GraveyardWorld' });
+      this.scene.pause('UIScene');
     });
 
     // Listen for events from GraveyardWorld
     this.events.on('proximityChanged', this.onProximityChanged, this);
     this.events.on('plaqueChanged',    this.onPlaqueChanged,    this);
     this.events.on('muteChanged',      (muted: boolean) => this.updateMuteIcon(muted), this);
+
+    // Listen for ritual and overlay events
+    this.events.on('ritualStarted', () => {
+      this.hidePlaque();
+      this.hint.hide();
+    });
+    this.events.on('overlayOpened', () => {
+      this.hint.hide();
+    });
+    this.events.on('ritualEnded', () => {
+      // Plaque and hint will be restored by proximity check
+    });
   }
 
   private updateMuteIcon(muted: boolean): void {
@@ -91,11 +104,13 @@ export class UIScene extends Phaser.Scene {
   // ─── Plaque ──────────────────────────────────────────────────────────────
 
   private createPlaque(): Phaser.GameObjects.Container {
-    const container = this.add.container(640, 120);
+    const container = this.add.container(640, 24);
 
     const PANEL_W = 440;
-    const PANEL_H = 210;
-    const PADDING = 34;
+    const PANEL_H = 200;
+    const PADDING = 36;
+    const PADDING_TOP = 44;
+    const PADDING_SIDE = 36;
 
     // NineSlice panel
     const panel = this.add.nineslice(
@@ -106,10 +121,10 @@ export class UIScene extends Phaser.Scene {
     panel.setOrigin(0.5, 0);
 
     // Inner content area
-    const contentX = -PANEL_W / 2 + PADDING;
-    const contentY = PADDING;
-    const contentW = PANEL_W - 2 * PADDING;
-    const contentH = PANEL_H - 2 * PADDING;
+    const contentX = -PANEL_W / 2 + PADDING_SIDE;
+    const contentY = PADDING_TOP;
+    const contentW = PANEL_W - 2 * PADDING_SIDE;
+    const contentH = PANEL_H - PADDING_TOP - PADDING;
 
     // Medallion (for resurrectable graves)
     const medallion = this.add.image(contentX, contentY + 28, 'medal_generic');
@@ -174,10 +189,22 @@ export class UIScene extends Phaser.Scene {
     (get('epitaphText') as Phaser.GameObjects.Text).setText(`"${grave.epitaph}"`);
     (get('causeText') as Phaser.GameObjects.Text).setText(`Cause of death: ${grave.cause_of_death}`);
 
-    // Update medallion visibility for resurrectable graves
+    // Update medallion texture and visibility for resurrectable graves
     const medallion = get('medallion') as Phaser.GameObjects.Image;
+    const medallionKeyMap: Record<string, string> = {
+      'road-rash':      'medal_roadrash',
+      'google-reader':  'medal_reader',
+      'clippy':         'medal_clippy',
+      'winamp':         'medal_winamp',
+      'unmarked-grave': 'medal_unmarked',
+    };
+    
     if (grave.resurrectable) {
       medallion.setVisible(true);
+      const medalKey = medallionKeyMap[grave.id];
+      if (medalKey) {
+        medallion.setTexture(medalKey);
+      }
     } else {
       medallion.setVisible(false);
     }

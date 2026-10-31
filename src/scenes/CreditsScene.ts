@@ -15,7 +15,7 @@ interface CreditsInitData {
 
 export class CreditsScene extends Phaser.Scene {
   private fromScene = 'TitleScene';
-  private creditsLines: string[] = [];
+  private creditsLines: Array<{ text: string; isHeading: boolean }> = [];
   private scrollY = 0;
   private lineHeight = 18;
   private contentHeight = 0;
@@ -96,12 +96,12 @@ export class CreditsScene extends Phaser.Scene {
       const md = await res.text();
       this.creditsLines = this.parseMarkdown(md);
     } catch {
-      this.creditsLines = ['(Could not load CREDITS.md)'];
+      this.creditsLines = [{ text: '(Could not load CREDITS.md)', isHeading: false }];
     }
 
     const allLines = [
-      ...REQUIRED,
-      '',
+      ...REQUIRED.map((text) => ({ text, isHeading: false })),
+      { text: '', isHeading: false },
       ...this.creditsLines,
     ];
 
@@ -109,34 +109,44 @@ export class CreditsScene extends Phaser.Scene {
     let y = 68;
 
     for (const line of allLines) {
-      const isRequired = REQUIRED.includes(line);
-      const isHeader = line.trim().startsWith('—') || line.trim() === '';
-
-      if (line.trim() === '') {
+      if (line.text.trim() === '') {
         y += 12; // spacing between sections
         continue;
       }
 
-      const text = this.add.text(startX, y, line, {
-        fontFamily: isHeader ? "'Cinzel', serif" : "'Pixelify Sans', sans-serif",
-        fontSize: isHeader ? '14px' : '12px',
-        color: isRequired ? '#c9b98a' : (isHeader ? '#d9f2ee' : '#9aa8b8'),
+      const isHeading = line.isHeading;
+      const text = this.add.text(startX, y, line.text, {
+        fontFamily: isHeading ? "'Cinzel', serif" : "'Pixelify Sans', sans-serif",
+        fontSize: isHeading ? '20px' : '12px',
+        color: isHeading ? '#c9b98a' : '#9aa8b8',
         wordWrap: { width: width - 64, useAdvancedWrap: true },
       });
       text.setDepth(4);
       this.textContainer.add(text);
+      
+      // Add extra margin above headings
+      if (isHeading && y > 68) {
+        y += 8;
+      }
+      
       y += text.displayHeight + 8;
     }
 
     this.contentHeight = y + 40;
   }
 
-  private parseMarkdown(md: string): string[] {
-    const lines: string[] = [];
+  private parseMarkdown(md: string): Array<{ text: string; isHeading: boolean }> {
+    const lines: Array<{ text: string; isHeading: boolean }> = [];
     const rawLines = md.split('\n');
 
     for (const line of rawLines) {
       let processed = line;
+      let isHeading = false;
+
+      // Check if this line is a heading (starts with #)
+      if (processed.trim().startsWith('#')) {
+        isHeading = true;
+      }
 
       // Skip table header and separator rows
       if (processed.includes('|---') || (processed.startsWith('|') && rawLines.indexOf(line) === 1)) {
@@ -149,13 +159,12 @@ export class CreditsScene extends Phaser.Scene {
       // Strip markdown formatting
       processed = processed.replace(/\*\*([^\*]+)\*\*/g, '$1'); // bold
       processed = processed.replace(/`([^`]+)`/g, '$1'); // code
-      processed = processed.replace(/# /g, ''); // headings
-      processed = processed.replace(/^## /g, ''); // subheadings
+      processed = processed.replace(/^#+\s/g, ''); // strip leading # characters (headings)
       processed = processed.replace(/\| /g, ''); // table delimiters
       processed = processed.trim();
 
       if (processed.length > 0) {
-        lines.push(processed);
+        lines.push({ text: processed, isHeading });
       }
     }
 
@@ -168,10 +177,9 @@ export class CreditsScene extends Phaser.Scene {
 
   private goBack(): void {
     this.scene.stop('CreditsScene');
-    // If GraveyardWorld is running, make sure UIScene is up
+    // If GraveyardWorld is running, resume UIScene
     if (this.fromScene === 'GraveyardWorld') {
-      const gw = this.scene.get('GraveyardWorld');
-      if (gw) this.scene.resume('GraveyardWorld');
+      this.scene.resume('UIScene');
     }
   }
 }

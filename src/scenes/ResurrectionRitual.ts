@@ -129,6 +129,12 @@ export class ResurrectionRitual extends Phaser.Scene {
     const gwScene = this.scene.get('GraveyardWorld');
     gwScene?.input.keyboard?.disableGlobalCapture();
 
+    // ── Emit ritual started event to UIScene ──────────────────────────────
+    const uiScene = this.scene.get('UIScene');
+    if (uiScene) {
+      uiScene.events.emit('ritualStarted');
+    }
+
     // ── Start ritual timeline ──────────────────────────────────────────────
     this.startRitual();
   }
@@ -438,6 +444,12 @@ export class ResurrectionRitual extends Phaser.Scene {
     // Re-enable GraveyardWorld input
     const gwScene = this.scene.get('GraveyardWorld') as Phaser.Scene;
     gwScene?.input.keyboard?.enableGlobalCapture();
+
+    // Emit ritual ended event to UIScene
+    const uiScene = this.scene.get('UIScene');
+    if (uiScene) {
+      uiScene.events.emit('ritualEnded');
+    }
 
     this.scene.stop('ResurrectionRitual');
   }

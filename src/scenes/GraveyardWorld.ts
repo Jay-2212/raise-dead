@@ -34,7 +34,7 @@ export class GraveyardWorld extends Phaser.Scene {
   private joystick!: Joystick;
 
   // World objects
-  private tombstones: Tombstone[] = [];
+  public tombstones: Tombstone[] = [];
   private tombstoneGroup!: Phaser.Physics.Arcade.StaticGroup;
   private graves: GraveEntry[] = [];
 
@@ -144,6 +144,33 @@ export class GraveyardWorld extends Phaser.Scene {
 
   private spawnDecoratives(): void {
     const treeKeys = ['tree_1', 'tree_2', 'tree_3', 'tree_4'];
+    
+    // Central plaza area around spawn (~1200, 900)
+    // Add 6-8 trees at edges, 40+ px away from graves and paths
+    const centralPazaTrees = [
+      { x: 1040, y: 650 },  // upper-left edge
+      { x: 1230, y: 620 },  // upper-center
+      { x: 1420, y: 650 },  // upper-right edge
+      { x: 1530, y: 800 },  // right edge
+      { x: 1420, y: 970 },  // lower-right edge
+      { x: 1230, y: 1000 }, // lower-center
+      { x: 1040, y: 970 },  // lower-left edge
+      { x: 900, y: 800 },   // left edge
+    ];
+    
+    for (let i = 0; i < centralPazaTrees.length; i++) {
+      const pos = centralPazaTrees[i];
+      const key = treeKeys[i % treeKeys.length];
+      const tree = this.add.image(pos.x, pos.y, key);
+      tree.setOrigin(0.5, 1);
+      tree.setDepth(pos.y);
+
+      // Shadow
+      const sh = this.add.ellipse(pos.x, pos.y, 60, 18, 0x0b1020, 0.35);
+      sh.setDepth(pos.y - 1);
+    }
+    
+    // Original decorative trees
     const treePositions = [
       { x: 280, y: 300 }, { x: 2150, y: 280 }, { x: 350, y: 1400 },
       { x: 2100, y: 1380 }, { x: 600, y: 1250 }, { x: 1800, y: 1350 },
@@ -617,7 +644,8 @@ export class GraveyardWorld extends Phaser.Scene {
   teleportToGrave(id: string): void {
     const layout = MAP_LAYOUT.find((l) => l.id === id);
     if (!layout) return;
-    this.wizard.setPosition(layout.x, layout.y + 40);
+    // Position wizard 44 art px below the stone's base (stone origin at 0.5, 1)
+    this.wizard.setPosition(layout.x, layout.y + 44);
     this.cameras.main.centerOn(layout.x, layout.y);
   }
 
