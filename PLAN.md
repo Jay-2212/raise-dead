@@ -71,3 +71,9 @@ All CLIs live in /workspace/kirohome/.local/bin and keep their sign-in under HOM
 | Oct 31 ~19:30 | p15 brief review (earlier) | 1 | 4,951 | 1,400 (781) | 0.0008 |
 | Oct 31 21:00 | Clicky runtime param tests (effort/max_tokens/stream) | 12 | ~2,550 | ~3,600 (~3,300) | 0.0010 |
 | Oct 31 21:05 | Clicky preset tree generation (2 calls, minimal) | 2 | 2,913 | 2,799 (183) | 0.0009 |
+
+## Jay notes, 2026-10-31 22:24 IST
+- Clicky uses its own Meta key "clicky-pages" (vault secret d6c6d6a1-3da0-4e06-93a0-6e4cf9e96559). Set it as Pages secret MODEL_API_KEY. dev.meta.ai offers NO per-key spend/rate/model caps, so cost control is server-side. Enforce all of these: input hard cap 200 chars (reject longer, never truncate-and-send), system prompt kept short, max_tokens 700 hard (reasoning included; reply instructed to stay at or under 60 words, and truncated server-side at 400 chars), model pinned to muse-spark-1.3-contributor, reasoning minimal, 5 per IP and 5 per token lifetime, 300 per day global. Worst case is about $0.03 a day.
+- No X trailer / Most Viral. Jay records raw demo footage; Hark edits the video (ffmpeg: trims, captions, title cards, music) — plan it in the submission phase.
+- Vision: a fun Halloween graveyard to explore. Several resurrectable dead apps (Clicky chat, Google Reader via live RSS, dead games), plus a witch fly-by, black cat, Bloody Mary well and other lore eggs.
+- Planning: before each Kiro session, run a plan "council" (Grok CLI with several personas plus Muse, and Hark as judge) and hand Kiro the merged plan. Kiro (Haiku or Sonnet) writes the code.
