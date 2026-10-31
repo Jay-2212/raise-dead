@@ -1,0 +1,449 @@
+diff --git a/src/main.ts b/src/main.ts
+index 465b3aa..9aee8e0 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -14,6 +14,12 @@ declare global {
+       goto(sceneKey: string): void;
+       teleportToGrave(id: string): void;
+       raise(id: string): void;
++      /** A8: Teleport wizard to raw world coordinates and centre camera. */
++      teleport(x: number, y: number): void;
++      /** A8: Trigger a witch fly-by immediately (delegates to GraveyardWorld). */
++      spawnWitch(): void;
++      /** A8: Return the live GraveyardWorld scene (or null if not active). */
++      world(): GraveyardWorld | null;
+     };
+   }
+ }
+@@ -71,6 +77,56 @@ async function main(): Promise<void> {
+           console.warn('[__RD] GraveyardWorld is not active — call __RD.goto("GraveyardWorld") first');
+         }
+       },
++
++      // ── A8 additions ─────────────────────────────────────────────────────
++
++      /**
++       * Teleport the wizard to raw world coordinates (x, y) and centre the
++       * camera on that point immediately. Useful for quickly navigating to any
++       * part of the 2400×1800 world during debugging.
++       *
++       * @example window.__RD.teleport(400, 1400)
++       */
++      teleport(x: number, y: number): void {
++        const world = game.scene.getScene('GraveyardWorld') as GraveyardWorld | null;
++        if (world && game.scene.isActive('GraveyardWorld')) {
++          world.teleport(x, y);
++        } else {
++          console.warn('[__RD] GraveyardWorld is not active');
++        }
++      },
++
++      /**
++       * Trigger a witch fly-by immediately, bypassing the random timer.
++       * Delegates to GraveyardWorld.spawnWitch().  Once A7 implements the
++       * witch sprite, this hook will drive the real fly-by; until then it
++       * falls back to the crow fly-by so the camera + audio path is testable.
++       *
++       * @example window.__RD.spawnWitch()
++       */
++      spawnWitch(): void {
++        const world = game.scene.getScene('GraveyardWorld') as GraveyardWorld | null;
++        if (world && game.scene.isActive('GraveyardWorld')) {
++          world.spawnWitch();
++        } else {
++          console.warn('[__RD] GraveyardWorld is not active');
++        }
++      },
++
++      /**
++       * Return the live GraveyardWorld scene instance so you can inspect or
++       * manipulate it directly in the browser console.
++       *
++       * @example const w = window.__RD.world(); w.tombstones.length
++       */
++      world(): GraveyardWorld | null {
++        const scene = game.scene.getScene('GraveyardWorld') as GraveyardWorld | null;
++        if (!scene || !game.scene.isActive('GraveyardWorld')) {
++          console.warn('[__RD] GraveyardWorld is not active');
++          return null;
++        }
++        return scene;
++      },
+     };
+ 
+     console.info('[Raise Dead] window.__RD debug hooks available:', Object.keys(window.__RD));
+diff --git a/src/scenes/GraveyardWorld.ts b/src/scenes/GraveyardWorld.ts
+index a09444f..b6465f8 100644
+--- a/src/scenes/GraveyardWorld.ts
++++ b/src/scenes/GraveyardWorld.ts
+@@ -22,6 +22,11 @@ export class GraveyardWorld extends Phaser.Scene {
+   private facing: 'down' | 'up' | 'left' | 'right' = 'down';
+   private shadow!: Phaser.GameObjects.Ellipse;
+ 
++  // Walk bob / idle breathe
++  private bobAccum = 0;       // ms accumulator for walk bob cycle
++  private idleAccum = 0;      // ms accumulator for idle breathe
++  private isMoving = false;   // tracked so bob resets cleanly on stop
++
+   // Input
+   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+   private wasd!: {
+diff --git a/src/scenes/mapLayout.ts b/src/scenes/mapLayout.ts
+index fdec81a..2d838b9 100644
+--- a/src/scenes/mapLayout.ts
++++ b/src/scenes/mapLayout.ts
+@@ -86,21 +86,70 @@ export interface PathRect {
+ }
+ 
+ export const PATH_RECTS: PathRect[] = [
+-  // Central plaza (160×120 around spawn at 1200, 900)
+-  { x: 1120, y: 840, width: 160, height: 120 },
+-  // Central horizontal path extending from plaza
+-  { x: 200,  y: 870, width: 920,  height: 48 },  // left of plaza
+-  { x: 1280, y: 870, width: 920,  height: 48 },  // right of plaza
+-  // Central vertical path extending from plaza
+-  { x: 1176, y: 200, width: 48,   height: 640 },  // above plaza
+-  { x: 1176, y: 960, width: 48,   height: 640 },  // below plaza
+-  // Ring path (approximated as 4 segments)
+-  { x: 800,  y: 620, width: 400,  height: 48 },  // top-left of ring
+-  { x: 1200, y: 620, width: 400,  height: 48 },  // top-right of ring
+-  { x: 800,  y: 1080, width: 400, height: 48 },  // bottom-left of ring
+-  { x: 1200, y: 1080, width: 400, height: 48 },  // bottom-right of ring
+-  { x: 800,  y: 620, width: 48,   height: 460 },  // left of ring
+-  { x: 1552, y: 620, width: 48,   height: 460 },  // right of ring
++  // ── Central plaza (160×120 around spawn at 1200, 900) ──────────────────
++  { x: 1120, y: 840,  width: 160, height: 120 },
++
++  // ── Central horizontal spine ───────────────────────────────────────────
++  { x: 200,  y: 870,  width: 920, height: 48 },   // left of plaza
++  { x: 1280, y: 870,  width: 920, height: 48 },   // right of plaza
++
++  // ── Central vertical spine ─────────────────────────────────────────────
++  { x: 1176, y: 150,  width: 48,  height: 690 },  // above plaza (extended to y=150)
++  { x: 1176, y: 960,  width: 48,  height: 690 },  // below plaza (extended to y=1650)
++
++  // ── Inner ring (around resurrectable arc) ──────────────────────────────
++  { x: 800,  y: 620,  width: 400, height: 48 },   // top-left arc
++  { x: 1200, y: 620,  width: 400, height: 48 },   // top-right arc
++  { x: 800,  y: 1080, width: 400, height: 48 },   // bottom-left arc
++  { x: 1200, y: 1080, width: 400, height: 48 },   // bottom-right arc
++  { x: 800,  y: 620,  width: 48,  height: 460 },  // left arc side
++  { x: 1552, y: 620,  width: 48,  height: 460 },  // right arc side
++
++  // ── Outer horizontal perimeter — Row 1 & 2 (y ≈ 350–410) ──────────────
++  // Runs the full world width so all 16 upper graves are on-path
++  { x: 200,  y: 350,  width: 2000, height: 60 },
++
++  // ── Outer horizontal perimeter — Row 3 mid (y ≈ 655–720) ──────────────
++  // Left wing: napster→farmville cluster (x 340–810)
++  { x: 320,  y: 655,  width: 520,  height: 60 },
++  // Right wing: bbm→google-wave cluster (x 1670–2150)
++  { x: 1670, y: 655,  width: 510,  height: 60 },
++
++  // ── Outer horizontal perimeter — Row 4 lower (y ≈ 1040–1105) ──────────
++  // Left wing: google-glass→windows-movie-maker cluster (x 340–820)
++  { x: 320,  y: 1040, width: 520,  height: 60 },
++  // Right wing: kinect→pebble cluster (x 1670–2050)
++  { x: 1670, y: 1040, width: 430,  height: 60 },
++
++  // ── Outer vertical connectors — left side (x ≈ 344) ───────────────────
++  // Connects Row 1 (y≈380) → Row 3 (y≈680) → Row 4 (y≈1070) via left edge
++  { x: 320,  y: 350,  width: 56,   height: 370 }, // y 350→720
++  { x: 320,  y: 720,  width: 56,   height: 380 }, // y 720→1100
++
++  // ── Outer vertical connectors — right side (x ≈ 2110) ─────────────────
++  { x: 2080, y: 350,  width: 56,   height: 370 }, // y 350→720
++  { x: 2080, y: 720,  width: 56,   height: 380 }, // y 720→1100
++
++  // ── Left-spine connectors (ties left outer ring to central spine) ──────
++  // From Row 1 left down to central horizontal (y≈870) via x≈344 column
++  // Already covered by vertical connectors above + central horizontal.
++  // Extra spur: Row-1 left cluster → inner ring left side
++  { x: 320,  y: 350,  width: 532,  height: 48 },  // Row 1 left → left-arc entry (x=852)
++  { x: 320,  y: 1040, width: 532,  height: 48 },  // Row 4 left → left-arc entry (x=852)
++
++  // ── Right-spine connectors ─────────────────────────────────────────────
++  { x: 1548, y: 350,  width: 588,  height: 48 },  // Row 1 right → right-arc entry (x=1548)
++  { x: 1548, y: 1040, width: 588,  height: 48 },  // Row 4 right → right-arc entry (x=1548)
++
++  // ── South path extension (below plaza, reaching bottom decoratives) ────
++  // The south-spine already reaches y=1650; add a lower terrace path
++  { x: 800,  y: 1580, width: 800,  height: 60 },  // lower terrace
++
++  // ── Mid-left / mid-right cross-spurs (Row 3 wings → central) ──────────
++  // Horizontal spur from left row-3 cluster (x≈760) to left-arc (x≈800)
++  { x: 760,  y: 655,  width: 88,   height: 60 },
++  // Horizontal spur from right row-3 cluster (x≈1670) to right-arc (x≈1600)
++  { x: 1550, y: 655,  width: 160,  height: 60 },
+ ];
+ 
+ /** Wizard spawn position in art pixels */
+diff --git a/src/scenes/worldAssets.ts b/src/scenes/worldAssets.ts
+index 4733d8b..bb496a7 100644
+--- a/src/scenes/worldAssets.ts
++++ b/src/scenes/worldAssets.ts
+@@ -118,9 +118,10 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
+   load.image('tree_3', 'assets/images/world/tree_3.png');
+   load.image('tree_4', 'assets/images/world/tree_4.png');
+ 
+-  // Jack-o'-lantern & crow
++  // Jack-o'-lantern, crow & witch
+   load.image('jackolantern_lit', 'assets/images/world/jackolantern_lit.png');
+   load.image('crow_flying', 'assets/images/world/crow_flying.png');
++  load.image('witch_broom', 'assets/images/eggs/witch_broom.png');
+ 
+   // FX
+   load.image('fog_tile', 'assets/images/fx/fog_tile.png');
+@@ -128,11 +129,38 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
+   load.image('glow_warm', 'assets/images/fx/glow_warm.png');
+   load.image('holy_light_burst', 'assets/images/fx/holy_light_burst.png');
+   load.image('rune_circle_add', 'assets/images/fx/rune_circle_add.png');
++  // FX — shadows (A3)
++  load.image('shadow_contact', 'assets/images/fx/shadow_contact.png');
++  load.image('shadow_cast', 'assets/images/fx/shadow_cast.png');
+ 
+   // Kenney particles
+   load.image('kenney_spark_01', 'assets/images/kenney/spark_01.png');
+   load.image('kenney_smoke_04', 'assets/images/kenney/smoke_04.png');
+ 
++  // Decals — ground detail overlays (A3)
++  load.image('decal_dirt_patch', 'assets/images/decals/decal_dirt_patch.png');
++  load.image('decal_grass_tuft', 'assets/images/decals/decal_grass_tuft.png');
++  load.image('decal_grass_tuft_flowers', 'assets/images/decals/decal_grass_tuft_flowers.png');
++  load.image('decal_grave_mound', 'assets/images/decals/decal_grave_mound.png');
++  load.image('decal_leaf_litter', 'assets/images/decals/decal_leaf_litter.png');
++  load.image('decal_mushrooms', 'assets/images/decals/decal_mushrooms.png');
++  load.image('decal_pebbles', 'assets/images/decals/decal_pebbles.png');
++  load.image('decal_roots', 'assets/images/decals/decal_roots.png');
++  load.image('decal_sunken_soil', 'assets/images/decals/decal_sunken_soil.png');
++
++  // Easter-egg world objects (A2, A7)
++  load.image('witch_broom', 'assets/images/eggs/witch_broom.png');
++  load.image('black_cat_walk', 'assets/images/eggs/black_cat_walk.png');
++  load.image('pumpkin_plain', 'assets/images/eggs/pumpkin_plain.png');
++  load.image('crypt', 'assets/images/eggs/crypt.png');
++  load.image('crypt_open', 'assets/images/eggs/crypt_open.png');
++  load.image('well', 'assets/images/eggs/well.png');
++  load.image('ghost_lady', 'assets/images/eggs/ghost_lady.png');
++  load.image('wolf_spirit', 'assets/images/eggs/wolf_spirit.png');
++  load.image('candy', 'assets/images/eggs/candy.png');
++  load.image('candy_bag', 'assets/images/eggs/candy_bag.png');
++  load.image('turnip_lantern', 'assets/images/eggs/turnip_lantern.png');
++
+   // Particles
+   load.image('wisp', 'assets/images/particles/wisp.png');
+   load.image('firefly_dot', 'assets/images/particles/firefly_dot.png');
+@@ -268,4 +296,14 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
+   load.audio('incant_unmarked', ['assets/voice/incant_unmarked.ogg', 'assets/voice/incant_unmarked.mp3']);
+   load.audio('incant_generic', ['assets/voice/incant_generic.ogg', 'assets/voice/incant_generic.mp3']);
+   load.audio('farewell_requiescat', ['assets/voice/farewell_requiescat.ogg', 'assets/voice/farewell_requiescat.mp3']);
++
++  // SFX — witch fly-by, cat, ambient events (A7)
++  load.audio('witch_cackle', ['assets/audio/sfx/witch_cackle.ogg', 'assets/audio/sfx/witch_cackle.mp3']);
++  load.audio('witch_cackle_2', ['assets/audio/sfx/witch_cackle_2.ogg', 'assets/audio/sfx/witch_cackle_2.mp3']);
++  load.audio('cat_meow', ['assets/audio/sfx/cat_meow.ogg', 'assets/audio/sfx/cat_meow.mp3']);
++  load.audio('knock_wood', ['assets/audio/sfx/knock_wood.ogg', 'assets/audio/sfx/knock_wood.mp3']);
++  load.audio('candy_chime', ['assets/audio/sfx/candy_chime.ogg', 'assets/audio/sfx/candy_chime.mp3']);
++  load.audio('pumpkin_carve', ['assets/audio/sfx/pumpkin_carve.ogg', 'assets/audio/sfx/pumpkin_carve.mp3']);
++  load.audio('wolf_howl', ['assets/audio/sfx/wolf_howl.ogg', 'assets/audio/sfx/wolf_howl.mp3']);
++  load.audio('ghost_breath', ['assets/audio/sfx/ghost_breath.ogg', 'assets/audio/sfx/ghost_breath.mp3']);
+ }
+diff --git a/src/ui/Tombstone.ts b/src/ui/Tombstone.ts
+index 2895248..8660477 100644
+--- a/src/ui/Tombstone.ts
++++ b/src/ui/Tombstone.ts
+@@ -52,15 +52,15 @@ export class Tombstone extends Phaser.GameObjects.Container {
+       this.glowSprite = scene.add.image(0, -12, 'glow_moon');
+       this.glowSprite.setBlendMode(Phaser.BlendModes.ADD);
+       this.glowSprite.setTint(0x7fd1d8);
+-      this.glowSprite.setAlpha(0.3);
++      this.glowSprite.setAlpha(0.2);
+       this.glowSprite.setScale(0.35);
+       this.add(this.glowSprite);
+ 
+-      // Pulse tween
++      // Pulse tween — toned down ~35% from original values
+       scene.tweens.add({
+         targets: this.glowSprite,
+-        alpha: { from: 0.25, to: 0.5 },
+-        scale: { from: 0.33, to: 0.38 },
++        alpha: { from: 0.16, to: 0.32 },
++        scale: { from: 0.31, to: 0.335 },
+         duration: 1800,
+         yoyo: true,
+         repeat: -1,
+diff --git a/src/scenes/WitchFlyBy.ts b/src/scenes/WitchFlyBy.ts
+new file mode 100644
+index 0000000..377242f
+--- /dev/null
++++ b/src/scenes/WitchFlyBy.ts
+@@ -0,0 +1,169 @@
++/**
++ * WitchFlyBy — manages the witch-on-broomstick fly-by mechanic.
++ *
++ * Schedule:
++ *   - First fly-by: 12–20 s after scene enters.
++ *   - Subsequent: 35–75 s intervals.
++ *   - Suppressed while a ritual/overlay/credits scene is active or a crow is in flight.
++ *
++ * Flight path:
++ *   - Crosses the camera view horizontally in the top band (y = worldView.top + 30…90).
++ *   - Duration: 5–6.5 s.
++ *   - Sine-wave bob: amplitude 8 px, 2 full cycles across the flight.
++ *   - Slight rotation tilt: ±4°.
++ *   - Sprite: `witch_broom`, flipped X when flying left → right.
++ *   - Depth 60 (above trees at ~depth y, below fog at depth 5-7).
++ *   - Sound: `witch_cackle` or `witch_cackle_2`, volume 0.35.
++ */
++import Phaser from 'phaser';
++
++export interface WitchFlyByOptions {
++  /** Returns true when a ritual / overlay / credits is active (suppress fly-by). */
++  isSuppressed: () => boolean;
++  /** Returns true when the crow is currently in flight (avoid overlap). */
++  isCrowActive: () => boolean;
++}
++
++export class WitchFlyBy {
++  private scene: Phaser.Scene;
++  private opts: WitchFlyByOptions;
++
++  private timer = 0;
++  private interval: number;
++  private active = false;
++
++  /** The flying witch sprite (null when not in flight). */
++  private sprite: Phaser.GameObjects.Image | null = null;
++  /** The main movement tween (null when not in flight). */
++  private moveTween: Phaser.Tweens.Tween | null = null;
++  /** Counter tween that drives the bob + tilt. */
++  private bobCounter: Phaser.Tweens.Tween | null = null;
++
++  constructor(scene: Phaser.Scene, opts: WitchFlyByOptions) {
++    this.scene = scene;
++    this.opts = opts;
++    // First fly-by: 12–20 s
++    this.interval = Phaser.Math.Between(12000, 20000);
++  }
++
++  // ─── Public API ───────────────────────────────────────────────────────────
++
++  /** Call from GraveyardWorld.update() with delta in ms. */
++  update(delta: number): void {
++    if (this.active) return; // already flying
++
++    this.timer += delta;
++    if (this.timer >= this.interval) {
++      this.timer = 0;
++      this.interval = Phaser.Math.Between(35000, 75000);
++
++      if (this.opts.isSuppressed() || this.opts.isCrowActive()) {
++        // Defer: try again after a short random window
++        this.timer = this.interval - Phaser.Math.Between(5000, 10000);
++        return;
++      }
++
++      this.spawnWitch();
++    }
++  }
++
++  /**
++   * Force-spawn a witch fly-by immediately (for debug hook __RD.spawnWitch).
++   * Ignored if one is already in flight.
++   */
++  spawnNow(): void {
++    if (this.active) return;
++    this.timer = 0;
++    this.interval = Phaser.Math.Between(35000, 75000);
++    this.spawnWitch();
++  }
++
++  // ─── Internal ─────────────────────────────────────────────────────────────
++
++  private spawnWitch(): void {
++    const cam = this.scene.cameras.main;
++    const view = cam.worldView;
++
++    // Pick direction (50/50 left-to-right or right-to-left)
++    const goRight = Math.random() < 0.5;
++    const startX = goRight ? view.left - 80 : view.right + 80;
++    const endX   = goRight ? view.right + 80 : view.left - 80;
++
++    // y in top band
++    const baseY = Phaser.Math.Between(
++      Math.round(view.top + 30),
++      Math.round(view.top + 90),
++    );
++
++    // Duration 5–6.5 s
++    const duration = Phaser.Math.Between(5000, 6500);
++
++    // Build sprite
++    const witch = this.scene.add.image(startX, baseY, 'witch_broom');
++    witch.setDepth(60);
++    witch.setOrigin(0.5, 0.5);
++    // Flip: sprite faces left by default; flip when going right
++    witch.setFlipX(goRight);
++
++    this.sprite = witch;
++    this.active = true;
++
++    // ── Sound ────────────────────────────────────────────────────────────────
++    const cackleKey = Math.random() < 0.5 ? 'witch_cackle' : 'witch_cackle_2';
++    this.scene.sound.play(cackleKey, { volume: 0.35 });
++
++    // ── Bob + tilt counter ───────────────────────────────────────────────────
++    // We animate a plain number 0 → 1 representing flight progress.
++    // From that we derive:
++    //   bobOffset = sin(progress * 2π * 2) * 8       (2 cycles, 8 px amplitude)
++    //   tilt      = sin(progress * 2π * 2) * 4°
++    let progress = 0;
++    const bobAmp  = 8;   // px
++    const tiltAmp = 4;   // degrees
++    const cycles  = 2;
++
++    this.bobCounter = this.scene.tweens.addCounter({
++      from: 0,
++      to: 1,
++      duration,
++      ease: 'Linear',
++      onUpdate: (tween) => {
++        progress = tween.getValue() as number;
++        const angle = Math.sin(progress * Math.PI * 2 * cycles);
++        if (this.sprite) {
++          this.sprite.y = baseY + angle * bobAmp;
++          this.sprite.angle = angle * tiltAmp;
++        }
++      },
++    });
++
++    // ── Horizontal movement tween ────────────────────────────────────────────
++    this.moveTween = this.scene.tweens.add({
++      targets: witch,
++      x: endX,
++      duration,
++      ease: 'Linear',
++      onComplete: () => {
++        this.cleanup();
++      },
++    });
++  }
++
++  private cleanup(): void {
++    this.sprite?.destroy();
++    this.sprite = null;
++
++    this.moveTween?.stop();
++    this.moveTween = null;
++
++    this.bobCounter?.stop();
++    this.bobCounter = null;
++
++    this.active = false;
++  }
++
++  /** True while a witch is currently in flight. */
++  get isActive(): boolean {
++    return this.active;
++  }
++}

@@ -34,3 +34,25 @@ All CLIs live in /workspace/kirohome/.local/bin and keep their sign-in under HOM
 - **Grok web**: browser session `grok` is signed in to grok.com and can be used for paste-in reviews.
 - **Muse**: through the Meta Model API, muse-spark-1.3-contributor (see above).
 - **Gemini CLI**: dropped. Google stopped accepting it for personal accounts ("migrate to Antigravity"), and `agy` replaces it.
+
+### Reviewer tips (from round 1)
+- agy: instruct "use file reads only, no shell"; pass --output-format json for token counts.
+- Muse: send reasoning_effort:"low" from the first call (reasoning ate max_tokens otherwise).
+- Grok CLI: strongest reviewer but ~15 min/prompt and weekly cap; use sparingly.
+
+## Team operating model (Jay, Oct 31 2026)
+- Plan with top models (consultant tier): Hark + claude-opus-4-6-thinking via Antigravity write thorough specs/briefs.
+- Review with Grok 4.7 (sparingly, weekly cap), Gemini 3.8 Flash + Sonnet via agy, Muse muse-spark-1.3-contributor (no Wonder contributor exists).
+- Execute with workhorses: Kiro on claude-haiku-4.5 / auto (cheap credits), Kiro must write app code.
+- Asset generation can use Antigravity / Grok image tools (original art only, credit tool in CREDITS).
+- Track usage: Kiro credits (dashboard), Grok weekly cap (resets ~Nov 2), Muse $150, agy free tier.
+- Future idea (after core demo): graves that open real, rich original-art arcade games in the spirit of Pac-Man / Contra (no ROMs, names or trademarked art). Nothing may look cheap.
+- Model availability check (Oct 31 18:02): agy lists gemini-3.8-flash h/m/l, claude-sonnet-4-6, claude-opus-4-6-thinking (free caps tight, rolling 5h), gpt-oss-120b. No Argon / Gemini Pro. Grok: 4.7, 4.7-build-fast, 4.6, 4.5. Use Opus sparingly for planning only.
+- Jay's next asks (after prototype is presented): polish walking animations; maybe bats flying. Don't overdo; present the working prototype first.
+
+## Deploy (Oct 31 2026)
+- Live: https://raise-dead.pages.dev (Cloudflare Pages project raise-dead, account 897b24f4afbfc209a91e52eae9007b0d), direct upload.
+- Wrangler fails here (sandbox proxy overwrites the upload JWT). Working method: get upload-token with bearer service; reconnect cloudflare service with a dummy header; upload via /pages/assets/check-missing, /upload (blake3(base64+ext)[:32] keys), /upsert-hashes using the JWT; reconnect bearer; POST deployments with manifest + _headers.
+- Extra capacity (Jay, Oct 31): Oxion AI account (oxionai.com, signed in) has ~200M tokens incl. Haiku-class models; can be wired into a harness for reviews/bulk work if useful. Kiro still writes app code.
+- Jay's Phase 1.5 feedback (19:02): sounds perfect; fix RIP click, explore whole map, grounded shadows/ground texture, wizard feet/float, tree collision, witch fly-by + cackle, tone shimmer down, Halloween Easter eggs that teach lore.
+- Phase 1.5 status (Oct 31 19:45): brief + assets ready (research/p15-brief.md); Kiro hit its monthly limit mid Session A, partial work stashed. Resume after the Nov 1 Kiro reset.
