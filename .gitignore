@@ -5,3 +5,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Raw AI source renders: kept locally / off-repo (review round 1, P1-14). History not rewritten.
+assets/images/src/

@@ -16,9 +16,6 @@ declare global {
       raise(id: string): void;
     };
   }
-  interface ImportMeta {
-    env: { DEV: boolean };
-  }
 }
 
 // P1-8: Wait for fonts to load with a timeout to ensure they're used

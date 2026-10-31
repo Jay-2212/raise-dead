@@ -5,8 +5,8 @@
 import Phaser from 'phaser';
 
 const REQUIRED = [
-  'Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0 — https://opengameart.org/content/wizard-sprite-sheet',
-  'Footstep sounds (dirt) by congusbongus, from "footstep-grass.wav" by swuing (freesound.org), CC-BY 3.0 — https://opengameart.org/content/footsteps-on-different-surfaces',
+  'Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0, modified (red glow removed, trim recoloured to teal) — https://creativecommons.org/licenses/by/3.0/',
+  'Footstep sounds (dirt) by congusbongus, from "footstep-grass.wav" by swuing (freesound.org), CC-BY 3.0, modified (trimmed, normalised) — https://creativecommons.org/licenses/by/3.0/',
 ];
 
 interface CreditsInitData {
@@ -92,7 +92,8 @@ export class CreditsScene extends Phaser.Scene {
   private async fetchCredits(): Promise<void> {
     const { width, height } = this.scale;
     try {
-      const res = await fetch('/CREDITS.md');
+      const creditsUrl = `${import.meta.env.BASE_URL}CREDITS.md`;
+      const res = await fetch(creditsUrl);
       const md = await res.text();
       this.creditsLines = this.parseMarkdown(md);
     } catch {

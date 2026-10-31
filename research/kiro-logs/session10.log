@@ -1,0 +1,184 @@
+I'll read the research files to understand what needs to be done.
+[tool] Reading r1-session-b1.md:1, review-round-1.md:1
+[tool] status: Completed
+Now I'll work through the Session B items systematically. Let me start by setting up a task list.
+[tool] Creating task list: Session B: assets, security, licensing, performance (P1-9...
+[tool] status: Completed
+Let me start with **P1-9: Self-host fonts and add CSP**. First, I'll check the current state of index.html and the fonts directory:
+[tool] Reading index.html:1, listing fonts
+[tool] status: Completed
+Good, the font files exist. Now I'll update index.html to self-host the fonts, add CSP, and remove Google Fonts:
+[tool] Editing index.html
+[tool] status: Completed
+Now I'll add the @font-face rules in the style section:
+[tool] Editing index.html
+[tool] status: Completed
+Now I'll create the `public/_headers` file for Cloudflare Pages with security headers:
+[tool] Creating _headers
+[tool] status: Completed
+Now let me mark P1-9 as complete and move to **P1-10: Fix asset paths with BASE_URL**. First, I'll read the relevant files:
+[tool] Reading PreloadScene.ts:1-200, GraveOverlay.ts:1, CreditsScene.ts:1-150
+[tool] status: Completed
+Let me continue reading and then make the necessary changes. First, let me check the main.ts file to see the ImportMeta shim:
+[tool] Searching for 'ImportMeta|import\.meta\.env'
+[tool] status: Completed
+Let me read the main.ts file:
+[tool] Reading main.ts:1-300
+[tool] status: Completed
+Good. Now I'll make the changes for P1-10. First, I'll add the vite-env reference and update main.ts to remove the ImportMeta shim:
+[tool] Creating vite-env.d.ts
+[tool] status: Completed
+Now I'll update main.ts to remove the ImportMeta shim:
+[tool] Editing main.ts
+[tool] status: Completed
+Now I need to update PreloadScene.ts to use BASE_URL. I'll update all the asset paths:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now I'll update all the image paths by removing the leading `/`:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now I'll update the audio paths:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now update the data paths:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now I'll update GraveOverlay.ts to use BASE_URL. Let me read more of it to find all the paths:
+[tool] Reading GraveOverlay.ts:51-150
+[tool] status: Completed
+Now I'll update the border-image URL in GraveOverlay.ts. First, I need to add BASE_URL to the imports and then update the paths:
+[tool] Reading GraveOverlay.ts:1-10
+[tool] status: Completed
+Now I'll update the border-image URL and medal paths:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now I'll update the medal paths:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now I'll update the fetch in CreditsScene.ts:
+[tool] Reading CreditsScene.ts:61-210
+[tool] status: Completed
+Now I'll update the fetch call in CreditsScene:
+[tool] Editing CreditsScene.ts
+[tool] status: Completed
+Good. Now let me mark P1-9 and P1-10 as complete, and move to **P1-11: Fix grave app loader with import.meta.glob**:
+[tool] Reading GraveOverlay.ts:141-320
+[tool] status: Completed
+Perfect. Now I'll update the tryMountApp method to use import.meta.glob:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now update the tryMountApp method:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Good. Now let me check if `mage_idle1.png` exists and needs to be deleted, and also check if it's referenced in src/:
+[tool] Running: find /workspace/raise-dead -name "mage_idle1.png" -o -name "mage_idle1*" 2>/dev/null
+[tool] status: Completed
+Let me check if it's referenced anywhere in src/:
+[tool] Searching for 'mage_idle1'
+[tool] status: Completed
+Good, it's not referenced. Now let me move on to **P1-13: Write strip-wizard-glow.py script**. First, let me check what wizard files exist in the vendor directory:
+[tool] Reading listing movicx-wizard
+[tool] status: Completed
+Now let me check what files are currently in public/assets/images/wizard/:
+[tool] Reading listing wizard
+[tool] status: Completed
+Perfect. Now I'll create the Python script to strip the red glow and recolor the trim to teal. I'll write it with Pillow:
+[tool] Creating strip-wizard-glow.py
+[tool] status: Completed
+Now I'll run the script:
+[tool] Running: cd /workspace/raise-dead && python3 scripts/strip-wizard-glow.py
+[tool] status: Completed
+Perfect! Now I'll delete the unused mage_idle1.png file:
+[tool] Running: rm /workspace/raise-dead/public/assets/images/wizard/mage_idle1.png
+[tool] status: Completed
+Now let me update my todo list and move to **P1-15: Update CREDITS.md, README, and CreditsScene**. First, let me read the current CREDITS.md:
+[tool] Reading CREDITS.md:1
+[tool] status: Completed
+Now let me update CREDITS.md with the new sections and modifications per P1-15. I'll insert a "Fonts" section and update some existing entries:
+[tool] Editing CREDITS.md
+[tool] status: Completed
+Now let me update the audio section to include the modified footsteps:
+[tool] Editing CREDITS.md
+[tool] status: Completed
+Now update the required attribution line at the bottom of the audio section:
+[tool] Editing CREDITS.md
+[tool] status: Completed
+Now let me update the voice section to add a TODO comment about the Piper model license:
+[tool] Editing CREDITS.md
+[tool] status: Completed
+Now I need to add the trademark disclaimer. I'll add it at the end of the file:
+[tool] Reading CREDITS.md:101-140
+[tool] status: Completed
+Let me get the full file length:
+[tool] Running: wc -l /workspace/raise-dead/CREDITS.md
+[tool] status: Completed
+Let me read the end of the file:
+[tool] Reading CREDITS.md:71-80
+[tool] status: Completed
+Now I'll add the trademark disclaimer at the end:
+[tool] Editing CREDITS.md
+[tool] status: Completed
+Now I need to update the REQUIRED array in CreditsScene.ts and the README. Let me first update CreditsScene:
+[tool] Editing CreditsScene.ts
+[tool] status: Completed
+Now let me update the README.md with the trademark disclaimer and update the credits reference:
+[tool] Reading README.md:1
+[tool] status: Completed
+Now I'll update the Credits section and add the trademark disclaimer:
+[tool] Editing README.md
+[tool] status: Completed
+Now let me mark the tasks complete and run `npm run build` to verify everything works:
+[tool] Completing #1, #2, #3, #4, #5
+[tool] status: Completed
+Now let me run `npm run build`:
+[tool] Running: cd /workspace/raise-dead && npm run build 2>&1
+[tool] status: Completed
+Excellent! The build passes. Now let me verify that there are no references to googleapis or gstatic in the output:
+[tool] Running: grep -rn "googleapis\|gstatic" /workspace/raise-dead/index.html /workspace/raise-dead/src /workspace/raise-dead/dist 2>/dev/null || echo "✓ No googleapis/gstatic references found"
+[tool] status: Completed
+Perfect! Now let me mark the final task as complete:
+[tool] Completing #6
+[tool] status: Completed
+Perfect! Let me create a brief summary of what was completed:
+
+## Summary
+
+✓ **Session B complete** — All P1-9 through P1-15 items executed:
+
+**P1-9 (Fonts & CSP):**
+- Removed Google Fonts CDN links from index.html
+- Added `@font-face` rules for self-hosted Cinzel and Pixelify Sans WOFF2 files
+- Added CSP meta tag with strict directives for `default-src`, `script-src`, `style-src` (unsafe-inline for Phaser), `img-src` (data: and blob: for Phaser), `media-src`, `font-src`, `connect-src`, `frame-src`, `object-src`
+- Created `public/_headers` for Cloudflare Pages with CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, and cache headers
+
+**P1-10 (Asset paths):**
+- Added `src/vite-env.d.ts` with `/// <reference types="vite/client" />`
+- Removed ImportMeta shim from main.ts
+- Updated PreloadScene to call `this.load.setPath(import.meta.env.BASE_URL)`
+- Removed all leading `/` from asset paths in PreloadScene
+- Updated GraveOverlay and CreditsScene to use `${import.meta.env.BASE_URL}` for URLs
+
+**P1-11 (App loader):**
+- Added static `appModules` field using `import.meta.glob('../graves/*/index.ts')`
+- Updated `tryMountApp()` to use the glob map instead of raw `@vite-ignore` import (no 404s on Phase 1)
+
+**P1-13 (Wizard glow):**
+- Created `scripts/strip-wizard-glow.py` with Pillow
+- Processed all 9 wizard sprite sheets: cleared 4,772 semi-transparent red glow pixels, recolored 3,987 opaque red trim pixels to teal (#7fd1d8)
+- Deleted unused `mage_idle1.png`
+
+**P1-15 (CREDITS & README):**
+- Added "Fonts" section to CREDITS.md with Cinzel and Pixelify Sans (SIL OFL 1.1)
+- Added "Code & Libraries" section (Phaser 3.90.0, phaser3-rex-plugins, Vite, TypeScript)
+- Updated image table with "Shipped as" column for path mapping
+- Added CC-BY 3.0 license URLs and "modified" notes for Movicx wizard and congusbongus footsteps
+- Added TODOs for AI model name and Piper voice license verification
+- Added trademark disclaimer to CREDITS.md
+- Updated README.md credits line with license URLs and "modified" notes
+- Added trademark disclaimer section to README.md
+- Updated CreditsScene REQUIRED array
+
+**Verification:**
+- `npm run build` passes with no errors
+- No googleapis/gstatic references remain in src, dist, or index.html
+EXIT_CODE=0

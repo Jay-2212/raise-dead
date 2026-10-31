@@ -20,7 +20,10 @@ WASD / arrow keys to walk · **F** to raise the dead · **Esc** or *Requiescat i
 Phaser 3.90.0 · TypeScript · Vite · phaser3-rex-plugins (virtual joystick).
 
 ## Credits
-Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0. Footstep sounds (dirt) by congusbongus, from 'footstep-grass.wav' by swuing (freesound.org), CC-BY 3.0. Everything else is CC0 or original — see [CREDITS.md](CREDITS.md) (also shown in-game).
+Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0, modified (red glow removed, trim recoloured to teal) — https://creativecommons.org/licenses/by/3.0/. Footstep sounds (dirt) by congusbongus, from 'footstep-grass.wav' by swuing (freesound.org), CC-BY 3.0, modified (trimmed, normalised) — https://creativecommons.org/licenses/by/3.0/. Fonts: Cinzel and Pixelify Sans (SIL OFL 1.1, self-hosted). Everything else is CC0 or original — see [CREDITS.md](CREDITS.md) (also shown in-game).
+
+## Trademark Disclaimer
+Road Rash, Google Reader, Clippy, Winamp and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos, art or code from the trademarked products are used in this project.
 
 ## License
 Code: [MIT](LICENSE). Third-party assets keep their own licences as listed in CREDITS.md.

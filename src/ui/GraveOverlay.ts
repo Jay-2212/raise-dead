@@ -14,6 +14,7 @@ export class GraveOverlay {
   private overlayEl: HTMLElement | null = null;
   private appInstance: GraveApp | null = null;
   private onExitCallback: (() => void) | null = null;
+  private static appModules = import.meta.glob('../graves/*/index.ts');
 
   /** Mount the overlay for the given grave entry */
   mount(grave: GraveEntry, onExit: () => void): void {
@@ -51,12 +52,13 @@ export class GraveOverlay {
 
     // Panel styled with frame_panel.png as border-image
     const panel = document.createElement('div');
+    const baseUrl = import.meta.env.BASE_URL;
     panel.style.cssText = `
       position: relative;
       width: min(92vw, 960px);
       height: min(86vh, 600px);
       background: none;
-      border-image: url('/assets/images/ui/frame_panel.png') 60 64 60 64 fill;
+      border-image: url('${baseUrl}assets/images/ui/frame_panel.png') 60 64 60 64 fill;
       border-style: solid;
       border-width: 60px 64px;
       display: flex;
@@ -86,11 +88,11 @@ export class GraveOverlay {
 
     // Medallion
     const medalMap: Record<string, string> = {
-      'road-rash':      '/assets/images/portraits/medal_roadrash.png',
-      'google-reader':  '/assets/images/portraits/medal_reader.png',
-      'clippy':         '/assets/images/portraits/medal_clippy.png',
-      'winamp':         '/assets/images/portraits/medal_winamp.png',
-      'unmarked-grave': '/assets/images/portraits/medal_unmarked.png',
+      'road-rash':      `${baseUrl}assets/images/portraits/medal_roadrash.png`,
+      'google-reader':  `${baseUrl}assets/images/portraits/medal_reader.png`,
+      'clippy':         `${baseUrl}assets/images/portraits/medal_clippy.png`,
+      'winamp':         `${baseUrl}assets/images/portraits/medal_winamp.png`,
+      'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
     };
     if (medalMap[grave.id]) {
       const med = document.createElement('img');
@@ -206,8 +208,14 @@ export class GraveOverlay {
   /** Attempt dynamic import of a Phase 2 grave app */
   private async tryMountApp(graveId: string, container: HTMLElement): Promise<void> {
     try {
-      const mod = await import(/* @vite-ignore */ `../graves/${graveId}/index.ts`);
-      const app = mod.default as GraveApp;
+      const modulePath = `../graves/${graveId}/index.ts`;
+      const loader = GraveOverlay.appModules[modulePath];
+      if (!loader) {
+        // Phase 1: app module not found yet — silently ignore
+        return;
+      }
+      const mod = await loader() as { default: GraveApp };
+      const app = mod.default;
       this.appInstance = app;
       await app.mount(container);
     } catch {
