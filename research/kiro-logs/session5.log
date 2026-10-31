@@ -1,0 +1,99 @@
+I'll fix both regressions minimally. Let me start by examining the relevant files.
+[tool] Reading UIScene.ts:1, GraveyardWorld.ts:1
+[tool] status: Completed
+Now I'll look at the ResurrectionRitual scene to understand how it interacts with the scenes:
+[tool] Reading ResurrectionRitual.ts:1
+[tool] status: Completed
+Now I understand the issues. Let me implement the fixes:
+
+1. **Issue 1**: In `UIScene.updatePlaque()`, when setting medallion texture, need to also call `setDisplaySize(56, 56)` right after.
+2. **Issue 2**: The plaque visibility tween doesn't complete during ritual because UIScene is paused. Need to:
+   - Make `hidePlaque()` set visibility immediately without tween dependency
+   - Add `ritualActive` flag to `GraveyardWorld` 
+   - Skip proximity/plaque/prompt updates while ritual is active
+
+Let me create the fixes:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now fix the plaque/prompt visibility issue by updating `hidePlaque()` to set visibility immediately:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now add the `ritualActive` flag to GraveyardWorld and skip proximity/plaque/prompt updates during ritual:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now set `ritualActive = true` in `tryRaiseGrave()`:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now update `checkProximity()` to skip updates while ritual is active:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now update `moveWizard()` to skip movement while ritual is active:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now reset the `ritualActive` flag when the ritual ends in `onResume()`:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now run the build to verify there are no TypeScript errors:
+[tool] Running: npm run build 2>&1
+[tool] status: Completed
+Perfect! Build passed with zero TypeScript errors. Let me verify the changes are correct by reviewing what was modified:
+[tool] Reading UIScene.ts:168-185
+[tool] status: Completed
+[tool] Reading UIScene.ts:188-212
+[tool] status: Completed
+[tool] Reading UIScene.ts:216-223
+[tool] status: Completed
+[tool] Reading UIScene.ts:226-230
+[tool] status: Completed
+[tool] Reading UIScene.ts:226-231
+[tool] status: Completed
+Perfect. Now verify GraveyardWorld changes:
+[tool] Reading GraveyardWorld.ts:51-55
+[tool] status: Completed
+[tool] Reading GraveyardWorld.ts:43-48
+[tool] status: Completed
+[tool] Reading GraveyardWorld.ts:43-49
+[tool] status: Completed
+Excellent. Now verify tryRaiseGrave sets the flag:
+[tool] Reading GraveyardWorld.ts:337-352
+[tool] status: Completed
+[tool] Searching symbols: tryRaiseGrave
+[tool] status: Completed
+[tool] Reading GraveyardWorld.ts:436-455
+[tool] status: Completed
+Perfect! Now verify moveWizard skips during ritual:
+[tool] Reading GraveyardWorld.ts:457-462
+[tool] status: Completed
+[tool] Searching symbols: moveWizard
+[tool] status: Completed
+[tool] Reading GraveyardWorld.ts:480-487
+[tool] status: Completed
+Excellent! Now verify checkProximity:
+[tool] Searching symbols: checkProximity
+[tool] status: Completed
+[tool] Reading GraveyardWorld.ts:544-551
+[tool] status: Completed
+Perfect! Now verify onResume resets the flag:
+[tool] Searching symbols: onResume
+[tool] status: Completed
+[tool] Reading GraveyardWorld.ts:641-648
+[tool] status: Completed
+Perfect! All changes are in place. Let me create a quick summary of what was fixed:
+
+## Summary
+
+Both regressions fixed minimally:
+
+**Regression 1 (Medallion size):**
+- Added `medallion.setDisplaySize(56, 56)` immediately after `medallion.setTexture(medalKey)` in `UIScene.updatePlaque()` to prevent the 256x256 native texture from covering the screen.
+
+**Regression 2 (Plaque/prompt visibility during ritual):**
+- **UIScene.hidePlaque()**: Changed from a fade tween to immediate visibility hide via `setVisible(false)`, and added `this.hint.hide()` to also hide the "Press F" prompt. This ensures visibility is set immediately before UIScene pauses.
+- **GraveyardWorld**: Added `private ritualActive = false` flag.
+- **GraveyardWorld.tryRaiseGrave()**: Set `this.ritualActive = true` when launching the ritual.
+- **GraveyardWorld.moveWizard()**: Added early return `if (this.ritualActive) return;` to skip movement updates during ritual.
+- **GraveyardWorld.checkProximity()**: Added early return `if (this.ritualActive) return;` to skip proximity/plaque/prompt updates during ritual.
+- **GraveyardWorld.onResume()**: Reset `this.ritualActive = false` when ritual completes.
+
+Build completed with zero TypeScript errors ✓
+EXIT_CODE=0

@@ -1,0 +1,179 @@
+I'll start by reading the fix-round-1.md file to see what fixes need to be applied.
+[tool] status: Failed
+Let me check the directory structure first:
+[tool] Reading listing research
+[tool] status: Completed
+Now let me read the fix-round-1.md file:
+[tool] Reading fix-round-1.md:1
+[tool] status: Completed
+Now let me check the current src structure to understand what files exist:
+[tool] Reading listing src
+[tool] status: Completed
+Let me also check the index.html:
+[tool] Reading index.html:1
+[tool] status: Completed
+Now let me read the key scene files to understand the current implementation:
+[tool] Reading GraveyardWorld.ts:1, TitleScene.ts:1, ResurrectionRitual.ts:1, CreditsScene.ts:1
+[tool] status: Completed
+Now let me read the UIScene and GraveOverlay to understand the current plaque and overlay implementation:
+[tool] Reading UIScene.ts:1, GraveOverlay.ts:1
+[tool] status: Completed
+Now let me check the index.html to see the current state and check mapLayout.ts:
+[tool] Reading mapLayout.ts:1
+[tool] status: Completed
+Now let me create a task list and start implementing the fixes:
+[tool] Creating task list: Apply all 9 fixes from fix-round-1.md to Raise Dead Phase...
+[tool] status: Completed
+Let me start with **Fix #1: Input robustness**. I'll replace JustDown polling with event listeners:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now remove the fKey variable from the class and the JustDown check in the update method:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now remove the F key check from update():
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now let me update the update() method to remove the F key JustDown check:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now let me update TitleScene to use event listeners instead of polling and improve the prompt text:
+[tool] Editing TitleScene.ts
+[tool] status: Completed
+Now update the input handling in TitleScene to use event listeners and accept Enter/Space:
+[tool] Editing TitleScene.ts
+[tool] status: Completed
+Now update ResurrectionRitual to use event listeners for Esc key and fix the wizard cast animation:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now let me fix the playWizardCast method to correctly face the grave:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now let me mark task 1 complete and move to task 2 (wizard positioning):
+[tool] Completing #1
+[tool] status: Completed
+Now for task 2, I need to update the teleportToGrave function. I already did that above (changed from +30 to +40), but I also need to update ResurrectionRitual to position the rune circle and wizard correctly. Let me check the current rune positioning in ResurrectionRitual:
+
+The rune circle is currently positioned at graveScreenX, graveScreenY. For the ritual, the wizard needs to stand 40px below the grave, so let me calculate the correct positioning in screen space. Actually, the teleportToGrave already puts the wizard 40px below. The task is about the ritual positioning, which should mirror that. The rune circle should be centered between the wizard and grave at ground level.
+
+Actually, let me re-read the requirement: "During the ritual the wizard must face up toward the grave (attack_behind anim) and stand in front of it". The wizard was teleported to 40px below (in front of) the grave. The rune circle should be centered on the ground between them.
+
+Looking at task 3 more carefully, the rune circle needs to be centered on the ground between wizard and grave. Let me update the ResurrectionRitual create method to calculate the rune circle position correctly:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+I made a typo with the variable name. Let me fix it:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now update the rune scale in startRitual - it should scale to about 90px diameter (so 0.45 scale if the base texture is 200px):
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now mark task 2 and 3 complete:
+[tool] Completing #2, #3
+[tool] status: Completed
+Now for task 4 - Plaque popup redesign. I need to completely redesign the plaque in UIScene:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now let me mark task 4 complete and move to task 5 (Paths):
+[tool] Completing #4
+[tool] status: Completed
+Now for task 5 - update the PATH_RECTS in mapLayout.ts to be narrower (48px) and create a central plaza:
+[tool] Editing mapLayout.ts
+[tool] status: Completed
+Now mark task 5 complete:
+[tool] Completing #5
+[tool] status: Completed
+Now for task 6 - App overlay centering and styling. I need to update GraveOverlay.ts to use fixed positioning with proper centering and fade in/out with translateY:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now I need to update the medallion, title, years, epitaph to be inside the content div and then add the panel to the wrapper. Let me update the rest of the mount method:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now update the unmount method to fade out with translateY:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now mark task 6 complete:
+[tool] Completing #6
+[tool] status: Completed
+Now for task 7 - After exit, the stone must return to tomb_plain and hide plaque during ritual/overlay. Let me update ResurrectionRitual to hide the plaque and fix the stone state return:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now I need to make the hidePlaque method public in UIScene:
+[tool] Editing UIScene.ts
+[tool] status: Completed
+Now update the exitCleanup method to reset the stone to tomb_plain:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now mark task 7 complete:
+[tool] Completing #7
+[tool] status: Completed
+Now for task 8 - Credits screen. I need to update CreditsScene to parse CREDITS.md properly, display without markdown, with opaque background and proper scrolling:
+[tool] Editing CreditsScene.ts
+[tool] status: Completed
+Now mark task 8 complete:
+[tool] Completing #8
+[tool] status: Completed
+Now for task 9 - Add favicon. Let me update index.html to add an inline SVG data URI favicon:
+[tool] Editing index.html
+[tool] status: Completed
+Now mark task 9 complete:
+[tool] Completing #9
+[tool] status: Completed
+Now for task 10 - Run npm run build and fix all TypeScript errors. Let me run the build:
+[tool] Running: cd /workspace/raise-dead && npm run build 2>&1
+[tool] status: Completed
+Excellent! The build passed with no TypeScript errors. Now let me mark task 10 complete:
+[tool] Completing #10
+[tool] status: Completed
+Perfect! All fixes have been successfully applied and the build passes. Here's a summary of what changed per numbered item:
+
+## Summary of Changes
+
+**1. Input Robustness**
+- Replaced `JustDown` polling for F key in GraveyardWorld with event listener `this.input.keyboard!.on('keydown-F', ...)`
+- Updated TitleScene to accept Enter/Space keys in addition to mouse clicks, with guard to prevent multiple interactions
+- Improved prompt text: larger (26px), color #f3ecc8 with dark stroke, mentions keyboard input
+- Added DOM-level Esc listener in ResurrectionRitual for overlay interaction
+
+**2. Wizard vs Grave Placement**
+- Updated `teleportToGrave()` to position wizard 40px below (in front of) the grave stone
+- Wizard now stands in front during ritual, with proper attack_behind animation facing upward
+
+**3. Rune Circle**
+- Repositioned to center at ground level midway between wizard (+40px) and grave
+- Reduced scale from 0.35 to 0.225 for ~90px diameter
+- Maintained ADD blend mode and proper depth ordering
+
+**4. Plaque Popup**
+- Redesigned as 440×210 NineSlice frame with proper content layout
+- Added medallion display (56px) on left, name (20px Pixelify Sans), years (15px), epitaph (15px Cinzel italic), cause of death (13px)
+- Applied 34px padding throughout, text no longer overlaps frame
+
+**5. Paths**
+- Reduced path widths from 80px to 48px
+- Created central plaza 160×120 art px around spawn (1200, 900)
+- Simplified ring paths, kept trees visible and off paths
+
+**6. App Overlay**
+- Switched to `position: fixed` with proper centering using flexbox
+- Separated panel styling: transparent corners, opaque navy background only in inner content area
+- Added CSS transition for opacity + translateY fade in/out animations
+
+**7. After Exit**
+- Stone now returns to `tomb_plain` state after exit ritual completes
+- Plaque is hidden when ritual begins, preventing UI overlap
+- Made `hidePlaque()` public in UIScene for ResurrectionRitual access
+
+**8. Credits Screen**
+- Properly parses CREDITS.md: skips table headers/separators
+- Strips all markdown syntax: bold (**), backticks, headings (#), table pipes (|)
+- Converts `[text](url)` → `text — url`
+- Pins required attributions at top, scrollable with wheel/drag/arrow keys
+- Uses opaque navy background
+
+**9. Favicon**
+- Added inline SVG data URI favicon link to index.html
+- Simple tombstone-like design on dark background (#0b1020)
+
+**10. Build Status**
+- `npm run build` passes with no TypeScript errors
+- All changes compile correctly and ready for testing
+EXIT_CODE=0

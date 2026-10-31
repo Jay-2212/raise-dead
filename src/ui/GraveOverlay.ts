@@ -201,15 +201,6 @@ export class GraveOverlay {
 
     // Try loading Phase 2 app module (will fail gracefully in Phase 1)
     this.tryMountApp(grave.id, appContainer);
-
-    // Keyboard Esc
-    const escHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        window.removeEventListener('keydown', escHandler);
-        this.triggerExit();
-      }
-    };
-    window.addEventListener('keydown', escHandler);
   }
 
   /** Attempt dynamic import of a Phase 2 grave app */

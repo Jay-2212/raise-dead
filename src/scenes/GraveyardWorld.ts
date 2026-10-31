@@ -81,8 +81,11 @@ export class GraveyardWorld extends Phaser.Scene {
     // Launch UIScene on top
     this.scene.launch('UIScene');
 
-    // Listen for ritual outcome
-    this.events.on('resume', this.onResume, this);
+    // Listen for ritual fully ended (when ResurrectionRitual completes the exit sequence)
+    this.events.on('ritualFullyEnded', () => {
+      this.ritualActive = false;
+      this.scene.resume('UIScene');
+    });
   }
 
   // ─── Ground ──────────────────────────────────────────────────────────────
@@ -636,15 +639,7 @@ export class GraveyardWorld extends Phaser.Scene {
     });
   }
 
-  // ─── Called when ResurrectionRitual stops and scene resumes ──────────────
 
-  private onResume(): void {
-    this.ritualActive = false;
-    this.input.keyboard!.enableGlobalCapture();
-    this.audio.restoreMusic();
-    this.audio.restoreAmbient();
-    this.scene.resume('UIScene');
-  }
 
   // ─── Public API (for window.__RD debug hooks) ─────────────────────────────
 

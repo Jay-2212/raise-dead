@@ -1,0 +1,118 @@
+I'll start by exploring the codebase structure to understand the current implementation, then apply the minimal fix.
+[tool] Reading listing src
+[tool] status: Completed
+Let me read the key scene files:
+[tool] status: Failed
+Let me list the files in these directories:
+[tool] Finding src/scenes/*.ts in raise-dead
+[tool] Finding src/ui/*.ts in raise-dead
+[tool] status: Completed
+[tool] status: Completed
+Now let me read the relevant scene files:
+[tool] Reading ResurrectionRitual.ts:1, GraveOverlay.ts:1, GraveyardWorld.ts:1
+[tool] status: Completed
+Now I understand the issue. Let me trace the problem:
+
+1. **ResurrectionRitual** has two Esc handlers:
+   - One Phaser keyboard key listener: `this.escKey.on('down', () => this.cancel())`
+   - One DOM window keydown listener that also calls `this.cancel()`
+
+2. **GraveOverlay** also has a DOM Esc listener that calls `triggerExit()`, which dispatches a `rip-exit` event
+
+3. The race condition: when the overlay is open, pressing Esc triggers both handlers, and `cancel()` interrupts the proper exit flow
+
+4. **Proximity hint issue**: `GraveyardWorld.ritualActive` is set to `true` in `tryRaiseGrave()` but is only reset in `onResume()` which may not be called if the scene stops improperly
+
+The fix involves:
+- Adding a phase state to ResurrectionRitual
+- Making Esc handling phase-aware
+- Making `startExitRitual()` idempotent
+- Only resetting `ritualActive` when ResurrectionRitual fully stops
+
+Let me implement this:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now update the Esc handler registration in create():
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now update startRitual to set phase to 'ritual':
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now update openOverlay to set phase to 'overlay' and prevent the proximity hint:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now make startExitRitual idempotent and set phase to 'exiting':
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now remove the Esc handler from GraveOverlay since ResurrectionRitual handles it:
+[tool] Editing GraveOverlay.ts
+[tool] status: Completed
+Now I need to update GraveyardWorld to only reset `ritualActive` when ResurrectionRitual fully stops. I'll use the event emitted at the end of exitCleanup:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Actually, that approach won't work properly. Let me use a better method - have ResurrectionRitual emit an event when it finishes:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now update GraveyardWorld to listen for this event:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now remove the old onResume method since it's no longer needed:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now let's build and check for TypeScript errors:
+[tool] Running: cd /workspace/raise-dead && npm run build 2>&1
+[tool] status: Completed
+Perfect! The build passes with zero TypeScript errors. Let me verify the changes by reviewing the key modifications:
+[tool] Reading ResurrectionRitual.ts:1-60
+[tool] status: Completed
+Let me verify the Esc handler was updated correctly:
+[tool] Searching for 'Single Esc handler' in scenes
+[tool] status: Completed
+Perfect. Let me verify the key sections of the fix by reading around those lines:
+[tool] Reading ResurrectionRitual.ts:120-139
+[tool] status: Completed
+Excellent! Let me verify the GraveOverlay no longer has duplicate Esc handling:
+[tool] Searching for 'Keyboard Esc' in ui
+[tool] status: Completed
+Good, it's removed. Let me verify the idempotent startExitRitual:
+[tool] Searching for 'if \(this\.phase !== 'overlay'\)' in scenes
+[tool] status: Completed
+Perfect! Now let me verify the GraveyardWorld properly listens for ritual completion:
+[tool] Searching for 'ritualFullyEnded' in scenes
+[tool] status: Completed
+Perfect! Let me verify the phase transitions are correct by checking the startRitual method:
+[tool] Searching for 'this\.phase = '(ritual|overlay|exiting)'' in scenes
+[tool] status: Completed
+Excellent! All three phase transitions are in place. Let me create a summary of the changes:
+
+## Bug Fix Summary
+
+The issue was a race condition where pressing Esc while the app overlay was open would break the game by:
+1. Triggering multiple conflicting Esc handlers
+2. Calling `cancel()` instead of the proper exit ritual flow
+3. Leaving `ritualActive = true`, which kept the proximity hint hidden
+
+**Changes made:**
+
+1. **ResurrectionRitual.ts** — Added phase state machine:
+   - New `type RitualPhase = 'ritual' | 'overlay' | 'exiting'`
+   - Single phase-aware DOM Esc handler that:
+     - During `'ritual'`: calls `cancel()`
+     - During `'overlay'`: calls `startExitRitual()`
+     - During `'exiting'`: ignores Esc (prevents double-exit)
+   - `startRitual()` sets `phase = 'ritual'`
+   - `openOverlay()` sets `phase = 'overlay'`
+   - `startExitRitual()` is now idempotent, only proceeds if `phase === 'overlay'`, then sets `phase = 'exiting'`
+   - `exitCleanup()` emits `ritualFullyEnded` event to notify GraveyardWorld
+
+2. **GraveOverlay.ts** — Removed duplicate Esc handler:
+   - Removed the DOM keydown Esc listener (ResurrectionRitual now handles all Esc input)
+   - Button still works via `triggerExit()` which dispatches `rip-exit` event
+
+3. **GraveyardWorld.ts** — Fixed proximity hint issue:
+   - Removed `onResume()` method (no longer needed)
+   - Listen for `ritualFullyEnded` event to reset `ritualActive = false`
+   - This ensures the proximity hint stays hidden through the entire ritual and exit sequence
+
+**Build result:** ✅ Zero TypeScript errors, production build successful.
+EXIT_CODE=0

@@ -1,4 +1,8 @@
 [error] Failed to load resource: net::ERR_FAILED
 [log] %c %c %c %c %c Phaser v3.90.0 (WebGL | Web Audio) %c https://phaser.io/v390 background: #ff0000 background: #ffff00 background: #00ff00 background: #00ffff color: #ffffff; background: #000000 background: transparent
+[note] click did not enter graveyard; using __RD.goto
 __RD present: true scenes: GraveyardWorld,UIScene
-fps 3.8053256527346093
+fps 3.518509039217335
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+overlay at 16689ms
+[pageerror] TypeError: Cannot read properties of undefined (reading 'sys')

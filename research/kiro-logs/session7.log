@@ -1,0 +1,29 @@
+I'll fix the UIScene resume issue. Let me start by examining the current code to understand the ritual flow.
+[tool] Reading GraveyardWorld.ts:1
+[tool] status: Completed
+Now let me check the ResurrectionRitual scene to see how `ritualFullyEnded` is emitted and where the cancel path is:
+[tool] Reading ResurrectionRitual.ts:1
+[tool] status: Completed
+Perfect. I can see the issue. In `GraveyardWorld.create()`, the `ritualFullyEnded` listener resets `ritualActive` but never resumes UIScene. Also, the `cancel()` method doesn't emit `ritualFullyEnded`, so the HUD stays paused when the ritual is cancelled.
+
+Let me fix both paths:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now I need to make the `cancel()` method also emit `ritualFullyEnded`. Looking at the code, after the camera fade in completes and the scene stops, we should emit the event. Let me update the cancel method:
+[tool] Editing ResurrectionRitual.ts
+[tool] status: Completed
+Now let's build and verify the fix:
+[tool] Running: cd /workspace/raise-dead && npm run build
+[tool] status: Completed
+Perfect! The build passed with exit status 0. The TypeScript compilation and Vite build both succeeded. 
+
+The fix is complete:
+
+1. **In `GraveyardWorld.ts`**: Added `this.scene.resume('UIScene')` to the `ritualFullyEnded` listener so UIScene resumes after the ritual completes normally.
+
+2. **In `ResurrectionRitual.ts`**: Updated the `cancel()` method to:
+   - Resume UIScene explicitly (in case cancel is pressed during the ritual)
+   - Emit `ritualFullyEnded` to GraveyardWorld so it can reset `ritualActive` via the same listener
+
+Both the exit path (after successful ritual completion) and the cancel path (when Esc is pressed) now properly resume UIScene, ensuring the HUD (plaque, "Press F" prompt, controls/mute buttons) remain visible after the ritual ends.
+EXIT_CODE=0

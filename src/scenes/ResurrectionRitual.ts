@@ -23,6 +23,8 @@ const VOICE_KEY_MAP: Record<string, string> = {
   'unmarked-grave': 'incant_unmarked',
 };
 
+type RitualPhase = 'ritual' | 'overlay' | 'exiting';
+
 export class ResurrectionRitual extends Phaser.Scene {
   private ritualData!: RitualData;
   private grave!: GraveEntry;
@@ -39,11 +41,13 @@ export class ResurrectionRitual extends Phaser.Scene {
   private incantationKey = '';
 
   private cancelled = false;
+  private phase: RitualPhase = 'ritual';
   private overlay: GraveOverlay | null = null;
   private ritualDelays: Phaser.Time.TimerEvent[] = [];
   private ritualTweens: Phaser.Tweens.Tween[] = [];
 
   private escKey!: Phaser.Input.Keyboard.Key;
+  private domEscHandler: ((e: KeyboardEvent) => void) | null = null;
 
   // Screen-space position of the grave (calculated from world position + camera)
   private graveScreenX = 0;
@@ -112,17 +116,23 @@ export class ResurrectionRitual extends Phaser.Scene {
     // ── Incantation voice key ──────────────────────────────────────────────
     this.incantationKey = VOICE_KEY_MAP[this.ritualData.graveId] ?? 'incant_generic';
 
-    // ── Esc to cancel ──────────────────────────────────────────────────────
-    this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    this.escKey.on('down', () => this.cancel());
-
-    // DOM listener for Esc while overlay is open
-    const domEscHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') this.cancel();
+    // ── Single Esc handler (phase-aware) ──────────────────────────────────
+    this.domEscHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (this.phase === 'ritual') {
+          this.cancel();
+        } else if (this.phase === 'overlay') {
+          this.startExitRitual();
+        }
+        // During 'exiting', ignore Esc
+      }
     };
-    window.addEventListener('keydown', domEscHandler);
+    window.addEventListener('keydown', this.domEscHandler);
     this.events.once('shutdown', () => {
-      window.removeEventListener('keydown', domEscHandler);
+      if (this.domEscHandler) {
+        window.removeEventListener('keydown', this.domEscHandler);
+      }
     });
 
     // ── Pause GraveyardWorld input ─────────────────────────────────────────
@@ -142,6 +152,7 @@ export class ResurrectionRitual extends Phaser.Scene {
   // ─── Ritual timeline ─────────────────────────────────────────────────────
 
   private startRitual(): void {
+    this.phase = 'ritual';
     const voiceLine = this.voiceLines.find(
       (v) => v.id === this.incantationKey
     );
@@ -364,6 +375,7 @@ export class ResurrectionRitual extends Phaser.Scene {
   private openOverlay(): void {
     if (this.cancelled) return;
 
+    this.phase = 'overlay';
     this.sound.play('app_open_shimmer', { volume: 0.6 });
 
     // Pause GraveyardWorld
@@ -391,7 +403,10 @@ export class ResurrectionRitual extends Phaser.Scene {
   // ─── Exit ritual ─────────────────────────────────────────────────────────
 
   startExitRitual(): void {
-    if (!this.overlay) return;
+    // Idempotent: only proceed if in overlay phase
+    if (this.phase !== 'overlay') return;
+
+    this.phase = 'exiting';
 
     this.sound.play('app_sink',      { volume: 0.6 });
     this.sound.play('rip_bell_toll', { volume: 0.7 });
@@ -445,10 +460,15 @@ export class ResurrectionRitual extends Phaser.Scene {
     const gwScene = this.scene.get('GraveyardWorld') as Phaser.Scene;
     gwScene?.input.keyboard?.enableGlobalCapture();
 
-    // Emit ritual ended event to UIScene
+    // Emit ritual ended event to UIScene (to hide the proximity prompt)
     const uiScene = this.scene.get('UIScene');
     if (uiScene) {
       uiScene.events.emit('ritualEnded');
+    }
+
+    // Notify GraveyardWorld that ritual has fully completed
+    if (gwScene) {
+      gwScene.events.emit('ritualFullyEnded');
     }
 
     this.scene.stop('ResurrectionRitual');
@@ -489,6 +509,13 @@ export class ResurrectionRitual extends Phaser.Scene {
     this.cameras.main.once('camerafadeincomplete', () => {
       const gwScene = this.scene.get('GraveyardWorld') as Phaser.Scene;
       gwScene?.input.keyboard?.enableGlobalCapture();
+      
+      // Resume UIScene
+      this.scene.resume('UIScene');
+      
+      // Notify GraveyardWorld that ritual has been cancelled
+      gwScene?.events.emit('ritualFullyEnded');
+      
       this.scene.stop('ResurrectionRitual');
     });
   }
