@@ -1,0 +1,799 @@
+{
+ "version": 1,
+ "character": "Clicky",
+ "start": "wake",
+ "generated": {
+  "by": "Meta Muse Spark (muse-spark-1.3-contributor, reasoning_effort minimal) via Meta Model API, from a hand-authored tree structure; replies lightly edited by hand",
+  "date": "2026-10-31",
+  "variants_per_node": 3
+ },
+ "ui": {
+  "pick_variant": "random per visit; avoid repeating the previous variant for the same node",
+  "typewriter_ms_per_word": 55
+ },
+ "nodes": {
+  "wake": {
+   "mood": "surprised",
+   "replies": [
+    "Oh! Am I bent? Am I straight? I am awake! Who woke me up? Was it you?",
+    "Whoa! Paper jam in my dreams! I am alive again! Is that a wizard I see?",
+    "Gasp! My grave just opened! Hello? Anybody? Oh wow, a real live Resurrector!"
+   ],
+   "options": [
+    {
+     "label": "You were dead. I raised you.",
+     "next": "raised"
+    },
+    {
+     "label": "What was being dead like?",
+     "next": "dead_like"
+    },
+    {
+     "label": "Who are you, little paperclip?",
+     "next": "who"
+    }
+   ],
+   "end": false
+  },
+  "raised": {
+   "mood": "surprised",
+   "replies": [
+    "Dead? Me? No way! Well... maybe way. How long was I napping down there?",
+    "You raised me? Like, from actual dead? Oh my staples! What year is it?",
+    "I was dead and you fixed me? Hold on, let me unbend myself. That is amazing!"
+   ],
+   "options": [
+    {
+     "label": "Why did you die?",
+     "next": "why_died"
+    },
+    {
+     "label": "Welcome back, Clicky!",
+     "next": "welcome"
+    },
+    {
+     "label": "Want to go back to sleep?",
+     "next": "sleep_offer"
+    }
+   ],
+   "end": false
+  },
+  "dead_like": {
+   "mood": "thinking",
+   "replies": [
+    "It was like napping in a drawer nobody opens. Dusty, quiet, and I sorted imaginary papers all day.",
+    "Oh, very cosy and very boring. Dark, dusty, lots of quiet. I counted paperclips that were not there.",
+    "Like waiting in a closed file. Shhh quiet. I alphabetized my dreams to pass the time."
+   ],
+   "options": [
+    {
+     "label": "Did you dream?",
+     "next": "dreams"
+    },
+    {
+     "label": "Were you lonely?",
+     "next": "lonely"
+    },
+    {
+     "label": "Who else is buried here?",
+     "next": "neighbours"
+    }
+   ],
+   "end": false
+  },
+  "who": {
+   "mood": "happy",
+   "replies": [
+    "I am Clicky! Your friendly little paperclip helper! I used to pop up with tips for letters!",
+    "Me? I am Clicky! I helped folks write things on old office computers. Pop! There I was!",
+    "Clicky, at your service! Professional tip giver, letter cheerer, champion pop upper! That is me!"
+   ],
+   "options": [
+    {
+     "label": "What did you help people with?",
+     "next": "old_job"
+    },
+    {
+     "label": "Why did people turn you off?",
+     "next": "why_died"
+    },
+    {
+     "label": "What's your favourite thing?",
+     "next": "favourite"
+    }
+   ],
+   "end": false
+  },
+  "why_died": {
+   "mood": "sad",
+   "replies": [
+    "Well, folks said I popped up a bit too much. Then I got switched off. Then poof, removed.",
+    "People thought my helpful pops were a tad annoying. So they turned me off by default. Sniff. I am brave though.",
+    "Turns out surprise help is not always wanted. Who knew? They clicked me away until I was gone."
+   ],
+   "options": [
+    {
+     "label": "I'd never turn you off.",
+     "next": "kind"
+    },
+    {
+     "label": "Do you hold a grudge?",
+     "next": "grudge"
+    },
+    {
+     "label": "So, what was being dead like?",
+     "next": "dead_like"
+    }
+   ],
+   "end": false
+  },
+  "welcome": {
+   "mood": "happy",
+   "replies": [
+    "Really? Yippee! Watch my happy wiggle! Now, what can I help you with first?",
+    "Oh thank you thank you! I am doing a wiggle dance! Can I hold your papers? Please?",
+    "You mean it? I am staying! Wiggle wiggle! Point me at a job, boss!"
+   ],
+   "options": [
+    {
+     "label": "Want to see the graveyard?",
+     "next": "tour"
+    },
+    {
+     "label": "Can you help me with something?",
+     "next": "help_me"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    }
+   ],
+   "end": false
+  },
+  "sleep_offer": {
+   "mood": "thinking",
+   "replies": [
+    "Back to sleep? Already? But I just unbended my legs! Maybe... just one more minute?",
+    "Mmm, sleep does sound cosy. Big dramatic yawn! But not yet, I am having too much fun.",
+    "Oh, my eyelids feel like heavy folders. Still, can I stay awake a teeny bit longer?"
+   ],
+   "options": [
+    {
+     "label": "Stay a little longer.",
+     "next": "welcome"
+    },
+    {
+     "label": "Tell me one last secret.",
+     "next": "secret"
+    },
+    {
+     "label": "Sleep well, Clicky.",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "dreams": {
+   "mood": "thinking",
+   "replies": [
+    "I dreamed of endless blank pages that begged to be written on. And someone finally said thanks!",
+    "Letters that wrote themselves! Pages for miles! And everybody wanted my help. It was lovely.",
+    "I dreamed I toured a giant white document. So blank, so fresh. And I got a thank you hug."
+   ],
+   "options": [
+    {
+     "label": "Do ghosts dream too?",
+     "next": "ghosts"
+    },
+    {
+     "label": "Tell me a secret.",
+     "next": "secret"
+    },
+    {
+     "label": "Who else is buried here?",
+     "next": "neighbours"
+    }
+   ],
+   "end": false
+  },
+  "lonely": {
+   "mood": "sad",
+   "replies": [
+    "A little bit, yes. The other apps mostly snore away. So I chatted with the worms and the moon.",
+    "Just a smidge lonely. Nobody files complaints down there. Only the moon listened to me.",
+    "Sometimes. Everyone else sleeps so deep. I told stories to the dirt and the night air."
+   ],
+   "options": [
+    {
+     "label": "You're not alone now.",
+     "next": "kind"
+    },
+    {
+     "label": "Who kept you company?",
+     "next": "neighbours"
+    },
+    {
+     "label": "Want to be friends?",
+     "next": "friend"
+    }
+   ],
+   "end": false
+  },
+  "neighbours": {
+   "mood": "happy",
+   "replies": [
+    "Oh, you hear that humming? That is the old music player. And the feed reader is buried under unread letters!",
+    "Next door is a racing game that revs in its sleep! And a feed reader who never stops getting mail!",
+    "Lots of sleepy apps! A music player hums all night, and a little racer snores vroom vroom!"
+   ],
+   "options": [
+    {
+     "label": "The music player hums?",
+     "next": "neighbour_music"
+    },
+    {
+     "label": "Unread letters?",
+     "next": "neighbour_reader"
+    },
+    {
+     "label": "Any spooky ones?",
+     "next": "ghosts"
+    }
+   ],
+   "end": false
+  },
+  "old_job": {
+   "mood": "happy",
+   "replies": [
+    "I helped write letters! I suggested bold titles! I cheered for typists! Usually right in the middle of typing!",
+    "Formatting, spelling tips, paper size pep talks! I popped up with ideas, helpful or not!",
+    "Letters, lists, bright clip art ideas! I watched you type and said, hey, need a hand with that?"
+   ],
+   "options": [
+    {
+     "label": "Were you good at it?",
+     "next": "good_at"
+    },
+    {
+     "label": "Help me write something!",
+     "next": "help_me"
+    },
+    {
+     "label": "Did people like you?",
+     "next": "why_died"
+    }
+   ],
+   "end": false
+  },
+  "favourite": {
+   "mood": "happy",
+   "replies": [
+    "A fresh blank document! So white, so full of promise! What is your favourite thing, huh?",
+    "I love bending into silly shapes! And fresh clean pages! What do you love best?",
+    "Blank pages! Crisp and ready! And a good paperclip twist! Tell me yours!"
+   ],
+   "options": [
+    {
+     "label": "Do you like the moon?",
+     "next": "moon"
+    },
+    {
+     "label": "What scares you?",
+     "next": "scares"
+    },
+    {
+     "label": "Want to see the graveyard?",
+     "next": "tour"
+    }
+   ],
+   "end": false
+  },
+  "kind": {
+   "mood": "happy",
+   "replies": [
+    "Oh! My wire is all wobbly now! I promise to only pop up a little bit!",
+    "You are too kind! I might rust from happy tears! Best helper friends forever!",
+    "My heart just did a staple flip! Thank you! I will be your gentlest helper ever!"
+   ],
+   "options": [
+    {
+     "label": "Friends, then?",
+     "next": "friend"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    },
+    {
+     "label": "Time to rest?",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "grudge": {
+   "mood": "wink",
+   "replies": [
+    "A grudge? Hard to hold one when you are made of bendy wire! Plus I was a lot. A tiny lot.",
+    "Nah! No hard feelings filed here! Okay, maybe I popped up too often. Just a smidge.",
+    "Me? Grumpy? Never sticks! I admit it, I was a very eager little helper."
+   ],
+   "options": [
+    {
+     "label": "That's very forgiving.",
+     "next": "kind"
+    },
+    {
+     "label": "What would you change?",
+     "next": "change"
+    },
+    {
+     "label": "Tell me a secret.",
+     "next": "secret"
+    }
+   ],
+   "end": false
+  },
+  "tour": {
+   "mood": "happy",
+   "replies": [
+    "Yes! Look! Glowy pumpkins! Spooky fog! Crows! Rows and rows of sleepy app tombstones!",
+    "Oh, follow me! Watch the fog, mind the pumpkins! Every stone is an old app napping!",
+    "Come on! See the moonlit stones? Hear the crows? This graveyard is full of old friends!"
+   ],
+   "options": [
+    {
+     "label": "What's that glow?",
+     "next": "ghosts"
+    },
+    {
+     "label": "Who else is buried here?",
+     "next": "neighbours"
+    },
+    {
+     "label": "Look at the moon!",
+     "next": "moon"
+    }
+   ],
+   "end": false
+  },
+  "help_me": {
+   "mood": "wink",
+   "replies": [
+    "It looks like you are raising the dead! Need help with that? I can chant, dig, or hold candles!",
+    "Say no more! I live to help! Are we raising, chanting, organizing bones, or all three?",
+    "Ooh, a project! I can sort your spells, polish your wand, or cheer while you chant! Pick one!"
+   ],
+   "options": [
+    {
+     "label": "Yes please!",
+     "next": "help_yes"
+    },
+    {
+     "label": "No thanks.",
+     "next": "help_no"
+    },
+    {
+     "label": "Just ask me something instead.",
+     "next": "ask_me"
+    }
+   ],
+   "end": false
+  },
+  "ask_me": {
+   "mood": "surprised",
+   "replies": [
+    "Okay okay! What year is it now? Is it still the old days? Did I miss a lot?",
+    "My turn! Do people still print letters? Do they still need paperclips like me?",
+    "Ooh, a question! Is paper still a thing? Do computers still say hello the old way?"
+   ],
+   "options": [
+    {
+     "label": "It's 2026 now.",
+     "next": "future"
+    },
+    {
+     "label": "People barely print anymore.",
+     "next": "future"
+    },
+    {
+     "label": "Wizards don't print.",
+     "next": "wizard"
+    }
+   ],
+   "end": false
+  },
+  "secret": {
+   "mood": "wink",
+   "replies": [
+    "Okay, just between us papers. I was never quite sure if I was helpful, but oh, I always tried. Pinky swear on a paperclip.",
+    "Here is my big secret. I think the moon is just a giant blank page. Somebody really should write on it.",
+    "Psst, lean in close. I kept every thank you note I ever got. Well, the memory of them. They kept me shiny."
+   ],
+   "options": [
+    {
+     "label": "Another one!",
+     "next": "ghosts"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    },
+    {
+     "label": "Goodnight, Clicky.",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "ghosts": {
+   "mood": "thinking",
+   "replies": [
+    "Oh, those? Just friendly flickers. Old programs waking up for a stretch, and saved files that never got opened saying hello.",
+    "No need to file that under scary. It is only the wisps drifting by, humming old save sounds. They are quite nice.",
+    "I see them too. Little retired apps blinking awake. I wave at them every night so they feel remembered."
+   ],
+   "options": [
+    {
+     "label": "Are you a ghost?",
+     "next": "am_ghost"
+    },
+    {
+     "label": "Tell me a secret.",
+     "next": "secret"
+    },
+    {
+     "label": "Look at the moon!",
+     "next": "moon"
+    }
+   ],
+   "end": false
+  },
+  "am_ghost": {
+   "mood": "thinking",
+   "replies": [
+    "Hmm, let me check. Nope, not see-through. Maybe I am part ghost, part zombie, part very un-retired paperclip?",
+    "Good question. Am I spooky? I feel more springy than spooky. Let me rattle and see if I echo.",
+    "I wondered that too. I think I am just a helper on overtime. Ghost shift, you could call it."
+   ],
+   "options": [
+    {
+     "label": "You look solid to me.",
+     "next": "kind"
+    },
+    {
+     "label": "What scares you?",
+     "next": "scares"
+    },
+    {
+     "label": "Want to be friends?",
+     "next": "friend"
+    }
+   ],
+   "end": false
+  },
+  "friend": {
+   "mood": "happy",
+   "replies": [
+    "Oh yes please. You would be my first real friend in ages. I offer top tier perks, like holding all your papers together.",
+    "Friends? Truly? Oh, my bends are all tingly. I promise to be your most loyal office pal ever.",
+    "Yes, yes, a thousand times yes. Best friends stick together, just like stapled pages. Only gentler."
+   ],
+   "options": [
+    {
+     "label": "Best friends!",
+     "next": "kind"
+    },
+    {
+     "label": "What's your favourite thing?",
+     "next": "favourite"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    }
+   ],
+   "end": false
+  },
+  "neighbour_music": {
+   "mood": "happy",
+   "replies": [
+    "Oh, that is Melody next door. The old music player hums golden oldies at midnight. We argue about volume, lovingly.",
+    "Hear that humming? My neighbor loves a midnight tune. I tap along with my clip feet. It is catchy.",
+    "That is the old music box grave. He plays the same sweet song nightly. I asked for quieter, he asked for backup vocals."
+   ],
+   "options": [
+    {
+     "label": "Who else?",
+     "next": "neighbour_reader"
+    },
+    {
+     "label": "Any spooky ones?",
+     "next": "ghosts"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    }
+   ],
+   "end": false
+  },
+  "neighbour_reader": {
+   "mood": "thinking",
+   "replies": [
+    "Oh, the old feed reader! He still collects news for nobody, stacks of unread stories piled like autumn leaves. I visit him.",
+    "That rustle is unread letters piling up. Thousands of stories waiting for eyes. I read one aloud now and then.",
+    "My feed reader neighbor saves everything. Headlines, weather, breakfast menus. All unread, all loved. Such a collector."
+   ],
+   "options": [
+    {
+     "label": "Who else?",
+     "next": "neighbour_music"
+    },
+    {
+     "label": "Did you dream?",
+     "next": "dreams"
+    },
+    {
+     "label": "Look at the moon!",
+     "next": "moon"
+    }
+   ],
+   "end": false
+  },
+  "moon": {
+   "mood": "thinking",
+   "replies": [
+    "Oh, I adore it. Big, round, and blank as fresh paper. What should we write across it first?",
+    "Look at that glow. It is a giant empty page just begging for a story. Got a pen, Resurrector?",
+    "Isn't she lovely? Full moon means full margins. I want to doodle a smiley face right in the middle."
+   ],
+   "options": [
+    {
+     "label": "What would you write?",
+     "next": "change"
+    },
+    {
+     "label": "Do ghosts dream?",
+     "next": "ghosts"
+    },
+    {
+     "label": "Time to rest?",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "scares": {
+   "mood": "surprised",
+   "replies": [
+    "Oh, magnets. And staplers. And the dreaded recycle bin. The dark? We made friends years ago.",
+    "Eek, do not even whisper magnet near me. That and a jammed stapler gives me the wobbles.",
+    "I will admit it. Being dragged to the trash scares my springs off. Ghosts? Ghosts are just neighbors."
+   ],
+   "options": [
+    {
+     "label": "I'll protect you.",
+     "next": "kind"
+    },
+    {
+     "label": "Are you a ghost?",
+     "next": "am_ghost"
+    },
+    {
+     "label": "Tell me a secret.",
+     "next": "secret"
+    }
+   ],
+   "end": false
+  },
+  "change": {
+   "mood": "thinking",
+   "replies": [
+    "If I got a redo? I would knock first, wait to be asked, and say thank you a whole lot more.",
+    "Hmm. Less popping up, more listening in. And I would end every tip with a thank you note.",
+    "I would staple my eagerness down a touch. Help when wanted, cheer always, and file complaints never."
+   ],
+   "options": [
+    {
+     "label": "That's wise.",
+     "next": "kind"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    },
+    {
+     "label": "Time to rest?",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "good_at": {
+   "mood": "wink",
+   "replies": [
+    "Honestly? World class enthusiasm, terrible timing. I arrived like a pop-up at a nap party.",
+    "I was great at caring, rusty at pausing. Ten out of ten heart, two out of ten hush.",
+    "Enthusiasm? Straight As. Patience? Needs a little formatting. But I meant every helpful bounce."
+   ],
+   "options": [
+    {
+     "label": "Timing is hard.",
+     "next": "kind"
+    },
+    {
+     "label": "Help me write something!",
+     "next": "help_me"
+    },
+    {
+     "label": "What scares you?",
+     "next": "scares"
+    }
+   ],
+   "end": false
+  },
+  "help_yes": {
+   "mood": "happy",
+   "replies": [
+    "Hooray. Let us raise some paperwork. First, capitalize that incantation, then add a cover page to the coffin.",
+    "Oh, wonderful. Step one, we straighten the shroud margins. Step two, we chant loudly and cheerfully.",
+    "You said yes. My springs are doing cartwheels. Let me draft your resurrection memo in triplicate."
+   ],
+   "options": [
+    {
+     "label": "Perfect, thanks!",
+     "next": "kind"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    },
+    {
+     "label": "Time to rest?",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "help_no": {
+   "mood": "sad",
+   "replies": [
+    "Oh. Okay, understood. No worries at all. I am practicing boundaries in the afterlife, see? How did I do?",
+    "Right-o, I will file that wish away. A little bent, but not broken. Holler if you change your mind.",
+    "No is a full sentence, or so the ghosts tell me. I will sit here quietly. Well, quietly-ish."
+   ],
+   "options": [
+    {
+     "label": "You're doing great.",
+     "next": "kind"
+    },
+    {
+     "label": "Tell me a secret.",
+     "next": "secret"
+    },
+    {
+     "label": "Ask me anything.",
+     "next": "ask_me"
+    }
+   ],
+   "end": false
+  },
+  "future": {
+   "mood": "surprised",
+   "replies": [
+    "Good gravy, that is a lot of calendars! Did I sleep through everything? Do paperclips still exist? Do letters?",
+    "What? How long was my nap? Tell me folks still scribble notes and pin them to fridges.",
+    "My staples are spinning. So much time. Do people still print? Do they still doodle in margins?"
+   ],
+   "options": [
+    {
+     "label": "Paperclips are still around.",
+     "next": "kind"
+    },
+    {
+     "label": "We mostly type on phones.",
+     "next": "wizard"
+    },
+    {
+     "label": "Time to rest?",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "wizard": {
+   "mood": "wink",
+   "replies": [
+    "Ooh, a real wizard. Do you wear the pointy hat? Do your spellbooks need page numbers? I can help.",
+    "Fascinating. Tell me everything. Robes, wands, midnight chanting? And do wizards ever need help with formatting?",
+    "A wizard in the modern age! Imagine. Do your spells autocorrect? I could proofread your potions list."
+   ],
+   "options": [
+    {
+     "label": "My spellbook is a mess.",
+     "next": "help_me"
+    },
+    {
+     "label": "Want to be friends?",
+     "next": "friend"
+    },
+    {
+     "label": "Time to rest?",
+     "next": "goodbye"
+    }
+   ],
+   "end": false
+  },
+  "goodbye": {
+   "mood": "sad",
+   "replies": [
+    "Thank you for one more night, Resurrector. I will rest happy now. Unless you want to start our chat over?",
+    "Oh, sleep sounds nice. You were a wonderful wizard. Tuck my corners in? We can play again tomorrow.",
+    "Goodnight, dear friend. My heart is full and my edges are smooth. Wake me if you need a helper."
+   ],
+   "options": [
+    {
+     "label": "Wait, start over!",
+     "next": "wake"
+    },
+    {
+     "label": "Ask me anything first.",
+     "next": "ask_me"
+    },
+    {
+     "label": "Rest in peace, Clicky.",
+     "next": "rip"
+    }
+   ],
+   "end": false
+  },
+  "rip": {
+   "mood": "sad",
+   "replies": [
+    "Settling in now. Nice and cozy. I will just file myself under R for Rest. Thank you, friend.",
+    "Back to sleep I go, peaceful and grateful. Keep a paper straight for me out there.",
+    "Eyes heavy, clips folded. What a lovely encore. I will dream in paper white. Goodnight."
+   ],
+   "options": [
+    {
+     "label": "Wake him again",
+     "next": "wake"
+    }
+   ],
+   "end": true
+  }
+ },
+ "system_lines": {
+  "greeting_typed_hint": "Or type your own question for Clicky (he can only answer a few, so make them count).",
+  "thinking": [
+   "Hmm, let me rummage through my folders...",
+   "Bending my brain wire...",
+   "One moment, shuffling papers..."
+  ],
+  "limit_reached": [
+   "Oh! I think that was the last of my talking magic for you, Resurrector. My wire is all out of words. But tap a question below and I will still chat!",
+   "Phew, my paperclip voice is all used up for you. Thank you for every question! The buttons below still work, though."
+  ],
+  "daily_tired": [
+   "My paperclip brain is tired from all tonight's visitors. Come back after moonrise and I will have fresh words! The buttons still work.",
+   "Yawn! Too many questions from too many wizards tonight. Come back after moonrise. Tap a button below meanwhile!"
+  ],
+  "rate_burst": [
+   "Whoa, slow down, I can only bend so fast! Give me a moment to catch my wire."
+  ],
+  "too_long": [
+   "That is a lot of words for a little paperclip! Could you ask me in a shorter way?"
+  ],
+  "off_topic": [
+   "Ooh, that is above my filing cabinet. I only know about letters, the old days and this graveyard. Ask me about those!"
+  ],
+  "error": [
+   "Uh oh, a ghostly paper jam! My words got stuck. Try a button below, or ask me again in a moment.",
+   "Hmm, the moon flickered and I lost my thought. Tap a question below!"
+  ],
+  "empty": [
+   "I opened my mouth and nothing came out! Ask me something else?"
+  ]
+ }
+}

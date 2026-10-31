@@ -27,7 +27,7 @@ All CLIs live in /workspace/kirohome/.local/bin and keep their sign-in under HOM
   - The NO_PROXY bypass is required: the sandbox proxy replaces Google auth headers, which makes the call fail with "insufficient authentication scopes".
   - In headless mode the default permission mode can read files but quietly refuses shell commands and edits, so it works as a read-only reviewer. Don't use `--mode plan`, which tries shell commands that then get refused, and never use `--dangerously-skip-permissions`.
   - To sign in again, run `agy` from a pty under SSH env vars, pick Google OAuth, open the URL with the browser tool (start_url on antigravity.google) and paste the code back. The token is saved in ~/.gemini/antigravity-cli/antigravity-oauth-token.
-- **Grok CLI (`grok` 1.0.70, official xAI "Grok Build")**: signed in through grok.com with Jay's Google account via `grok login --device-auth`. Default model grok-4.7; also grok-4.7-build-fast, grok-4.6 and grok-4.5. Free usage is capped by a weekly limit shown on grok.com.
+- **Grok CLI (`grok` 1.0.70, official xAI "Grok Build")**: signed in through grok.com with Jay's Google account via `grok login --device-auth`. Default model grok-4.7; also grok-4.7-build-fast, grok-4.6 and grok-4.5. Jay has paid SuperGrok: weekly limit shown in Grok app Usage (Oct 31 20:38: only 3% used after round-1 review; resets Mon 2 Nov 12:03 IST). Plenty of headroom; use Grok freely as main reviewer/planner.
   - Wrapper: `/workspace/kirohome/.local/bin/review-grok "Code-review src/scenes for bugs" [-m grok-4.7-build-fast]`
   - Raw command: `HOME=/workspace/kirohome grok -p "<prompt>" --permission-mode plan --output-format plain` (run it from /workspace/raise-dead). `--sandbox read-only` doesn't work here because bubblewrap is missing.
   - The token lasts about 7 to 30 days. To renew it, run `grok login --device-auth` and approve the code in the browser session `grok`.
@@ -38,14 +38,14 @@ All CLIs live in /workspace/kirohome/.local/bin and keep their sign-in under HOM
 ### Reviewer tips (from round 1)
 - agy: instruct "use file reads only, no shell"; pass --output-format json for token counts.
 - Muse: send reasoning_effort:"low" from the first call (reasoning ate max_tokens otherwise).
-- Grok CLI: strongest reviewer but ~15 min/prompt and weekly cap; use sparingly.
+- Grok CLI: strongest reviewer, ~15 min/prompt; paid SuperGrok, a deep review costs ~2% of the weekly limit, so use it regularly.
 
 ## Team operating model (Jay, Oct 31 2026)
 - Plan with top models (consultant tier): Hark + claude-opus-4-6-thinking via Antigravity write thorough specs/briefs.
 - Review with Grok 4.7 (sparingly, weekly cap), Gemini 3.8 Flash + Sonnet via agy, Muse muse-spark-1.3-contributor (no Wonder contributor exists).
 - Execute with workhorses: Kiro on claude-haiku-4.5 / auto (cheap credits), Kiro must write app code.
 - Asset generation can use Antigravity / Grok image tools (original art only, credit tool in CREDITS).
-- Track usage: Kiro credits (dashboard), Grok weekly cap (resets ~Nov 2), Muse $150, agy free tier.
+- Track usage: Kiro credits (dashboard), SuperGrok weekly limit (~2% per deep review), Muse $150, agy free tier.
 - Future idea (after core demo): graves that open real, rich original-art arcade games in the spirit of Pac-Man / Contra (no ROMs, names or trademarked art). Nothing may look cheap.
 - Model availability check (Oct 31 18:02): agy lists gemini-3.8-flash h/m/l, claude-sonnet-4-6, claude-opus-4-6-thinking (free caps tight, rolling 5h), gpt-oss-120b. No Argon / Gemini Pro. Grok: 4.7, 4.7-build-fast, 4.6, 4.5. Use Opus sparingly for planning only.
 - Jay's next asks (after prototype is presented): polish walking animations; maybe bats flying. Don't overdo; present the working prototype first.
@@ -56,3 +56,18 @@ All CLIs live in /workspace/kirohome/.local/bin and keep their sign-in under HOM
 - Extra capacity (Jay, Oct 31): Oxion AI account (oxionai.com, signed in) has ~200M tokens incl. Haiku-class models; can be wired into a harness for reviews/bulk work if useful. Kiro still writes app code.
 - Jay's Phase 1.5 feedback (19:02): sounds perfect; fix RIP click, explore whole map, grounded shadows/ground texture, wizard feet/float, tree collision, witch fly-by + cackle, tone shimmer down, Halloween Easter eggs that teach lore.
 - Phase 1.5 status (Oct 31 19:45): brief + assets ready (research/p15-brief.md); Kiro hit its monthly limit mid Session A, partial work stashed. Resume after the Nov 1 Kiro reset.
+- Pixel animation skills found (Oct 31): Gamezxz/pixel-art-studio (MIT; Pillow, LLM places pixels, self-critique loop — good for wizard walk cycle w/ feet, bats, Clicky), aldegad/sprite-gen (Apache-2.0; base image → state rows/atlas, grid-locked), 0x0funky/agent-sprite-forge (Claude/Codex/Grok skills; image→video→frames). Plan: vendor pixel-art-studio as a .kiro steering/skill for the walk-cycle rework; credit in CREDITS.
+- Clicky chat (Jay 20:48): limits 5 typed msgs per hashed IP AND 5 per cookie token, lifetime; storage Cloudflare D1/KV preferred (Supabase alt); monitor usage. Full branching preset tree (3 options per turn) pre-generated, typewriter-streamed replies.
+
+## Clicky / Muse feature (prepped Oct 31 20:45–21:30 IST)
+- Spec: research/muse-clicky-brief.md (Kiro-ready). Presets: public/data/clicky-presets.json (33-node branching tree, 3 variants/node, system lines). Art: public/assets/images/clicky/clicky_sheet.png (4×47×92), portraits/medal_clicky.png (replaces eyebrowed medal_clippy in UI). Submission: research/meta-submission-checklist.md.
+- Decisions: character "Clicky" (never "Clippy" in UI; grave name "Clicky the Paperclip"); Pages Functions + D1 on the existing Pages project (lifetime 5/IP-hash + 5/signed token, DAILY_CAP 300, usage_daily token counters, admin /api/clicky/usage); Muse streamed via SSE.
+- Muse finding: reasoning tokens count against max_tokens; at 160–400 tokens low/minimal return content=null. Use reasoning_effort minimal + max_tokens 700 (low needs ~1000). ~$0.00008/typed msg.
+- MODEL_API_KEY in sandbox env is a proxy placeholder: set the Cloudflare secret via dashboard/browser, never from $MODEL_API_KEY.
+
+### Muse usage log
+| when (IST) | purpose | calls | prompt tok | completion tok (reasoning) | est. $ |
+|---|---|---|---|---|---|
+| Oct 31 ~19:30 | p15 brief review (earlier) | 1 | 4,951 | 1,400 (781) | 0.0008 |
+| Oct 31 21:00 | Clicky runtime param tests (effort/max_tokens/stream) | 12 | ~2,550 | ~3,600 (~3,300) | 0.0010 |
+| Oct 31 21:05 | Clicky preset tree generation (2 calls, minimal) | 2 | 2,913 | 2,799 (183) | 0.0009 |
