@@ -30,7 +30,6 @@ export class GraveyardWorld extends Phaser.Scene {
     left: Phaser.Input.Keyboard.Key;
     right: Phaser.Input.Keyboard.Key;
   };
-  private fKey!: Phaser.Input.Keyboard.Key;
   private mKey!: Phaser.Input.Keyboard.Key;
   private joystick!: Joystick;
 
@@ -379,11 +378,13 @@ export class GraveyardWorld extends Phaser.Scene {
       left:  this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
-    this.fKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
     this.joystick = new Joystick(this);
     this.joystick.onFPress(() => this.tryRaiseGrave());
+
+    // F key event listener
+    this.input.keyboard!.on('keydown-F', () => this.tryRaiseGrave());
 
     // M key mute toggle
     this.mKey.on('down', () => {
@@ -444,11 +445,6 @@ export class GraveyardWorld extends Phaser.Scene {
     // Pumpkin light flicker
     for (const light of this.pumpkinLights) {
       light.intensity = 0.9 + Math.sin(Date.now() * 0.003 + light.x) * 0.15;
-    }
-
-    // F key
-    if (Phaser.Input.Keyboard.JustDown(this.fKey)) {
-      this.tryRaiseGrave();
     }
   }
 
@@ -621,7 +617,7 @@ export class GraveyardWorld extends Phaser.Scene {
   teleportToGrave(id: string): void {
     const layout = MAP_LAYOUT.find((l) => l.id === id);
     if (!layout) return;
-    this.wizard.setPosition(layout.x, layout.y + 30);
+    this.wizard.setPosition(layout.x, layout.y + 40);
     this.cameras.main.centerOn(layout.x, layout.y);
   }
 

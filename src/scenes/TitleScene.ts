@@ -43,10 +43,12 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5);
 
     // "Click to enter" prompt
-    const clickPrompt = this.add.text(width / 2, height - 120, 'Click to enter the graveyard', {
+    const clickPrompt = this.add.text(width / 2, height - 120, 'Click to enter the graveyard · or Press Enter/Space', {
       fontFamily: "'Pixelify Sans', sans-serif",
-      fontSize: '20px',
-      color: '#c9b98a',
+      fontSize: '26px',
+      color: '#f3ecc8',
+      stroke: '#0b1020',
+      strokeThickness: 2,
     }).setOrigin(0.5, 0.5);
 
     // Pulsing tween on click prompt
@@ -73,10 +75,32 @@ export class TitleScene extends Phaser.Scene {
     });
 
     // Input — first click unlocks audio, second click (or same) enters graveyard
-    this.input.once('pointerdown', () => this.handleFirstClick(clickPrompt));
+    let firstInteraction = true;
+    this.input.once('pointerdown', () => {
+      if (firstInteraction) {
+        firstInteraction = false;
+        this.handleFirstInteraction(clickPrompt);
+      }
+    });
+
+    // Keyboard listeners for Enter/Space
+    const enterKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    const spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    enterKey.on('down', () => {
+      if (firstInteraction) {
+        firstInteraction = false;
+        this.handleFirstInteraction(clickPrompt);
+      }
+    });
+    spaceKey.on('down', () => {
+      if (firstInteraction) {
+        firstInteraction = false;
+        this.handleFirstInteraction(clickPrompt);
+      }
+    });
   }
 
-  private handleFirstClick(clickPrompt: Phaser.GameObjects.Text): void {
+  private handleFirstInteraction(clickPrompt: Phaser.GameObjects.Text): void {
     if (!this.audioUnlocked) {
       this.audioUnlocked = true;
       // Start waltz

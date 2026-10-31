@@ -26,25 +26,36 @@ export class GraveOverlay {
     const overlay = document.createElement('div');
     overlay.id = 'grave-overlay';
     overlay.style.cssText = `
-      position: absolute;
+      position: fixed;
       inset: 0;
       z-index: 10;
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity 0.4s ease;
       pointer-events: none;
+      transition: opacity 0.4s ease;
+    `;
+
+    // Panel wrapper with fixed positioning, centered
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
     `;
 
     // Panel styled with frame_panel.png as border-image
     const panel = document.createElement('div');
     panel.style.cssText = `
       position: relative;
-      width: min(92vw, 860px);
-      min-height: min(86vh, 520px);
-      max-height: min(86vh, 620px);
-      background-color: #0e1526;
+      width: min(92vw, 960px);
+      height: min(86vh, 600px);
+      background: none;
       border-image: url('/assets/images/ui/frame_panel.png') 60 64 60 64 fill;
       border-style: solid;
       border-width: 60px 64px;
@@ -53,8 +64,24 @@ export class GraveOverlay {
       align-items: center;
       justify-content: flex-start;
       overflow: hidden;
-      padding: 16px 32px 24px;
       pointer-events: all;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    `;
+
+    // Inner content box with opaque navy background
+    const content = document.createElement('div');
+    content.style.cssText = `
+      position: absolute;
+      inset: 60px 64px;
+      background-color: #0e1526;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 24px 32px;
+      overflow: hidden;
     `;
 
     // Medallion
@@ -69,7 +96,7 @@ export class GraveOverlay {
       const med = document.createElement('img');
       med.src = medalMap[grave.id];
       med.style.cssText = 'width: 96px; height: 96px; margin-bottom: 12px; image-rendering: pixelated;';
-      panel.appendChild(med);
+      content.appendChild(med);
     }
 
     // Title
@@ -83,7 +110,7 @@ export class GraveOverlay {
       margin-bottom: 8px;
       text-shadow: 0 0 12px #7fd1d8;
     `;
-    panel.appendChild(title);
+    content.appendChild(title);
 
     // Years
     const born = extractYear(grave.born);
@@ -96,7 +123,7 @@ export class GraveOverlay {
       color: #c9b98a;
       margin-bottom: 12px;
     `;
-    panel.appendChild(years);
+    content.appendChild(years);
 
     // Epitaph
     const epitaph = document.createElement('p');
@@ -110,7 +137,7 @@ export class GraveOverlay {
       margin-bottom: 18px;
       max-width: 540px;
     `;
-    panel.appendChild(epitaph);
+    content.appendChild(epitaph);
 
     // Phase 2 placeholder
     const placeholder = document.createElement('p');
@@ -121,7 +148,7 @@ export class GraveOverlay {
       color: #5d6b80;
       margin-bottom: 24px;
     `;
-    panel.appendChild(placeholder);
+    content.appendChild(placeholder);
 
     // App content area (Phase 2 mount point)
     const appContainer = document.createElement('div');
@@ -131,7 +158,7 @@ export class GraveOverlay {
       flex: 1;
       overflow: auto;
     `;
-    panel.appendChild(appContainer);
+    content.appendChild(appContainer);
 
     // Exit button
     const exitBtn = document.createElement('button');
@@ -156,16 +183,20 @@ export class GraveOverlay {
       exitBtn.style.borderColor = '#c9b98a';
     });
     exitBtn.addEventListener('click', () => this.triggerExit());
-    panel.appendChild(exitBtn);
+    content.appendChild(exitBtn);
 
-    overlay.appendChild(panel);
+    panel.appendChild(content);
+    wrapper.appendChild(panel);
+    overlay.appendChild(wrapper);
     container.appendChild(overlay);
     this.overlayEl = overlay;
 
-    // Fade in
+    // Fade in with translateY
     requestAnimationFrame(() => {
       overlay.style.opacity = '1';
       overlay.style.pointerEvents = 'all';
+      panel.style.opacity = '1';
+      panel.style.transform = 'translateY(0)';
     });
 
     // Try loading Phase 2 app module (will fail gracefully in Phase 1)
@@ -208,6 +239,11 @@ export class GraveOverlay {
       this.appInstance = null;
     }
     if (this.overlayEl) {
+      const panel = this.overlayEl.querySelector('div > div') as HTMLElement;
+      if (panel) {
+        panel.style.opacity = '0';
+        panel.style.transform = 'translateY(20px)';
+      }
       this.overlayEl.style.opacity = '0';
       const el = this.overlayEl;
       setTimeout(() => el.remove(), 420);

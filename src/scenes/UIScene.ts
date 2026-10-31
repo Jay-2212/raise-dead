@@ -93,55 +93,70 @@ export class UIScene extends Phaser.Scene {
   private createPlaque(): Phaser.GameObjects.Container {
     const container = this.add.container(640, 120);
 
-    const PANEL_W = 380;
-    const PANEL_H = 140;
+    const PANEL_W = 440;
+    const PANEL_H = 210;
+    const PADDING = 34;
 
     // NineSlice panel
     const panel = this.add.nineslice(
       0, 0, 'frame_panel', undefined,
       PANEL_W, PANEL_H,
-      64, 64, 60, 60
+      60, 64, 60, 60
     );
     panel.setOrigin(0.5, 0);
 
-    // Name text (placeholder — updated in updatePlaque)
-    const nameText = this.add.text(0, 18, '', {
-      fontFamily: "'Cinzel', serif",
-      fontSize: '15px',
+    // Inner content area
+    const contentX = -PANEL_W / 2 + PADDING;
+    const contentY = PADDING;
+    const contentW = PANEL_W - 2 * PADDING;
+    const contentH = PANEL_H - 2 * PADDING;
+
+    // Medallion (for resurrectable graves)
+    const medallion = this.add.image(contentX, contentY + 28, 'medal_generic');
+    medallion.setOrigin(0, 0);
+    medallion.setDisplaySize(56, 56);
+    medallion.setName('medallion');
+
+    // Name text (positioned to the right of medallion)
+    const nameText = this.add.text(contentX + 70, contentY, '', {
+      fontFamily: "'Pixelify Sans', sans-serif",
+      fontSize: '20px',
       color: '#d9f2ee',
-      align: 'center',
-      wordWrap: { width: PANEL_W - 80 },
-    }).setOrigin(0.5, 0);
+      align: 'left',
+    }).setOrigin(0, 0);
     nameText.setName('nameText');
 
-    const yearsText = this.add.text(0, 42, '', {
+    // Years text
+    const yearsText = this.add.text(contentX + 70, contentY + 28, '', {
       fontFamily: "'Pixelify Sans', sans-serif",
-      fontSize: '11px',
+      fontSize: '15px',
       color: '#c9b98a',
-      align: 'center',
-    }).setOrigin(0.5, 0);
+      align: 'left',
+    }).setOrigin(0, 0);
     yearsText.setName('yearsText');
 
-    const epitaphText = this.add.text(0, 62, '', {
+    // Epitaph text
+    const epitaphText = this.add.text(contentX, contentY + 60, '', {
       fontFamily: "'Cinzel', serif",
-      fontSize: '10px',
+      fontSize: '15px',
       fontStyle: 'italic',
       color: '#d9f2ee',
-      align: 'center',
-      wordWrap: { width: PANEL_W - 80 },
-    }).setOrigin(0.5, 0);
+      align: 'left',
+      wordWrap: { width: contentW },
+    }).setOrigin(0, 0);
     epitaphText.setName('epitaphText');
 
-    const causeText = this.add.text(0, 98, '', {
+    // Cause of death text
+    const causeText = this.add.text(contentX, contentY + 120, '', {
       fontFamily: "'Pixelify Sans', sans-serif",
-      fontSize: '9px',
-      color: '#5d6b80',
-      align: 'center',
-      wordWrap: { width: PANEL_W - 80 },
-    }).setOrigin(0.5, 0);
+      fontSize: '13px',
+      color: '#9aa8b8',
+      align: 'left',
+      wordWrap: { width: contentW },
+    }).setOrigin(0, 0);
     causeText.setName('causeText');
 
-    container.add([panel, nameText, yearsText, epitaphText, causeText]);
+    container.add([panel, medallion, nameText, yearsText, epitaphText, causeText]);
     container.setScrollFactor(0);
 
     return container;
@@ -149,15 +164,23 @@ export class UIScene extends Phaser.Scene {
 
   private updatePlaque(grave: GraveEntry): void {
     const get = (name: string) =>
-      this.plaque.getByName(name) as Phaser.GameObjects.Text;
+      this.plaque.getByName(name) as Phaser.GameObjects.Text | Phaser.GameObjects.Image;
 
     const born = extractYear(grave.born);
     const died = extractYear(grave.died);
 
-    get('nameText').setText(grave.name);
-    get('yearsText').setText(`${born} – ${died}`);
-    get('epitaphText').setText(`"${grave.epitaph}"`);
-    get('causeText').setText(`Cause of death: ${grave.cause_of_death}`);
+    (get('nameText') as Phaser.GameObjects.Text).setText(grave.name);
+    (get('yearsText') as Phaser.GameObjects.Text).setText(`${born} – ${died}`);
+    (get('epitaphText') as Phaser.GameObjects.Text).setText(`"${grave.epitaph}"`);
+    (get('causeText') as Phaser.GameObjects.Text).setText(`Cause of death: ${grave.cause_of_death}`);
+
+    // Update medallion visibility for resurrectable graves
+    const medallion = get('medallion') as Phaser.GameObjects.Image;
+    if (grave.resurrectable) {
+      medallion.setVisible(true);
+    } else {
+      medallion.setVisible(false);
+    }
   }
 
   private showPlaque(): void {
@@ -173,7 +196,7 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  private hidePlaque(): void {
+  public hidePlaque(): void {
     if (!this.plaqueVisible) return;
     this.plaqueVisible = false;
     this.tweens.add({

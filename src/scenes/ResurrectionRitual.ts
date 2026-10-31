@@ -74,8 +74,11 @@ export class ResurrectionRitual extends Phaser.Scene {
     this.graveScreenX = (this.ritualData.tombstoneWorldX - cam.worldView.x) * cam.zoom;
     this.graveScreenY = (this.ritualData.tombstoneWorldY - cam.worldView.y) * cam.zoom;
 
-    // ── Rune circle ────────────────────────────────────────────────────────
-    this.runeCircle = this.add.image(this.graveScreenX, this.graveScreenY, 'rune_circle_add');
+    // ── Rune circle - centered between wizard and grave at ground ──────────
+    // Wizard is 40 art px below grave, so rune center is 20 px below grave
+    // Screen positioning: grave is at graveScreenY, wizard is at graveScreenY + (40 * cam.zoom)
+    const runeCircleScreenY = this.graveScreenY + (20 * cam.zoom);
+    this.runeCircle = this.add.image(this.graveScreenX, runeCircleScreenY, 'rune_circle_add');
     this.runeCircle.setBlendMode(Phaser.BlendModes.ADD);
     this.runeCircle.setTint(0x7fd1d8);
     this.runeCircle.setAlpha(0);
@@ -113,6 +116,15 @@ export class ResurrectionRitual extends Phaser.Scene {
     this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.escKey.on('down', () => this.cancel());
 
+    // DOM listener for Esc while overlay is open
+    const domEscHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') this.cancel();
+    };
+    window.addEventListener('keydown', domEscHandler);
+    this.events.once('shutdown', () => {
+      window.removeEventListener('keydown', domEscHandler);
+    });
+
     // ── Pause GraveyardWorld input ─────────────────────────────────────────
     const gwScene = this.scene.get('GraveyardWorld');
     gwScene?.input.keyboard?.disableGlobalCapture();
@@ -130,6 +142,10 @@ export class ResurrectionRitual extends Phaser.Scene {
     const voiceDuration = (voiceLine?.duration ?? 10) * 1000;
     const subtitle = voiceLine?.subtitle ?? '';
 
+    // Hide plaque during ritual
+    const uiScene = this.scene.get('UIScene') as { hidePlaque?: () => void };
+    uiScene?.hidePlaque?.();
+
     // Dim GraveyardWorld ambient
     const worldScene = this.scene.get('GraveyardWorld') as { audio?: { duckMusic(v: number, d: number): void; duckAmbient(v: number, d: number): void } };
     worldScene?.audio?.duckMusic(0.08, 800);
@@ -142,7 +158,7 @@ export class ResurrectionRitual extends Phaser.Scene {
     const runeTween = this.tweens.add({
       targets: this.runeCircle,
       alpha: 0.7,
-      scale: 0.35,
+      scale: 0.225,
       duration: 800,
       ease: 'Back.easeOut',
     });
@@ -280,19 +296,11 @@ export class ResurrectionRitual extends Phaser.Scene {
   }
 
   private playWizardCast(): void {
-    // Get GraveyardWorld scene's wizard facing
-    const gwScene = this.scene.get('GraveyardWorld') as { facing?: string };
-    const facing = gwScene?.facing ?? 'down';
-    const animMap: Record<string, string> = {
-      down:  'atk_front',
-      up:    'atk_behind',
-      left:  'atk_left',
-      right: 'atk_right',
-    };
-    const gwPhaser = gwScene as unknown as Phaser.Scene & { wizard?: Phaser.GameObjects.Sprite };
+    // Wizard should face up (toward the grave) during ritual
+    const gwPhaser = this.scene.get('GraveyardWorld') as unknown as Phaser.Scene & { wizard?: Phaser.GameObjects.Sprite };
     const wizard = gwPhaser?.wizard;
     if (wizard) {
-      wizard.play(animMap[facing] ?? 'atk_front');
+      wizard.play('atk_behind');
       wizard.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
         if (!this.cancelled) wizard.play('idle');
       });
@@ -416,6 +424,9 @@ export class ResurrectionRitual extends Phaser.Scene {
   private exitCleanup(): void {
     this.chantLoop?.destroy();
     this.chantLoop = null;
+
+    // Return stone to plain state
+    this.swapStone('plain');
 
     // Restore music/ambient via GraveyardWorld
     const worldScene = this.scene.get('GraveyardWorld') as {

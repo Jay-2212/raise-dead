@@ -86,15 +86,21 @@ export interface PathRect {
 }
 
 export const PATH_RECTS: PathRect[] = [
-  // Central horizontal path
-  { x: 200,  y: 830, width: 2000, height: 80 },
-  // Central vertical path
-  { x: 1160, y: 200, width: 80,   height: 1400 },
+  // Central plaza (160×120 around spawn at 1200, 900)
+  { x: 1120, y: 840, width: 160, height: 120 },
+  // Central horizontal path extending from plaza
+  { x: 200,  y: 870, width: 920,  height: 48 },  // left of plaza
+  { x: 1280, y: 870, width: 920,  height: 48 },  // right of plaza
+  // Central vertical path extending from plaza
+  { x: 1176, y: 200, width: 48,   height: 640 },  // above plaza
+  { x: 1176, y: 960, width: 48,   height: 640 },  // below plaza
   // Ring path (approximated as 4 segments)
-  { x: 800,  y: 580, width: 650,  height: 60 },  // top of ring
-  { x: 800,  y: 1060, width: 650, height: 60 },  // bottom of ring
-  { x: 800,  y: 580, width: 60,   height: 540 },  // left of ring
-  { x: 1390, y: 580, width: 60,   height: 540 },  // right of ring
+  { x: 800,  y: 620, width: 400,  height: 48 },  // top-left of ring
+  { x: 1200, y: 620, width: 400,  height: 48 },  // top-right of ring
+  { x: 800,  y: 1080, width: 400, height: 48 },  // bottom-left of ring
+  { x: 1200, y: 1080, width: 400, height: 48 },  // bottom-right of ring
+  { x: 800,  y: 620, width: 48,   height: 460 },  // left of ring
+  { x: 1552, y: 620, width: 48,   height: 460 },  // right of ring
 ];
 
 /** Wizard spawn position in art pixels */

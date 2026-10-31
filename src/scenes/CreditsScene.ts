@@ -100,10 +100,8 @@ export class CreditsScene extends Phaser.Scene {
     }
 
     const allLines = [
-      '— Required Attributions —',
       ...REQUIRED,
       '',
-      '— Full Credits —',
       ...this.creditsLines,
     ];
 
@@ -112,31 +110,56 @@ export class CreditsScene extends Phaser.Scene {
 
     for (const line of allLines) {
       const isRequired = REQUIRED.includes(line);
-      const isHeader = line.startsWith('—') || line.startsWith('#');
+      const isHeader = line.trim().startsWith('—') || line.trim() === '';
+
+      if (line.trim() === '') {
+        y += 12; // spacing between sections
+        continue;
+      }
 
       const text = this.add.text(startX, y, line, {
         fontFamily: isHeader ? "'Cinzel', serif" : "'Pixelify Sans', sans-serif",
         fontSize: isHeader ? '14px' : '12px',
         color: isRequired ? '#c9b98a' : (isHeader ? '#d9f2ee' : '#9aa8b8'),
-        wordWrap: { width: width - 64 },
+        wordWrap: { width: width - 64, useAdvancedWrap: true },
       });
       text.setDepth(4);
       this.textContainer.add(text);
-      y += this.lineHeight + (isHeader ? 6 : 0);
+      y += text.displayHeight + 8;
     }
 
     this.contentHeight = y + 40;
-    height; // suppress unused
   }
 
   private parseMarkdown(md: string): string[] {
-    return md
-      .split('\n')
-      .map((line) => {
-        // Strip markdown link syntax: [text](url) → text (url)
-        return line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
-      })
-      .filter((line) => line.trim() !== '' || true); // keep blanks for spacing
+    const lines: string[] = [];
+    const rawLines = md.split('\n');
+
+    for (const line of rawLines) {
+      let processed = line;
+
+      // Skip table header and separator rows
+      if (processed.includes('|---') || (processed.startsWith('|') && rawLines.indexOf(line) === 1)) {
+        continue;
+      }
+
+      // Strip markdown link syntax: [text](url) → text — url
+      processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 — $2');
+
+      // Strip markdown formatting
+      processed = processed.replace(/\*\*([^\*]+)\*\*/g, '$1'); // bold
+      processed = processed.replace(/`([^`]+)`/g, '$1'); // code
+      processed = processed.replace(/# /g, ''); // headings
+      processed = processed.replace(/^## /g, ''); // subheadings
+      processed = processed.replace(/\| /g, ''); // table delimiters
+      processed = processed.trim();
+
+      if (processed.length > 0) {
+        lines.push(processed);
+      }
+    }
+
+    return lines;
   }
 
   update(): void {
