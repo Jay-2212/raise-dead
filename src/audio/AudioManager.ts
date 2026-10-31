@@ -172,7 +172,9 @@ export class AudioManager {
       this.footstepTimer = 0;
       const n = Phaser.Math.Between(1, 8);
       const key = surface === 'gravel' ? `gravel_0${n}` : `dirt_0${n}`;
-      this.scene.sound.play(key, { volume: 0.35 });
+      // P2-12: Detune ±80 cents to avoid machine-gun repetition
+      const detune = Phaser.Math.Between(-80, 80);
+      this.scene.sound.play(key, { volume: 0.35, detune });
     }
   }
 
@@ -188,6 +190,22 @@ export class AudioManager {
       const vol = Phaser.Math.FloatBetween(0.3, 0.5);
       const detune = Phaser.Math.Between(-100, 100);
       this.scene.sound.play(key, { volume: vol, detune });
+    }
+  }
+
+  // ─── iOS resume (P2-19) ────────────────────────────────────────────────────
+
+  /** Resume any ambient loops that stopped on iOS when tab/app regains focus */
+  resumeLoopsIfNeeded(): void {
+    this.ambientLoops.forEach((sound, key) => {
+      // P2-19: Restart loop if it's not playing
+      if (sound && !sound.isPlaying) {
+        sound.play();
+      }
+    });
+    // Also resume music if it stopped
+    if (this.musicTrack && !this.musicTrack.isPlaying) {
+      this.musicTrack.play();
     }
   }
 }

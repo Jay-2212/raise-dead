@@ -3,6 +3,7 @@
  * and a Credits button. First click unlocks audio and starts the waltz.
  */
 import Phaser from 'phaser';
+import { queueWorldAssets, createWizardAnimations } from './worldAssets';
 
 export class TitleScene extends Phaser.Scene {
   private waltz: Phaser.Sound.BaseSound | null = null;
@@ -80,6 +81,29 @@ export class TitleScene extends Phaser.Scene {
       this.scene.launch('CreditsScene', { from: 'TitleScene' });
     });
 
+    // Start background loading of world assets
+    queueWorldAssets(this.load);
+    
+    // Create progress text for loading feedback
+    const progressText = this.add.text(width / 2, height / 2 + 80, 'Summoning… 0%', {
+      fontFamily: "'Pixelify Sans', sans-serif",
+      fontSize: '16px',
+      color: '#5d6b80',
+    }).setOrigin(0.5, 0.5);
+
+    // Listen to loader progress and completion
+    this.load.on('progress', (v: number) => {
+      progressText.setText(`Summoning… ${Math.round(v * 100)}%`);
+    });
+
+    this.load.once('complete', () => {
+      progressText.destroy();
+      createWizardAnimations(this);
+      this.registry.set('worldLoaded', true);
+    });
+
+    this.load.start();
+
     // Input — first click unlocks audio and starts waltz
     let firstInteraction = true;
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -154,6 +178,21 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private enterGraveyard(): void {
+    // Check if world assets are already loaded
+    const worldLoaded = this.registry.get('worldLoaded');
+    
+    if (worldLoaded) {
+      // Assets are loaded, proceed immediately
+      this.performTransition();
+    } else {
+      // Still loading — wait for completion
+      this.load.once('complete', () => {
+        this.performTransition();
+      });
+    }
+  }
+
+  private performTransition(): void {
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.waltz?.destroy();

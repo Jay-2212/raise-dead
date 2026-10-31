@@ -159,8 +159,8 @@ export class UIScene extends Phaser.Scene {
     const contentY = PADDING_TOP;
     const contentW = PANEL_W - 2 * PADDING_SIDE;
 
-    // Medallion (for resurrectable graves)
-    const medallion = this.add.image(contentX, contentY, 'medal_generic');
+    // Medallion (for resurrectable graves) — P2-8: default to medal_unmarked
+    const medallion = this.add.image(contentX, contentY, 'medal_unmarked');
     medallion.setOrigin(0, 0);
     medallion.setDisplaySize(56, 56);
     medallion.setName('medallion');

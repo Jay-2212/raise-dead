@@ -8,6 +8,7 @@ import { RitualData } from '../types/ritual';
 import { Tombstone } from '../ui/Tombstone';
 import { AudioManager } from '../audio/AudioManager';
 import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
+import { queueWorldAssets, createWizardAnimations } from './worldAssets';
 
 const WORLD_W = 2400;
 const WORLD_H = 1800;
@@ -37,7 +38,7 @@ export class GraveyardWorld extends Phaser.Scene {
   private graves: GraveEntry[] = [];
 
   // Atmosphere
-  private fogLayers: Phaser.GameObjects.TileSprite[] = [];
+  private fogLayers: Array<{ sprite: Phaser.GameObjects.TileSprite; sx: number; sy: number }> = [];
   private pumpkinLights: Phaser.GameObjects.Light[] = [];
 
   // HUD (proximate hint lives in UIScene)
@@ -60,7 +61,14 @@ export class GraveyardWorld extends Phaser.Scene {
     super({ key: 'GraveyardWorld' });
   }
 
+  preload(): void {
+    // Queue world assets (Phaser skips if already cached from TitleScene)
+    queueWorldAssets(this.load);
+  }
+
   create(): void {
+    // Create animations if they don't exist
+    createWizardAnimations(this);
     this.buildGround();
     this.loadGraves();
     this.spawnDecoratives();
@@ -87,6 +95,13 @@ export class GraveyardWorld extends Phaser.Scene {
       // P0-3: Re-enable proximity checks for plaque/hint by resetting lastProxGraveId
       this.lastProxGraveId = null;
       this.scene.resume('UIScene');
+    });
+
+    // P2-19: On iOS, resume audio loops when app/tab regains focus
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.audio) {
+        this.audio.resumeLoopsIfNeeded();
+      }
     });
   }
 
@@ -299,43 +314,53 @@ export class GraveyardWorld extends Phaser.Scene {
   // ─── Fog ─────────────────────────────────────────────────────────────────
 
   private setupFog(): void {
-    // 3 fog layers at different speeds
+    const cam = this.cameras.main;
+    const viewWidth = cam.width;
+    const viewHeight = cam.height;
+
+    // 3 fog layers at different speeds (parallax factors)
     const fogConfigs = [
-      { alpha: 0.18, depth: 5,  speedX: 0.08, speedY: 0.02 },
-      { alpha: 0.22, depth: 6,  speedX: -0.05, speedY: 0.03 },
-      { alpha: 0.12, depth: 7,  speedX: 0.12, speedY: -0.01 },
+      { alpha: 0.18, depth: 5,  sx: 0.08, sy: 0.02 },
+      { alpha: 0.22, depth: 6,  sx: -0.05, sy: 0.03 },
+      { alpha: 0.12, depth: 7,  sx: 0.12, sy: -0.01 },
     ];
 
     for (const cfg of fogConfigs) {
       const fog = this.add.tileSprite(
-        WORLD_W / 2, WORLD_H / 2,
-        WORLD_W, WORLD_H,
+        viewWidth / 2, viewHeight / 2,
+        viewWidth, viewHeight,
         'fog_tile'
       );
       fog.setAlpha(cfg.alpha);
       fog.setDepth(cfg.depth);
-      // Store fog speed as non-enumerable properties
-      Object.defineProperty(fog, '_speedX', { value: cfg.speedX, writable: true });
-      Object.defineProperty(fog, '_speedY', { value: cfg.speedY, writable: true });
-      this.fogLayers.push(fog);
+      fog.setScrollFactor(0); // Fixed to screen, not world
+      
+      this.fogLayers.push({
+        sprite: fog,
+        sx: cfg.sx,
+        sy: cfg.sy,
+      });
     }
   }
 
   // ─── Particles ───────────────────────────────────────────────────────────
 
   private setupParticles(): void {
-    // Falling leaves — individual images emitted
+    // Falling leaves — individual leaf images
     const leafKeys = ['leaf_1','leaf_2','leaf_3','leaf_4','leaf_5','leaf_6','leaf_7','leaf_8'];
 
-    const leafEmitter = this.add.particles(0, -20, leafKeys[0], {
-      x: { min: 0, max: WORLD_W },
+    // P2-4: Use a random leaf as the starting texture
+    const startLeaf = Phaser.Utils.Array.GetRandom(leafKeys);
+
+    const leafEmitter = this.add.particles(0, -20, startLeaf, {
+      x: { min: 0, max: 2400 }, // P2-4: Camera-view bounds handled in update
       y: { min: -20, max: -20 },
       speedX: { min: 10, max: 30 },
       speedY: { min: 30, max: 80 },
       rotate: { min: 0, max: 360 },
       lifespan: { min: 6000, max: 10000 },
       quantity: 1,
-      frequency: 500,
+      frequency: 350, // P2-4: Increased for denser effect
       gravityY: 8,
     }) as Phaser.GameObjects.Particles.ParticleEmitter;
     leafEmitter.setDepth(8);
@@ -350,6 +375,13 @@ export class GraveyardWorld extends Phaser.Scene {
       wisp.setScale(Phaser.Math.FloatBetween(0.3, 0.7));
       wisp.setAlpha(Phaser.Math.FloatBetween(0.4, 0.8));
       wisp.setDepth(9);
+
+      // Firefly dot at wisp centre (P2-3: will follow wisp)
+      const dot = this.add.image(wx, wy, 'firefly_dot');
+      dot.setBlendMode(Phaser.BlendModes.ADD);
+      dot.setTint(0x9effc8);
+      dot.setScale(0.5);
+      dot.setDepth(10);
 
       // Sine wander
       const baseX = wx;
@@ -367,6 +399,8 @@ export class GraveyardWorld extends Phaser.Scene {
           const t = (tween.getValue() as number) + phaseOff;
           wisp.x = baseX + Math.sin(t) * radius;
           wisp.y = baseY + Math.cos(t * 0.7) * (radius * 0.6);
+          // P2-3: Follow wisp with dot
+          dot.setPosition(wisp.x, wisp.y);
         },
       });
 
@@ -379,13 +413,6 @@ export class GraveyardWorld extends Phaser.Scene {
         repeat: -1,
         ease: 'Sine.easeInOut',
       });
-
-      // Firefly dot at wisp centre
-      const dot = this.add.image(wx, wy, 'firefly_dot');
-      dot.setBlendMode(Phaser.BlendModes.ADD);
-      dot.setTint(0x9effc8);
-      dot.setScale(0.5);
-      dot.setDepth(10);
     }
   }
 
@@ -598,11 +625,11 @@ export class GraveyardWorld extends Phaser.Scene {
   }
 
   private updateFog(): void {
-    for (const fog of this.fogLayers) {
-      const speedX = Object.getOwnPropertyDescriptor(fog, '_speedX')?.value ?? 0.08;
-      const speedY = Object.getOwnPropertyDescriptor(fog, '_speedY')?.value ?? 0.02;
-      fog.tilePositionX += speedX;
-      fog.tilePositionY += speedY;
+    const cam = this.cameras.main;
+    for (const fogObj of this.fogLayers) {
+      // Update tile position based on camera scroll and parallax factor
+      fogObj.sprite.tilePositionX += cam.scrollX * fogObj.sx;
+      fogObj.sprite.tilePositionY += cam.scrollY * fogObj.sy;
     }
   }
 

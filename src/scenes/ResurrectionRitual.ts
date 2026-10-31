@@ -107,7 +107,7 @@ export class ResurrectionRitual extends Phaser.Scene {
     this.holyBurst = this.add.image(this.graveScreenX, this.graveScreenY, 'holy_light_burst');
     this.holyBurst.setBlendMode(Phaser.BlendModes.ADD);
     this.holyBurst.setAlpha(0);
-    this.holyBurst.setScale(0.2);
+    this.holyBurst.setScale(0.4); // Downscaled 1024→512, so scale 0.2 → 0.4
     this.holyBurst.setDepth(25);
 
     // ── White full-screen flash ────────────────────────────────────────────
@@ -189,7 +189,7 @@ export class ResurrectionRitual extends Phaser.Scene {
     const runeTween = this.tweens.add({
       targets: this.runeCircle,
       alpha: 0.7,
-      scale: 0.225,
+      scale: 0.45, // Downscaled 512→256, so scale 0.225 → 0.45
       duration: 800,
       ease: 'Back.easeOut',
     });
@@ -241,8 +241,8 @@ export class ResurrectionRitual extends Phaser.Scene {
         {
           speed: { min: 40, max: 120 },
           angle: 270,
-          scale: { start: 0.12, end: 0 }, // P1-3: Scaled down from 0.6
-          alpha: { start: 0.7, end: 0 }, // P1-3: Reduced from 1
+          scale: { start: 0.48, end: 0 }, // Downscaled 512→128 (4x), so 0.12→0.48
+          alpha: { start: 0.7, end: 0 },
           lifespan: 1200,
           quantity: 2, // P1-3: Limited from 3
           frequency: 120, // P1-3: Reduced from 80 (longer between emissions)
@@ -287,13 +287,13 @@ export class ResurrectionRitual extends Phaser.Scene {
       // P1-7: Make dust cloud less opaque and use gentler scale/angle to avoid hiding wizard
       this.dustEmitter = this.add.particles(this.graveScreenX, this.graveScreenY - 24, 'kenney_smoke_04', {
         speed: { min: 20, max: 60 },
-        angle: { min: 200, max: 340 }, // P1-7: Upward fan instead of all directions
-        scale: { start: 0.18, end: 0.05 }, // P1-7: Much smaller (from 0.5 to 0.18-0.05)
-        alpha: { start: 0.45, end: 0 }, // P1-7: More transparent (from 0.6 to 0.45)
+        angle: { min: 200, max: 340 },
+        scale: { start: 0.72, end: 0.2 }, // Downscaled 512→128 (4x), so 0.18→0.72, 0.05→0.2
+        alpha: { start: 0.45, end: 0 },
         lifespan: 1000,
         quantity: 6,
         tint: 0x9aa8b8,
-        speedY: -30, // P1-7: Upward drift
+        speedY: -30,
       }) as unknown as Phaser.GameObjects.Particles.ParticleEmitter;
       this.dustEmitter.setDepth(22); // P1-7: Lower depth than current (23 to 22) to stay behind wizard
     });
@@ -309,7 +309,7 @@ export class ResurrectionRitual extends Phaser.Scene {
       const burstTween = this.tweens.add({
         targets: this.holyBurst,
         alpha: { from: 0, to: 1 },
-        scale: { from: 0.2, to: 4 },
+        scale: { from: 0.4, to: 8 }, // Downscaled 1024→512 (2x), so 0.2→0.4, 4→8
         duration: 1200,
         ease: 'Quad.easeIn',
       });

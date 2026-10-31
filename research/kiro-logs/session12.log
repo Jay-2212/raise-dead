@@ -1,0 +1,115 @@
+I'll read the research file to see what needs to be done.
+[tool] Reading r1-session-b2-fix.md:1
+[tool] status: Completed
+Let me first check the current state of the relevant scene files:
+[tool] Reading TitleScene.ts:1
+[tool] status: Completed
+Now let me check the PreloadScene:
+[tool] Reading PreloadScene.ts:1
+[tool] status: Completed
+Let me also check GraveyardWorld and ResurrectionRitual:
+[tool] Reading GraveyardWorld.ts:1-150
+[tool] status: Completed
+Now let me check ResurrectionRitual:
+[tool] Reading ResurrectionRitual.ts:1-80
+[tool] status: Completed
+Now let me understand the structure better. Let me create the worldAssets.ts module as specified:
+[tool] Creating worldAssets.ts
+[tool] status: Completed
+Now let me update TitleScene to load world assets properly:
+[tool] Editing TitleScene.ts
+[tool] status: Completed
+Now update the create method to use queueWorldAssets and listen to loader events:
+[tool] status: Failed
+Let me fix that:
+[tool] Editing TitleScene.ts
+[tool] status: Completed
+Now update the enterGraveyard method to check for worldLoaded flag:
+[tool] Editing TitleScene.ts
+[tool] status: Completed
+Now I need to remove the unused instance variables from TitleScene:
+[tool] Editing TitleScene.ts
+[tool] status: Completed
+Now update PreloadScene to remove the loadWorldAssets method and make sure createAnimations only handles non-world assets. Let me check if PreloadScene.createAnimations() is still being called:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now remove the loadWorldAssets, getWorldLoadProgress methods and the worldLoadProgress field:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now remove the loadWorldAssets and getWorldLoadProgress methods:
+[tool] Editing PreloadScene.ts
+[tool] status: Completed
+Now I need to update GraveyardWorld to call queueWorldAssets in preload and createWizardAnimations in create:
+[tool] Reading GraveyardWorld.ts:1
+[tool] status: Completed
+Now I need to add a preload method and update the import and create method for GraveyardWorld:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now add the preload method before create:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now let's run npm run build to see if it compiles:
+[tool] Running: npm run build
+[tool] status: Completed
+Excellent! The build passed. Now let's verify the production build works by checking if we can run vite preview:
+[tool] Running: timeout 10 npm run preview 2>&1 | head -50 || true
+[tool] status: Completed
+Perfect! The build completes and the server starts. Let me verify the actual implementation by reading the final versions of the updated files to ensure they're correct:
+[tool] Reading TitleScene.ts:1-80
+[tool] status: Completed
+Let me verify the rest of TitleScene:
+[tool] Reading TitleScene.ts:71-170
+[tool] status: Completed
+Let me check the enterGraveyard method:
+[tool] Reading TitleScene.ts:151-180
+[tool] status: Completed
+Let me see the rest:
+[tool] Reading TitleScene.ts:176-195
+[tool] status: Completed
+Perfect! Let me verify the worldAssets module was created correctly:
+[tool] Reading worldAssets.ts:1-50
+[tool] status: Completed
+Excellent! Let me create a final summary of the changes made:
+
+## Summary
+
+I have successfully fixed the preload split regression from Session B2. All code changes have been implemented and `npm run build` passes without errors. Here's what was done:
+
+### Changes Made:
+
+1. **Created `src/scenes/worldAssets.ts`** — A shared module that exports:
+   - `queueWorldAssets(load: Phaser.Loader.LoaderPlugin)` — Queues all world/ritual assets for loading (Phaser skips already-cached keys)
+   - `createWizardAnimations(scene: Phaser.Scene)` — Creates wizard animations only if they don't already exist (safe to call multiple times)
+
+2. **Updated `TitleScene.ts`**:
+   - Removed `worldLoading` and `worldLoadProgress` instance variables (no longer needed)
+   - Calls `queueWorldAssets(this.load)` directly in `create()` to start background loading
+   - Displays "Summoning… NN%" progress text during loading
+   - Listens to `this.load.once('complete')` and calls `createWizardAnimations(this)` + sets `worldLoaded` registry flag
+   - Calls `this.load.start()` to begin the loading
+   - `enterGraveyard()` now checks the `worldLoaded` registry flag and either proceeds immediately or waits for the loader's `complete` event
+   - Replaced the polling loop with a clean event-based approach
+
+3. **Updated `PreloadScene.ts`**:
+   - Removed `worldLoadProgress` instance variable
+   - Removed `loadWorldAssets()` public method
+   - Removed `getWorldLoadProgress()` method
+   - Removed `loadWorldImages()` and `loadWorldAudio()` private methods (now in worldAssets.ts)
+   - Removed `createAnimations()` call from `create()` — animations are now created in TitleScene when assets finish loading
+
+4. **Updated `GraveyardWorld.ts`**:
+   - Added import of `queueWorldAssets` and `createWizardAnimations` from worldAssets module
+   - Added `preload()` method that calls `queueWorldAssets(this.load)` (safe because Phaser skips already-cached keys)
+   - Updated `create()` to call `createWizardAnimations(this)` at the start
+
+### Root Cause Fixed:
+The original issue was that `PreloadScene` stopped/completed before its loader finished, causing animations to be created before textures were available. Now:
+- TitleScene manages its own loader and explicitly waits for completion
+- Animations are created only after assets are guaranteed to be loaded
+- Both TitleScene and GraveyardWorld can safely call the shared functions
+- The system never hangs — it uses Phaser's event system instead of polling
+
+### Build Status:
+✅ `npm run build` passes successfully with no errors
+✅ `vite preview` starts correctly
+EXIT_CODE=0

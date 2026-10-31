@@ -16,3 +16,6 @@ Read P1-12 and P2-3/4/5/8/12/19 in `research/review-round-1.md`. Session A and B
 6. P2-3 (fireflies follow wisps), P2-4 (random leaf textures leaf_1..8, emit zone limited to camera view ±100px), P2-8 (default medallion texture `medal_unmarked`, never `medal_generic`), P2-12 (footstep detune ±80 cents), P2-19 (iOS: on `visibilitychange` visible, re-play stopped loops).
 
 Do not touch `research/` or `assets/`. Run `npm run build` until it passes. Summarise each item and report audio size before/after.
+
+7. **Fix `public/_headers` caching.** `/assets/*` is currently `immutable` for a year, but `public/assets/audio|images|fonts|voice` are NOT hashed, so updates would never reach players. Change to: `/assets/index-*` (Vite hashed JS/CSS) → `public, max-age=31536000, immutable`; `/assets/audio/*`, `/assets/images/*`, `/assets/voice/*`, `/assets/fonts/*` → `public, max-age=86400`; `/index.html` and `/` → `no-cache`. Keep the security headers under `/*`. (Check `vite.config` output names so the hashed-JS rule matches.)
+8. P2s left over from B1 if room: P2-6 (mute icon as text "♪ ON"/"♪ OFF" in Pixelify Sans, no emoji), P2-9 (GraveOverlay.unmount stores the panel ref; clearTimeout pending removal on re-mount), P2-15 (credits mask via `this.make.graphics().fillRect(...).createGeometryMask()`), P2-18 (kill crow tweens on destroy).
