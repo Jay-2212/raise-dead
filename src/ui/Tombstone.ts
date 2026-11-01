@@ -12,7 +12,7 @@ export type TombstoneState = 'plain' | 'cracked' | 'rubble';
 const MEDALLION_KEYS: Record<string, string> = {
   'road-rash':      'medal_roadrash',
   'google-reader':  'medal_reader',
-  'clippy':         'medal_clippy',
+  'clippy':         'medal_clicky',
   'winamp':         'medal_winamp',
   'unmarked-grave': 'medal_unmarked',
 };

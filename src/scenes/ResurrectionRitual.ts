@@ -407,7 +407,8 @@ export class ResurrectionRitual extends Phaser.Scene {
 
     // P1-2: Use onExit callback, drop the rip-exit window listener
     this.overlay = new GraveOverlay();
-    this.overlay.mount(this.grave, () => this.startExitRitual());
+    const graveyardWorld = this.scene.get('GraveyardWorld');
+    this.overlay.mount(this.grave, () => this.startExitRitual(), graveyardWorld);
 
     // P1-17: Fade out chant drone to silence
     if (this.chantLoop && 'setVolume' in this.chantLoop) {

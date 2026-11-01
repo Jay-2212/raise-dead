@@ -8,6 +8,7 @@ import { GraveEntry, extractYear } from '../types/graves';
 export interface GraveApp {
   mount(container: HTMLElement): Promise<void>;
   dispose(): void;
+  compactHeader?: boolean;
 }
 
 export class GraveOverlay {
@@ -15,12 +16,14 @@ export class GraveOverlay {
   private appInstance: GraveApp | null = null;
   private onExitCallback: (() => void) | null = null;
   private originalTouchAction: string = '';  // A11: Store original body touch-action
+  private gameScene: any = null;  // Reference to GraveyardWorld for keyboard management
   private static appModules = import.meta.glob('../graves/*/index.ts');
 
   /** Mount the overlay for the given grave entry */
-  mount(grave: GraveEntry, onExit: () => void): void {
+  mount(grave: GraveEntry, onExit: () => void, gameScene?: any): void {
     this.unmount();
     this.onExitCallback = onExit;
+    this.gameScene = gameScene;
 
     const container = document.getElementById('game-container');
     if (!container) return;
@@ -82,7 +85,7 @@ export class GraveOverlay {
     const content = document.createElement('div');
     content.style.cssText = `
       position: absolute;
-      inset: 60px 64px;
+      inset: 0;
       background-color: #0e1526;
       display: flex;
       flex-direction: column;
@@ -92,72 +95,6 @@ export class GraveOverlay {
       overflow: hidden;
     `;
 
-    // Medallion
-    const medalMap: Record<string, string> = {
-      'road-rash':      `${baseUrl}assets/images/portraits/medal_roadrash.png`,
-      'google-reader':  `${baseUrl}assets/images/portraits/medal_reader.png`,
-      'clippy':         `${baseUrl}assets/images/portraits/medal_clippy.png`,
-      'winamp':         `${baseUrl}assets/images/portraits/medal_winamp.png`,
-      'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
-    };
-    if (medalMap[grave.id]) {
-      const med = document.createElement('img');
-      med.src = medalMap[grave.id];
-      med.style.cssText = 'width: 96px; height: 96px; margin-bottom: 12px; image-rendering: pixelated;';
-      content.appendChild(med);
-    }
-
-    // Title
-    const title = document.createElement('h2');
-    title.textContent = `${grave.name} has risen`;
-    title.style.cssText = `
-      font-family: 'Cinzel', serif;
-      font-size: 1.8rem;
-      color: #d9f2ee;
-      text-align: center;
-      margin-bottom: 8px;
-      text-shadow: 0 0 12px #7fd1d8;
-    `;
-    content.appendChild(title);
-
-    // Years
-    const born = extractYear(grave.born);
-    const died = extractYear(grave.died);
-    const years = document.createElement('p');
-    years.textContent = `${born} – ${died}`;
-    years.style.cssText = `
-      font-family: 'Pixelify Sans', sans-serif;
-      font-size: 1rem;
-      color: #c9b98a;
-      margin-bottom: 12px;
-    `;
-    content.appendChild(years);
-
-    // Epitaph
-    const epitaph = document.createElement('p');
-    epitaph.textContent = `"${grave.epitaph}"`;
-    epitaph.style.cssText = `
-      font-family: 'Cinzel', serif;
-      font-size: 1rem;
-      font-style: italic;
-      color: #d9f2ee;
-      text-align: center;
-      margin-bottom: 18px;
-      max-width: 540px;
-    `;
-    content.appendChild(epitaph);
-
-    // Phase 2 placeholder
-    const placeholder = document.createElement('p');
-    placeholder.textContent = 'The full tribute app arrives in Phase 2.';
-    placeholder.style.cssText = `
-      font-family: 'Pixelify Sans', sans-serif;
-      font-size: 0.9rem;
-      color: #5d6b80;
-      margin-bottom: 24px;
-    `;
-    content.appendChild(placeholder);
-
     // App content area (Phase 2 mount point)
     const appContainer = document.createElement('div');
     appContainer.id = 'grave-app-container';
@@ -165,10 +102,47 @@ export class GraveOverlay {
       width: 100%;
       flex: 1;
       overflow: auto;
+      min-height: 0;
     `;
+
+    // Try loading Phase 2 app module first to check for compactHeader
+    this.tryMountAppAndBuildHeader(grave, baseUrl, content, appContainer, overlay, wrapper, panel, container);
+  }
+
+  /** Load app module first, then build header based on compactHeader flag */
+  private async tryMountAppAndBuildHeader(
+    grave: GraveEntry,
+    baseUrl: string,
+    content: HTMLElement,
+    appContainer: HTMLElement,
+    overlay: HTMLElement,
+    wrapper: HTMLElement,
+    panel: HTMLElement,
+    gameContainer: HTMLElement
+  ): Promise<void> {
+    let compactHeader = false;
+
+    // Try loading Phase 2 app module to check for compactHeader flag
+    try {
+      const modulePath = `../graves/${grave.id}/index.ts`;
+      const loader = GraveOverlay.appModules[modulePath];
+      if (loader) {
+        const mod = await loader() as { default: GraveApp };
+        const app = mod.default;
+        compactHeader = app.compactHeader ?? false;
+        this.appInstance = app;
+      }
+    } catch {
+      // Phase 1: no app modules exist yet — silently ignore
+    }
+
+    // Now build the header based on compactHeader flag
+    this.buildHeader(grave, baseUrl, content, appContainer, compactHeader);
+
+    // Add app container to content
     content.appendChild(appContainer);
 
-    // Exit button
+    // Exit button (always shown)
     const exitBtn = document.createElement('button');
     exitBtn.textContent = 'Requiescat in pace';
     exitBtn.style.cssText = `
@@ -198,8 +172,23 @@ export class GraveOverlay {
     panel.appendChild(content);
     wrapper.appendChild(panel);
     overlay.appendChild(wrapper);
-    container.appendChild(overlay);
+    gameContainer.appendChild(overlay);
     this.overlayEl = overlay;
+
+    // Disable Phaser keyboard global capture while overlay is open
+    if (this.gameScene?.input?.keyboard) {
+      this.gameScene.input.keyboard.disableGlobalCapture();
+    }
+
+    // Add Esc key handler to still exit
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        this.triggerExit();
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    // Store for cleanup
+    (this as any).escKeyHandler = handleEsc;
 
     // Fade in with translateY
     requestAnimationFrame(() => {
@@ -209,25 +198,159 @@ export class GraveOverlay {
       panel.style.transform = 'translateY(0)';
     });
 
-    // Try loading Phase 2 app module (will fail gracefully in Phase 1)
-    this.tryMountApp(grave.id, appContainer);
+    // Mount the app if it exists
+    if (this.appInstance) {
+      try {
+        await this.appInstance.mount(appContainer);
+      } catch {
+        // App mount failed
+      }
+    }
   }
 
-  /** Attempt dynamic import of a Phase 2 grave app */
-  private async tryMountApp(graveId: string, container: HTMLElement): Promise<void> {
-    try {
-      const modulePath = `../graves/${graveId}/index.ts`;
-      const loader = GraveOverlay.appModules[modulePath];
-      if (!loader) {
-        // Phase 1: app module not found yet — silently ignore
-        return;
+  /** Build the header: full (default) or compact */
+  private buildHeader(
+    grave: GraveEntry,
+    baseUrl: string,
+    content: HTMLElement,
+    appContainer: HTMLElement,
+    compactHeader: boolean
+  ): void {
+    if (compactHeader) {
+      // Compact header: medal 48px inline with title, years on same row, hide epitaph/placeholder
+      const headerRow = document.createElement('div');
+      headerRow.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+        width: 100%;
+      `;
+
+      // Medal 48px
+      const medalMap: Record<string, string> = {
+        'road-rash':      `${baseUrl}assets/images/portraits/medal_roadrash.png`,
+        'google-reader':  `${baseUrl}assets/images/portraits/medal_reader.png`,
+        'clippy':         `${baseUrl}assets/images/portraits/medal_clicky.png`,
+        'winamp':         `${baseUrl}assets/images/portraits/medal_winamp.png`,
+        'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
+      };
+      if (medalMap[grave.id]) {
+        const med = document.createElement('img');
+        med.src = medalMap[grave.id];
+        med.style.cssText = 'width: 48px; height: 48px; image-rendering: pixelated; flex-shrink: 0;';
+        headerRow.appendChild(med);
       }
-      const mod = await loader() as { default: GraveApp };
-      const app = mod.default;
-      this.appInstance = app;
-      await app.mount(container);
-    } catch {
-      // Phase 1: no app modules exist yet — silently ignore
+
+      // Title and years in a column
+      const textCol = document.createElement('div');
+      textCol.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+      `;
+
+      const title = document.createElement('h2');
+      title.textContent = `${grave.name} has risen`;
+      title.style.cssText = `
+        font-family: 'Cinzel', serif;
+        font-size: 1.4rem;
+        color: #d9f2ee;
+        text-align: left;
+        margin: 0;
+        text-shadow: 0 0 12px #7fd1d8;
+      `;
+      textCol.appendChild(title);
+
+      const born = extractYear(grave.born);
+      const died = extractYear(grave.died);
+      const years = document.createElement('p');
+      years.textContent = `${born} – ${died}`;
+      years.style.cssText = `
+        font-family: 'Pixelify Sans', sans-serif;
+        font-size: 0.9rem;
+        color: #c9b98a;
+        margin: 0;
+      `;
+      textCol.appendChild(years);
+
+      headerRow.appendChild(textCol);
+      content.appendChild(headerRow);
+
+      // App container gets flex: 1 for full remaining space
+      appContainer.style.cssText = `
+        width: 100%;
+        flex: 1;
+        overflow: auto;
+        min-height: 0;
+      `;
+    } else {
+      // Full header (original layout)
+      const medalMap: Record<string, string> = {
+        'road-rash':      `${baseUrl}assets/images/portraits/medal_roadrash.png`,
+        'google-reader':  `${baseUrl}assets/images/portraits/medal_reader.png`,
+        'clippy':         `${baseUrl}assets/images/portraits/medal_clicky.png`,
+        'winamp':         `${baseUrl}assets/images/portraits/medal_winamp.png`,
+        'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
+      };
+      if (medalMap[grave.id]) {
+        const med = document.createElement('img');
+        med.src = medalMap[grave.id];
+        med.style.cssText = 'width: 96px; height: 96px; margin-bottom: 12px; image-rendering: pixelated;';
+        content.appendChild(med);
+      }
+
+      // Title
+      const title = document.createElement('h2');
+      title.textContent = `${grave.name} has risen`;
+      title.style.cssText = `
+        font-family: 'Cinzel', serif;
+        font-size: 1.8rem;
+        color: #d9f2ee;
+        text-align: center;
+        margin-bottom: 8px;
+        text-shadow: 0 0 12px #7fd1d8;
+      `;
+      content.appendChild(title);
+
+      // Years
+      const born = extractYear(grave.born);
+      const died = extractYear(grave.died);
+      const years = document.createElement('p');
+      years.textContent = `${born} – ${died}`;
+      years.style.cssText = `
+        font-family: 'Pixelify Sans', sans-serif;
+        font-size: 1rem;
+        color: #c9b98a;
+        margin-bottom: 12px;
+      `;
+      content.appendChild(years);
+
+      // Epitaph
+      const epitaph = document.createElement('p');
+      epitaph.textContent = `"${grave.epitaph}"`;
+      epitaph.style.cssText = `
+        font-family: 'Cinzel', serif;
+        font-size: 1rem;
+        font-style: italic;
+        color: #d9f2ee;
+        text-align: center;
+        margin-bottom: 18px;
+        max-width: 540px;
+      `;
+      content.appendChild(epitaph);
+
+      // Phase 2 placeholder
+      const placeholder = document.createElement('p');
+      placeholder.textContent = 'The full tribute app arrives in Phase 2.';
+      placeholder.style.cssText = `
+        font-family: 'Pixelify Sans', sans-serif;
+        font-size: 0.9rem;
+        color: #5d6b80;
+        margin-bottom: 24px;
+      `;
+      content.appendChild(placeholder);
     }
   }
 
@@ -254,6 +377,17 @@ export class GraveOverlay {
       document.body.style.touchAction = this.originalTouchAction;
     } else {
       document.body.style.touchAction = '';
+    }
+
+    // Re-enable Phaser keyboard global capture
+    if (this.gameScene?.input?.keyboard) {
+      this.gameScene.input.keyboard.enableGlobalCapture();
+    }
+
+    // Remove Esc key handler
+    if ((this as any).escKeyHandler) {
+      document.removeEventListener('keydown', (this as any).escKeyHandler);
+      delete (this as any).escKeyHandler;
     }
     
     if (this.overlayEl) {

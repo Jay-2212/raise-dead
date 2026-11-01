@@ -163,7 +163,7 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   // Portraits / medals
   load.image('medal_roadrash', 'assets/images/portraits/medal_roadrash.png');
   load.image('medal_reader', 'assets/images/portraits/medal_reader.png');
-  load.image('medal_clippy', 'assets/images/portraits/medal_clippy.png');
+  load.image('medal_clicky', 'assets/images/portraits/medal_clicky.png');
   load.image('medal_winamp', 'assets/images/portraits/medal_winamp.png');
   load.image('medal_unmarked', 'assets/images/portraits/medal_unmarked.png');
 

@@ -17,6 +17,7 @@ Every third-party asset or code used in Raise Dead, with source, author and lice
 | phaser3-rex-plugins | 1.80.20 | Rex Rainbow | MIT | Virtual joystick plugin |
 | Vite | ^6.3.1 | Vite contributors | MIT | Build tool (dev only) |
 | TypeScript | ~5.7 | Microsoft | Apache-2.0 | Language (dev only) |
+| Clicky preset dialogue | — | Raise Dead team (Meta Muse Spark) | CC0 1.0 (project original) | 33-node conversation tree written with Meta Muse Spark (muse-spark-1.3-contributor) from a hand-authored outline, edited and stored in `public/data/clicky-presets.json` |
 
 ## Images (assets/images/vendor/)
 
@@ -31,6 +32,11 @@ Every third-party asset or code used in Raise Dead, with source, author and lice
 **Required attribution (CC-BY 3.0):** "Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0, modified (red glow removed, trim recoloured to teal) — https://creativecommons.org/licenses/by/3.0/". 
 
 All other images in `assets/images/` (world/, ui/, fx/, particles/, portraits/, backgrounds/) are original to this project: generated with an AI image model (TODO: confirm exact model name before submission) from our own prompts or drawn procedurally by script. They contain no third-party logos or screenshots; portrait medallions are generic tributes (motorbike racer, RSS newspaper, paperclip helper, retro media player, unmarked stone) and use no trademarks.
+
+| Original (AI-generated or procedural) | Asset | Tool / Method | License |
+|---|---|---|---|
+| assets/images/clicky/ | clicky_sheet.png (188×92 spritesheet, 4 frames, mint ghost paperclip) | AI image generation from project prompt, downscaled and tiled by script | CC0 1.0 (project original) |
+| assets/images/portraits/ | medal_clicky.png (256×256 medallion with Clicky) | AI image generation from project prompt | CC0 1.0 (project original) |
 
 vendor/sollision-mage/player_mage_32x64_grid.png is our re-packed copy of the CC0 sheet onto a uniform grid.
 

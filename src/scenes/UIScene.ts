@@ -234,7 +234,7 @@ export class UIScene extends Phaser.Scene {
     const medallionKeyMap: Record<string, string> = {
       'road-rash':      'medal_roadrash',
       'google-reader':  'medal_reader',
-      'clippy':         'medal_clippy',
+      'clippy':         'medal_clicky',
       'winamp':         'medal_winamp',
       'unmarked-grave': 'medal_unmarked',
     };

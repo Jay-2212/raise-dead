@@ -186,7 +186,7 @@ export class GraveyardWorld extends Phaser.Scene {
       const shouldAddMound = ts.grave.resurrectable || rng() < 0.7;
       if (!shouldAddMound) continue;
 
-      const mound = this.add.image(ts.x, ts.y + 16, 'decal_grave_mound');
+      const mound = this.add.image(ts.x, ts.y + 10, 'decal_grave_mound');
       mound.setScale(rng() * 0.15 + 0.75); // 0.75–0.9 using seeded RNG
       mound.setAlpha(0.9);
       mound.setOrigin(0.5, 0.5);
@@ -391,7 +391,7 @@ export class GraveyardWorld extends Phaser.Scene {
       { x: 1420, y: 650 },  // upper-right edge
       { x: 1570, y: 800 },  // right edge (nudged east to clear unmarked-grave at 1500,760)
       { x: 1420, y: 970 },  // lower-right edge
-      { x: 1230, y: 1000 }, // lower-center
+      { x: 1280, y: 1060 }, // lower-right, moved to clear spawn (1200, 900)
       { x: 1040, y: 970 },  // lower-left edge
       { x: 900, y: 800 },   // left edge
     ];

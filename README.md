@@ -4,7 +4,10 @@ A moonlit pixel-art graveyard of dead software. Walk the wizard among 40 tombsto
 
 Built for **Kiroween** and the **Meta Global AI Dev Hackathon**. The code is written with the [Kiro CLI](https://kiro.dev); specs, steering and hooks live in [`.kiro/`](.kiro).
 
-> Status: **Phase 1** — graveyard world, ritual and placeholder app overlay. Tribute apps (Road Rash, Google Reader, Clippy, Winamp, Unmarked Grave) arrive in Phase 2.
+> Status: **Phase 1** — graveyard world, ritual and placeholder app overlay. Tribute apps (Road Rash, Google Reader, Winamp, Unmarked Grave) arrive in Phase 2. **Clicky** is live.
+
+### Clicky: The Paperclip Returns
+Raise the Clicky grave to meet a cheerful ghost paperclip, resurrected from Office 97. Chat with Clicky via a branching preset dialogue tree or type your own questions. Preset replies show instantly; typed questions stream live from **Meta Muse Spark** (reasoning model, contributor tier) with a typewriter effect and context from your conversation. Clicky is amazed to be alive, warm and a bit nosy—and knows nothing after 2007 except the graveyard. Built with Phaser, a conversation tree in `public/data/clicky-presets.json`, and a Cloudflare Pages Function with D1 for lifetime and daily quota caps.
 
 ## Run locally
 ```bash
