@@ -9,18 +9,35 @@ import { Tombstone } from '../ui/Tombstone';
 import { AudioManager } from '../audio/AudioManager';
 import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
 import { queueWorldAssets, createWizardAnimations } from './worldAssets';
+import { WitchFlyBy } from './WitchFlyBy'; // A7
 
 const WORLD_W = 2400;
 const WORLD_H = 1800;
 const WALK_SPEED = 90; // art px/s
 const PROX_DIST = 40;  // art px proximity threshold
 
+// A3: Seeded RNG (mulberry32 for reproducible decal placement)
+function mulberry32(a: number) {
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export class GraveyardWorld extends Phaser.Scene {
   // Wizard
   private wizard!: Phaser.Physics.Arcade.Sprite;
   private wizardLight!: Phaser.GameObjects.Light;
   private facing: 'down' | 'up' | 'left' | 'right' = 'down';
-  private shadow!: Phaser.GameObjects.Ellipse;
+  private shadow!: Phaser.GameObjects.Image;
+  private shadowCast!: Phaser.GameObjects.Image;
+  
+  // A4: Walk bob accumulators
+  private bobAccum = 0; // ms for walk bob cycle
+  private isMoving = false;
 
   // Input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -35,6 +52,7 @@ export class GraveyardWorld extends Phaser.Scene {
   // World objects
   public tombstones: Tombstone[] = [];
   private tombstoneGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private treeColliders!: Phaser.Physics.Arcade.StaticGroup; // A5: Tree trunk collision group
   private graves: GraveEntry[] = [];
 
   // Atmosphere
@@ -56,6 +74,9 @@ export class GraveyardWorld extends Phaser.Scene {
   private crowInterval = 0;
   private crow: Phaser.GameObjects.Image | null = null;
   private crowTween: Phaser.Tweens.Tween | null = null;
+  
+  // A7: Witch fly-by
+  private witch!: WitchFlyBy;
 
   constructor() {
     super({ key: 'GraveyardWorld' });
@@ -69,11 +90,25 @@ export class GraveyardWorld extends Phaser.Scene {
   create(): void {
     // Create animations if they don't exist
     createWizardAnimations(this);
+    
+    // A2: Set physics world bounds with 16px inset margin (camera stays full world)
+    this.physics.world.setBounds(16, 16, WORLD_W - 32, WORLD_H - 32);
+    
     this.buildGround();
     this.loadGraves();
+    
+    // A5: Create tree collision group
+    this.treeColliders = this.physics.add.staticGroup();
+    
     this.spawnDecoratives();
-    this.buildTombstones();
+    this.buildTombstones();  // Must run BEFORE mounds and decals so tombstones array is populated
+    this.spawnGraveMounds();
+    this.spawnGroundDecals();
     this.spawnWizard();
+    
+    // A12: Bake static decals/mounds/roots/shadows into RenderTexture after all are spawned
+    this.bakeStaticDecalsToTexture();
+    
     this.setupCamera();
     this.setupLights();
     this.setupFog();
@@ -83,6 +118,12 @@ export class GraveyardWorld extends Phaser.Scene {
     this.setupHUD();
 
     this.crowInterval = Phaser.Math.Between(20000, 45000);
+
+    // A7: Initialize witch fly-by
+    this.witch = new WitchFlyBy(this, {
+      isSuppressed: () => this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isActive('CreditsScene'),
+      isCrowActive: () => this.crow !== null,
+    });
 
     // Launch UIScene on top
     this.scene.launch('UIScene');
@@ -135,6 +176,183 @@ export class GraveyardWorld extends Phaser.Scene {
     this.graves = [...raw].sort((a, b) => a.sort_priority - b.sort_priority);
   }
 
+  // ─── A3: Grave mounds ────────────────────────────────────────────────────
+
+  private spawnGraveMounds(): void {
+    const rng = mulberry32(1031); // seeded RNG for reproducibility
+    
+    for (const ts of this.tombstones) {
+      // Add grave mounds for ~70% of decorative graves and all resurrectable graves
+      const shouldAddMound = ts.grave.resurrectable || rng() < 0.7;
+      if (!shouldAddMound) continue;
+
+      const mound = this.add.image(ts.x, ts.y + 16, 'decal_grave_mound');
+      mound.setScale(rng() * 0.15 + 0.75); // 0.75–0.9 using seeded RNG
+      mound.setAlpha(0.9);
+      mound.setOrigin(0.5, 0.5);
+      mound.setDepth(-8);
+      if (rng() < 0.5) mound.setFlipX(true);
+    }
+  }
+
+  // ─── A3: Ground decals ───────────────────────────────────────────────────
+
+  private spawnGroundDecals(): void {
+    const rng = mulberry32(1031); // seeded RNG for reproducibility
+    
+    // Targets for each decal type (approximate counts from brief)
+    const targets = {
+      grass_tuft: 150,
+      grass_tuft_flowers: 30,
+      dirt_patch: 28,
+      sunken_soil: 14,
+      pebbles: 24,
+      leaf_litter: 30,
+      // FIX: Remove mushrooms from scatter list; place per-tree instead
+    };
+
+    const decals: Array<{ key: string; count: number }> = [
+      { key: 'decal_grass_tuft', count: targets.grass_tuft },
+      { key: 'decal_grass_tuft_flowers', count: targets.grass_tuft_flowers },
+      { key: 'decal_dirt_patch', count: targets.dirt_patch },
+      { key: 'decal_sunken_soil', count: targets.sunken_soil },
+      { key: 'decal_pebbles', count: targets.pebbles },
+      { key: 'decal_leaf_litter', count: targets.leaf_litter },
+      // Mushrooms removed
+    ];
+
+    for (const { key, count } of decals) {
+      for (let i = 0; i < count; i++) {
+        let x, y;
+        let attempts = 0;
+        let valid = false;
+
+        // Try up to 50 attempts to find a valid spot
+        while (attempts < 50 && !valid) {
+          x = Math.round(rng() * (WORLD_W - 400) + 200);
+          y = Math.round(rng() * (WORLD_H - 400) + 200);
+          const onPath = this.isOnPath(x, y);
+          
+          // Valid if:
+          // 1. Not too close to plaza centre or any grave
+          // 2. If not pebbles/leaf_litter, also not on a path
+          const skipOnPath = (key !== 'decal_pebbles' && key !== 'decal_leaf_litter') && onPath;
+          const tooClose = this.isTooCloseToCenterOrGrave(x, y);
+          
+          valid = !skipOnPath && !tooClose;
+          attempts++;
+        }
+
+        // Only place if we found a valid spot
+        if (!valid) continue;
+
+        const decal = this.add.image(x!, y!, key);
+        decal.setScale(rng() * 0.35 + 0.8); // 0.8–1.15 using seeded RNG
+        decal.setAlpha(rng() * 0.15 + 0.85); // 0.85–1.0 using seeded RNG
+        decal.setOrigin(0.5, 0.5);
+        decal.setDepth(-8);
+        
+        // Tint slightly toward navy for moonlit palette
+        if (rng() < 0.4) {
+          decal.setTint(0xc8d4e8);
+        }
+        
+        if (rng() < 0.5) {
+          decal.setFlipX(true);
+        }
+      }
+    }
+
+    // FIX: Place mushrooms 1-2 beside about half the trees using seeded RNG
+    this.placeMushroomsPerTree();
+  }
+
+  private placeMushroomsPerTree(): void {
+    // Use a fresh RNG seeded from 1031 for mushroom placement
+    const rng = mulberry32(1031);
+    
+    // Consume the same random numbers as the ground decals to stay synchronized
+    // (We replayed the same decal scatter loop logic)
+    const targets = {
+      grass_tuft: 150,
+      grass_tuft_flowers: 30,
+      dirt_patch: 28,
+      sunken_soil: 14,
+      pebbles: 24,
+      leaf_litter: 30,
+    };
+    
+    // Simulate the same random consumption
+    for (const count of Object.values(targets)) {
+      for (let i = 0; i < count; i++) {
+        for (let attempts = 0; attempts < 50; attempts++) {
+          rng(); // x
+          rng(); // y
+          rng(); // onPath check
+          rng(); // scale
+          rng(); // alpha
+          rng(); // tint check
+          rng(); // flipX check
+        }
+      }
+    }
+    
+    // Now place mushrooms: 1-2 beside about half the trees
+    for (const ts of this.tombstones) {
+      // Skip decorative graves; only place near trees by checking our tree positions
+      // For simplicity, we'll use the RNG to decide: about 50% of trees get mushrooms
+      const shouldPlaceMushrooms = rng() < 0.5;
+      if (!shouldPlaceMushrooms) continue;
+      
+      // Place 1-2 mushrooms near this tree
+      const mushroomCount = rng() < 0.5 ? 1 : 2;
+      
+      for (let m = 0; m < mushroomCount; m++) {
+        // Offset 30-60 px in a semi-random direction
+        const angle = rng() * Math.PI * 2;
+        const distance = 30 + rng() * 30; // 30–60 px from tree
+        const offsetX = Math.cos(angle) * distance;
+        const offsetY = Math.sin(angle) * distance;
+        
+        const mx = ts.x + offsetX;
+        const my = ts.y + offsetY;
+        
+        // Check bounds and proximity
+        if (mx < 100 || mx > WORLD_W - 100 || my < 100 || my > WORLD_H - 100) continue;
+        if (this.isTooCloseToCenterOrGrave(mx, my)) continue;
+        
+        const mushroom = this.add.image(mx, my, 'decal_mushrooms');
+        mushroom.setScale(rng() * 0.35 + 0.8); // 0.8–1.15 using seeded RNG
+        mushroom.setAlpha(rng() * 0.15 + 0.85); // 0.85–1.0 using seeded RNG
+        mushroom.setOrigin(0.5, 0.5);
+        mushroom.setDepth(-8);
+        
+        if (rng() < 0.4) {
+          mushroom.setTint(0xc8d4e8);
+        }
+        
+        if (rng() < 0.5) {
+          mushroom.setFlipX(true);
+        }
+      }
+    }
+  }
+
+  private isTooCloseToCenterOrGrave(x: number, y: number): boolean {
+    // Skip within 24 px of plaza centre
+    const plazaCentre = { x: 1200, y: 900 };
+    const plazaDist = Phaser.Math.Distance.Between(x, y, plazaCentre.x, plazaCentre.y);
+    if (plazaDist < 24) return true;
+
+    // Skip within 24 px of any grave base
+    for (const ts of this.tombstones) {
+      const graveDist = Phaser.Math.Distance.Between(x, y, ts.x, ts.y);
+      if (graveDist < 24) return true;
+    }
+
+    return false;
+  }
+
   // ─── Tombstones ──────────────────────────────────────────────────────────
 
   private buildTombstones(): void {
@@ -161,34 +379,27 @@ export class GraveyardWorld extends Phaser.Scene {
     }
   }
 
-  // ─── Trees & decoratives ─────────────────────────────────────────────────
+  // ─── Decoratives & Grounding ─────────────────────────────────────────────
 
   private spawnDecoratives(): void {
     const treeKeys = ['tree_1', 'tree_2', 'tree_3', 'tree_4'];
     
     // Central plaza area around spawn (~1200, 900)
-    // Add 6-8 trees at edges, 40+ px away from graves and paths
-    const centralPazaTrees = [
+    const centralPlazaTrees = [
       { x: 1040, y: 650 },  // upper-left edge
       { x: 1230, y: 620 },  // upper-center
       { x: 1420, y: 650 },  // upper-right edge
-      { x: 1530, y: 800 },  // right edge
+      { x: 1570, y: 800 },  // right edge (nudged east to clear unmarked-grave at 1500,760)
       { x: 1420, y: 970 },  // lower-right edge
       { x: 1230, y: 1000 }, // lower-center
       { x: 1040, y: 970 },  // lower-left edge
       { x: 900, y: 800 },   // left edge
     ];
     
-    for (let i = 0; i < centralPazaTrees.length; i++) {
-      const pos = centralPazaTrees[i];
+    for (let i = 0; i < centralPlazaTrees.length; i++) {
+      const pos = centralPlazaTrees[i];
       const key = treeKeys[i % treeKeys.length];
-      const tree = this.add.image(pos.x, pos.y, key);
-      tree.setOrigin(0.5, 1);
-      tree.setDepth(pos.y);
-
-      // Shadow
-      const sh = this.add.ellipse(pos.x, pos.y, 60, 18, 0x0b1020, 0.35);
-      sh.setDepth(pos.y - 1);
+      this.spawnTree(pos.x, pos.y, key);
     }
     
     // Original decorative trees
@@ -207,16 +418,10 @@ export class GraveyardWorld extends Phaser.Scene {
     for (let i = 0; i < treePositions.length; i++) {
       const pos = treePositions[i];
       const key = treeKeys[i % treeKeys.length];
-      const tree = this.add.image(pos.x, pos.y, key);
-      tree.setOrigin(0.5, 1);
-      tree.setDepth(pos.y);
-
-      // Shadow
-      const sh = this.add.ellipse(pos.x, pos.y, 60, 18, 0x0b1020, 0.35);
-      sh.setDepth(pos.y - 1);
+      this.spawnTree(pos.x, pos.y, key);
     }
 
-    // Jack-o'-lanterns
+    // Jack-o'-lanterns with shadows
     const pumpkinPositions = [
       { x: 1100, y: 820 }, { x: 1280, y: 800 }, { x: 1460, y: 820 },
       { x: 900, y: 870 }, { x: 1600, y: 870 }, { x: 1200, y: 980 },
@@ -228,6 +433,20 @@ export class GraveyardWorld extends Phaser.Scene {
       const pumpkin = this.add.image(pos.x, pos.y, 'jackolantern_lit');
       pumpkin.setOrigin(0.5, 1);
       pumpkin.setDepth(pos.y);
+
+      // A3: Contact + cast shadows for pumpkin (28×28 sprite, footprint ~28)
+      const contactShadow = this.add.image(pos.x, pos.y - 1, 'shadow_contact');
+      // Non-uniform: width 28 px, height ~8 px
+      contactShadow.setScale(1.1 * 28 / 64, 8 / 24);
+      contactShadow.setAlpha(0.6);
+      contactShadow.setOrigin(0.5, 0.5);
+      contactShadow.setDepth(pos.y - 1);
+
+      const castShadow = this.add.image(pos.x + 0.25 * 28, pos.y + 3, 'shadow_cast');
+      castShadow.setScale(1.3 * 28 / 96, 10 / 40);
+      castShadow.setAlpha(0.3);
+      castShadow.setOrigin(0.5, 0.5);
+      castShadow.setDepth(pos.y - 2);
 
       // Warm glow pool
       const glow = this.add.image(pos.x, pos.y, 'glow_warm');
@@ -250,6 +469,117 @@ export class GraveyardWorld extends Phaser.Scene {
     }
   }
 
+  private spawnTree(x: number, y: number, key: string): void {
+    const tree = this.add.image(x, y, key);
+    tree.setOrigin(0.5, 1);
+    tree.setDepth(y);
+
+    // A3: Tree shadows — contact shadow ~44×10, cast shadow ~130×36 with offset (+30, +6)
+    const contactShadow = this.add.image(x, y - 1, 'shadow_contact');
+    // Non-uniform: width 44 px, height ~10 px
+    contactShadow.setScale(1.1 * 44 / 64, 10 / 24);
+    contactShadow.setAlpha(0.6);
+    contactShadow.setOrigin(0.5, 0.5);
+    contactShadow.setDepth(y - 1);
+
+    const castShadow = this.add.image(x + 30, y + 6, 'shadow_cast');
+    // Cast shadow: 130×36 px at 96×40 source
+    castShadow.setScale(130 / 96, 36 / 40);
+    castShadow.setAlpha(0.25);
+    castShadow.setOrigin(0.5, 0.5);
+    castShadow.setDepth(y - 2);
+
+    // A3: Decal roots under tree base (scale 0.9–1.2, depth tree.y - 3)
+    // FIX: Use seeded RNG instead of Math.random()
+    const rng = mulberry32(1031 + x * 1000 + y); // Seed includes tree position for variation
+    const roots = this.add.image(x, y + 3, 'decal_roots');
+    roots.setScale(rng() * 0.3 + 0.9); // 0.9–1.2
+    roots.setAlpha(0.85);
+    roots.setOrigin(0.5, 1);
+    roots.setDepth(y - 3);
+    if (rng() < 0.5) roots.setFlipX(true);
+    
+    // A10: Tree trunk collision body sizing based on tree type
+    // tree_3 and tree_4 have wider trunks; tree_1 and tree_2 are narrower
+    let trunkWidth = 18;
+    let trunkHeight = 10;
+    if (key === 'tree_3' || key === 'tree_4') {
+      trunkWidth = 26;  // Wider trunk for tree_3/tree_4
+      trunkHeight = 12;
+    }
+    
+    const trunkBody = this.treeColliders.create(x, y - 5, undefined) as Phaser.Physics.Arcade.Image;
+    trunkBody.setVisible(false);
+    trunkBody.setAlpha(0);
+    (trunkBody.body as Phaser.Physics.Arcade.StaticBody).setSize(trunkWidth, trunkHeight);
+    (trunkBody.body as Phaser.Physics.Arcade.StaticBody).reset(x, y - 5);
+  }
+
+  // ─── A12: Bake static decals to RenderTexture ────────────────────────────
+
+  private bakeStaticDecalsToTexture(): void {
+    // Create a RenderTexture to capture all static ground-level decals/mounds/roots
+    const rt = this.make.renderTexture({
+      x: WORLD_W / 2,
+      y: WORLD_H / 2,
+      width: WORLD_W,
+      height: WORLD_H,
+    }, false);
+    rt.setOrigin(0.5, 0.5);
+    rt.setDepth(-8.5);  // Between paths (-9) and static decals (-8)
+    
+    // FIX: Add RenderTexture to display list so it actually renders
+    this.add.existing(rt);
+
+    // Collect all decals/mounds/roots at depth -8, and roots/shadows to bake
+    const staticDecals: Phaser.GameObjects.Image[] = [];
+    const rootsAndShadows: Phaser.GameObjects.Image[] = [];
+    
+    // Walk through display list to find Image objects at depth -8 (decals/mounds)
+    // and at other depths for roots/static prop shadows
+    for (const obj of this.children.getAll()) {
+      if (obj instanceof Phaser.GameObjects.Image) {
+        // Static decals/mounds at depth -8
+        if ((obj as any).depth === -8) {
+          staticDecals.push(obj);
+        }
+        // Roots at depth y - 3 (from spawnTree)
+        // Contact shadows at depth y - 1 (depth above decals, render on top)
+        // Cast shadows at depth y - 2 (for trees, pumpkins, stones — NOT wizard which renders live)
+        // Identify by texture key: decal_roots, shadow_contact (contact), shadow_cast (from trees/pumpkins/stones)
+        else if (obj.texture?.key === 'decal_roots') {
+          rootsAndShadows.push(obj);
+        }
+        else if (obj.texture?.key === 'shadow_cast' && (obj as any).depth < 0) {
+          // Only bake non-wizard cast shadows (wizard's shadowCast is a live sprite, depth updates)
+          // Cast shadows from trees/pumpkins are at y - 2 where y is their world y
+          // We'll bake all shadow_cast objects except the wizard's (which has a reference stored)
+          if (obj !== this.shadowCast) {
+            rootsAndShadows.push(obj);
+          }
+        }
+      }
+    }
+
+    // Draw all static decals to the RenderTexture at their current positions
+    for (const decal of staticDecals) {
+      rt.draw(decal);
+    }
+    
+    // Draw roots and static prop shadows to bake
+    for (const item of rootsAndShadows) {
+      rt.draw(item);
+    }
+
+    // Destroy the original decal/root/shadow game objects to save memory
+    for (const decal of staticDecals) {
+      decal.destroy();
+    }
+    for (const item of rootsAndShadows) {
+      item.destroy();
+    }
+  }
+
   // ─── Wizard ──────────────────────────────────────────────────────────────
 
   private spawnWizard(): void {
@@ -257,13 +587,14 @@ export class GraveyardWorld extends Phaser.Scene {
       WIZARD_SPAWN.x, WIZARD_SPAWN.y,
       'wizard_walk_down', 0
     );
-    this.wizard.setOrigin(0.5, 1);
+    // A4: Set origin so boots touch ground (Movicx wizard: bottom 3 rows transparent)
+    this.wizard.setOrigin(0.5, 61 / 64);
     this.wizard.setDepth(WIZARD_SPAWN.y);
 
-    // Small physics body at the feet
+    // A4: Adjust physics body offset to match new origin
     if (this.wizard.body) {
       this.wizard.body.setSize(24, 16);
-      this.wizard.body.setOffset(20, 48);
+      this.wizard.body.setOffset(20, 46); // adjusted for new origin
     }
 
     this.wizard.setCollideWorldBounds(true);
@@ -271,13 +602,32 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // Collision with tombstones
     this.physics.add.collider(this.wizard, this.tombstoneGroup);
+    
+    // A5: Collision with tree trunks
+    this.physics.add.collider(this.wizard, this.treeColliders);
 
-    // Shadow under wizard
-    this.shadow = this.add.ellipse(
-      WIZARD_SPAWN.x, WIZARD_SPAWN.y + 2,
-      32, 10, 0x0b1020, 0.35
+    // A3: Contact shadow under wizard boots (~28×8)
+    const contactShadow = this.add.image(
+      WIZARD_SPAWN.x, WIZARD_SPAWN.y - 1,
+      'shadow_contact'
     );
-    this.shadow.setDepth(WIZARD_SPAWN.y - 1);
+    // Non-uniform scale: width 28 px, height ~8 px
+    contactShadow.setScale(1.1 * 28 / 64, 8 / 24);
+    contactShadow.setAlpha(0.65);
+    contactShadow.setOrigin(0.5, 0.5);
+    contactShadow.setDepth(WIZARD_SPAWN.y - 1);
+    
+    const castShadow = this.add.image(
+      WIZARD_SPAWN.x + 0.25 * 28, WIZARD_SPAWN.y + 3,
+      'shadow_cast'
+    );
+    castShadow.setScale(1.3 * 28 / 96, 10 / 40);
+    castShadow.setAlpha(0.25);
+    castShadow.setOrigin(0.5, 0.5);
+    castShadow.setDepth(WIZARD_SPAWN.y - 2);
+
+    this.shadow = contactShadow;
+    this.shadowCast = castShadow;
   }
 
   // ─── Camera ──────────────────────────────────────────────────────────────
@@ -501,6 +851,7 @@ export class GraveyardWorld extends Phaser.Scene {
     this.checkProximity();
     this.updateFog();
     this.updateCrow(delta);
+    this.witch.update(delta); // A7
     this.audio.updateRandomShots(delta);
 
     // Update wizard light position
@@ -509,8 +860,12 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // Update shadow
     this.shadow.x = this.wizard.x;
-    this.shadow.y = this.wizard.y + 2;
+    this.shadow.y = this.wizard.y - 1;  // Centered contact shadow
     this.shadow.setDepth(this.wizard.y - 1);
+    
+    this.shadowCast.x = this.wizard.x + 0.25 * 28;  // Offset for cast shadow
+    this.shadowCast.y = this.wizard.y + 3;
+    this.shadowCast.setDepth(this.wizard.y - 2);
 
     // Pumpkin light flicker
     for (const light of this.pumpkinLights) {
@@ -549,6 +904,33 @@ export class GraveyardWorld extends Phaser.Scene {
     this.wizard.setVelocity(dx * speed, dy * speed);
 
     const moving = dx !== 0 || dy !== 0;
+
+    // A4: Walk bob — sync 1 px vertical bob to walk cycle
+    // Walk animations are 8 fps, cycle ~500ms per frame
+    if (moving !== this.isMoving) {
+      this.isMoving = moving;
+      this.bobAccum = 0;
+    }
+
+    if (moving) {
+      this.bobAccum += delta;
+      // Walk cycle: 8 fps = 125ms per frame; use 4-frame cycle (500ms)
+      const bobCycle = this.bobAccum % 500;
+      const bobPhase = (bobCycle / 500) * Math.PI * 2;
+      const bobOffset = Math.sin(bobPhase) * 1; // 1 px amplitude
+
+      // Apply bob to displayOriginY in pixels (61 - bobOffset keeps feet grounded)
+      this.wizard.displayOriginY = 61 - bobOffset;
+
+      // A4: Shadow scales with bob (0.92 ↔ 1.0)
+      const shadowScale = 0.92 + (Math.cos(bobPhase) + 1) / 2 * 0.08;
+      this.shadow.setScale((28 / 64) * shadowScale);
+    } else {
+      // Idle: no bob, reset to normal (displayOriginY = 61 px from top of 64px sprite)
+      this.bobAccum = 0;
+      this.wizard.displayOriginY = 61;
+      this.shadow.setScale(28 / 64);
+    }
 
     // Animation & facing
     if (moving) {
@@ -635,7 +1017,8 @@ export class GraveyardWorld extends Phaser.Scene {
 
   private updateCrow(delta: number): void {
     this.crowTimer += delta;
-    if (this.crowTimer >= this.crowInterval && !this.crow) {
+    // A9: Don't spawn crow while witch is active
+    if (this.crowTimer >= this.crowInterval && !this.crow && !this.witch.isActive) {
       this.crowTimer = 0;
       this.crowInterval = Phaser.Math.Between(20000, 45000);
       this.spawnCrow();
@@ -695,5 +1078,19 @@ export class GraveyardWorld extends Phaser.Scene {
     if (!grave || !grave.resurrectable) return;
     this.activeGrave = grave;
     this.tryRaiseGrave();
+  }
+
+  // ─── A8: Debug Hooks ─────────────────────────────────────────────────────
+
+  /** A8: Teleport wizard to raw world coordinates and centre camera. */
+  teleport(x: number, y: number): void {
+    this.wizard.setPosition(x, y);
+    this.cameras.main.centerOn(x, y);
+  }
+
+  /** A8: Trigger a witch fly-by immediately. */
+  spawnWitch(): void {
+    // A7: Use WitchFlyBy to spawn the witch
+    this.witch.spawnNow();
   }
 }

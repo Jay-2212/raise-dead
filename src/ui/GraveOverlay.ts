@@ -14,6 +14,7 @@ export class GraveOverlay {
   private overlayEl: HTMLElement | null = null;
   private appInstance: GraveApp | null = null;
   private onExitCallback: (() => void) | null = null;
+  private originalTouchAction: string = '';  // A11: Store original body touch-action
   private static appModules = import.meta.glob('../graves/*/index.ts');
 
   /** Mount the overlay for the given grave entry */
@@ -23,6 +24,11 @@ export class GraveOverlay {
 
     const container = document.getElementById('game-container');
     if (!container) return;
+
+    // A11: Set touch-action on body while overlay is open so button can relax it
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.touchAction = 'manipulation';
+    this.originalTouchAction = originalTouchAction;
 
     const overlay = document.createElement('div');
     overlay.id = 'grave-overlay';
@@ -34,7 +40,7 @@ export class GraveOverlay {
       align-items: center;
       justify-content: center;
       opacity: 0;
-      pointer-events: none;
+      pointer-events: all;
       transition: opacity 0.4s ease;
     `;
 
@@ -175,6 +181,7 @@ export class GraveOverlay {
       cursor: pointer;
       margin-top: 8px;
       transition: color 0.2s, border-color 0.2s;
+      touch-action: manipulation;
     `;
     exitBtn.addEventListener('mouseenter', () => {
       exitBtn.style.color = '#d9f2ee';
@@ -185,6 +192,7 @@ export class GraveOverlay {
       exitBtn.style.borderColor = '#c9b98a';
     });
     exitBtn.addEventListener('click', () => this.triggerExit());
+    exitBtn.addEventListener('touchend', () => this.triggerExit());
     content.appendChild(exitBtn);
 
     panel.appendChild(content);
@@ -224,8 +232,11 @@ export class GraveOverlay {
   }
 
   private triggerExit(): void {
-    // Dispatch a custom DOM event that ResurrectionRitual listens to
-    window.dispatchEvent(new CustomEvent('rip-exit'));
+    // Call the exit callback passed to mount() (idempotent: triggerExit may be called multiple times)
+    if (this.onExitCallback) {
+      this.onExitCallback();
+      this.onExitCallback = null; // prevent double-call
+    }
   }
 
   unmount(): void {
@@ -237,6 +248,14 @@ export class GraveOverlay {
       }
       this.appInstance = null;
     }
+    
+    // A11: Restore original body touch-action
+    if (this.originalTouchAction) {
+      document.body.style.touchAction = this.originalTouchAction;
+    } else {
+      document.body.style.touchAction = '';
+    }
+    
     if (this.overlayEl) {
       const panel = this.overlayEl.querySelector('div > div') as HTMLElement;
       if (panel) {

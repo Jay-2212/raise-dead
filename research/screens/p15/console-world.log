@@ -1,0 +1,14 @@
+hooks: game,goto,teleportToGrave,raise,teleport,spawnWitch,world
+[test] walk right 9s: 1200,900 -> 1299,900 (CHECK)
+[test] corner nw: 56,120
+[test] corner ne: 2372,140
+[test] corner sw: 120,1783
+[test] corner se: 2280,1784
+[test] approach orkut (380,380): wizard 380,418 dist 38
+[test] approach geocities (2100,370): wizard 2100,402 dist 32
+[test] approach google-glass (380,1080): wizard 380,1120 dist 40
+[test] approach pebble (2000,1065): wizard 2000,1105 dist 40
+[test] approach google-wave (2100,695): wizard 2100,732 dist 37
+[test] approach napster (360,680): wizard 360,712 dist 32
+[test] tree collision: no tree body list found on scene (check field name)
+[test] RIP click: overlay nodes 0, ritual active false (PASS)

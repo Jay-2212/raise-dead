@@ -128,6 +128,21 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   load.image('glow_warm', 'assets/images/fx/glow_warm.png');
   load.image('holy_light_burst', 'assets/images/fx/holy_light_burst.png');
   load.image('rune_circle_add', 'assets/images/fx/rune_circle_add.png');
+  
+  // A3: Shadows
+  load.image('shadow_contact', 'assets/images/fx/shadow_contact.png');
+  load.image('shadow_cast', 'assets/images/fx/shadow_cast.png');
+
+  // A3: Ground decals
+  load.image('decal_dirt_patch', 'assets/images/decals/decal_dirt_patch.png');
+  load.image('decal_grass_tuft', 'assets/images/decals/decal_grass_tuft.png');
+  load.image('decal_grass_tuft_flowers', 'assets/images/decals/decal_grass_tuft_flowers.png');
+  load.image('decal_grave_mound', 'assets/images/decals/decal_grave_mound.png');
+  load.image('decal_leaf_litter', 'assets/images/decals/decal_leaf_litter.png');
+  load.image('decal_mushrooms', 'assets/images/decals/decal_mushrooms.png');
+  load.image('decal_pebbles', 'assets/images/decals/decal_pebbles.png');
+  load.image('decal_roots', 'assets/images/decals/decal_roots.png');
+  load.image('decal_sunken_soil', 'assets/images/decals/decal_sunken_soil.png');
 
   // Kenney particles
   load.image('kenney_spark_01', 'assets/images/kenney/spark_01.png');
@@ -151,6 +166,9 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   load.image('medal_clippy', 'assets/images/portraits/medal_clippy.png');
   load.image('medal_winamp', 'assets/images/portraits/medal_winamp.png');
   load.image('medal_unmarked', 'assets/images/portraits/medal_unmarked.png');
+
+  // A7: Witch fly-by
+  load.image('witch_broom', 'assets/images/eggs/witch_broom.png');
 
   // Wizard spritesheets (64×64 frames)
   load.spritesheet('wizard_walk_down', 'assets/images/wizard/walk_down.png', {
@@ -268,4 +286,8 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
   load.audio('incant_unmarked', ['assets/voice/incant_unmarked.ogg', 'assets/voice/incant_unmarked.mp3']);
   load.audio('incant_generic', ['assets/voice/incant_generic.ogg', 'assets/voice/incant_generic.mp3']);
   load.audio('farewell_requiescat', ['assets/voice/farewell_requiescat.ogg', 'assets/voice/farewell_requiescat.mp3']);
+
+  // A7: Witch fly-by audio
+  load.audio('witch_cackle', ['assets/audio/sfx/witch_cackle.ogg', 'assets/audio/sfx/witch_cackle.mp3']);
+  load.audio('witch_cackle_2', ['assets/audio/sfx/witch_cackle_2.ogg', 'assets/audio/sfx/witch_cackle_2.mp3']);
 }

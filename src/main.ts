@@ -14,6 +14,12 @@ declare global {
       goto(sceneKey: string): void;
       teleportToGrave(id: string): void;
       raise(id: string): void;
+      /** A8: Teleport wizard to raw world coordinates and centre camera. */
+      teleport(x: number, y: number): void;
+      /** A8: Trigger a witch fly-by immediately (delegates to GraveyardWorld). */
+      spawnWitch(): void;
+      /** A8: Return the live GraveyardWorld scene (or null if not active). */
+      world(): GraveyardWorld | null;
     };
   }
 }
@@ -70,6 +76,36 @@ async function main(): Promise<void> {
         } else {
           console.warn('[__RD] GraveyardWorld is not active — call __RD.goto("GraveyardWorld") first');
         }
+      },
+
+      /** A8: Teleport wizard to raw world coordinates and centre camera. */
+      teleport(x: number, y: number): void {
+        const world = game.scene.getScene('GraveyardWorld') as GraveyardWorld | null;
+        if (world && game.scene.isActive('GraveyardWorld')) {
+          world.teleport(x, y);
+        } else {
+          console.warn('[__RD] GraveyardWorld is not active');
+        }
+      },
+
+      /** A8: Trigger a witch fly-by immediately. */
+      spawnWitch(): void {
+        const world = game.scene.getScene('GraveyardWorld') as GraveyardWorld | null;
+        if (world && game.scene.isActive('GraveyardWorld')) {
+          world.spawnWitch();
+        } else {
+          console.warn('[__RD] GraveyardWorld is not active');
+        }
+      },
+
+      /** A8: Return the live GraveyardWorld scene (or null if not active). */
+      world(): GraveyardWorld | null {
+        const scene = game.scene.getScene('GraveyardWorld') as GraveyardWorld | null;
+        if (!scene || !game.scene.isActive('GraveyardWorld')) {
+          console.warn('[__RD] GraveyardWorld is not active');
+          return null;
+        }
+        return scene;
       },
     };
 

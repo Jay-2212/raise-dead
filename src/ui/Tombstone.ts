@@ -25,7 +25,6 @@ export class Tombstone extends Phaser.GameObjects.Container {
   private stoneSprite: Phaser.GameObjects.Image;
   private glowSprite: Phaser.GameObjects.Image | null = null;
   private medallionSprite: Phaser.GameObjects.Image | null = null;
-  private shadowEllipse: Phaser.GameObjects.Ellipse;
 
   /** Physics static body for collision (added by GraveyardWorld) */
   physicsBody?: Phaser.Physics.Arcade.StaticBody;
@@ -34,9 +33,28 @@ export class Tombstone extends Phaser.GameObjects.Container {
     super(scene, x, y);
     this.grave = grave;
 
-    // Shadow ellipse
-    this.shadowEllipse = scene.add.ellipse(0, 4, 60, 16, 0x0b1020, 0.35);
-    this.add(this.shadowEllipse);
+    // A3: Contact shadow (dark ellipse at base)
+    // Non-uniform scale: width proportional to stone, height fixed ~8-9 px
+    const footprintWidth = grave.resurrectable ? 73 : 40; // approximate stone widths
+    const contactShadow = scene.add.image(0, -1, 'shadow_contact');
+    // shadow_contact is 64×24; scale to footprint width × 9 px height
+    contactShadow.setScale(1.1 * footprintWidth / 64, 9 / 24);
+    contactShadow.setAlpha(0.6);
+    contactShadow.setOrigin(0.5, 0.5);
+    this.add(contactShadow);
+
+    // A3: Cast shadow (offset lower-right, softer, larger)
+    // offset +0.25*width, +3; scale width/height independently
+    const castShadow = scene.add.image(
+      0.25 * footprintWidth,  // x offset: +0.25 * width
+      3,                       // y offset: +3 px
+      'shadow_cast'
+    );
+    // shadow_cast is 96×40
+    castShadow.setScale(1.3 * footprintWidth / 96, 10 / 40);
+    castShadow.setAlpha(0.3);
+    castShadow.setOrigin(0.5, 0.5);
+    this.add(castShadow);
 
     // Stone sprite
     const spriteKey = grave.resurrectable
@@ -48,19 +66,19 @@ export class Tombstone extends Phaser.GameObjects.Container {
     this.add(this.stoneSprite);
 
     if (grave.resurrectable) {
-      // Teal glow (ADD blend)
+      // Teal glow (ADD blend) — toned down ~35% from original
       this.glowSprite = scene.add.image(0, -12, 'glow_moon');
       this.glowSprite.setBlendMode(Phaser.BlendModes.ADD);
       this.glowSprite.setTint(0x7fd1d8);
-      this.glowSprite.setAlpha(0.3);
-      this.glowSprite.setScale(0.35);
+      this.glowSprite.setAlpha(0.2);
+      this.glowSprite.setScale(0.31);
       this.add(this.glowSprite);
 
-      // Pulse tween
+      // Pulse tween — reduced amplitude
       scene.tweens.add({
         targets: this.glowSprite,
-        alpha: { from: 0.25, to: 0.5 },
-        scale: { from: 0.33, to: 0.38 },
+        alpha: { from: 0.16, to: 0.32 },
+        scale: { from: 0.31, to: 0.335 },
         duration: 1800,
         yoyo: true,
         repeat: -1,

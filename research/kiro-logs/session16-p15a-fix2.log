@@ -1,0 +1,93 @@
+I'll start by reading the review document to understand all three issues clearly.
+[tool] Reading p15-grok-review-A2.md:1
+[tool] status: Completed
+Now let me read the current GraveyardWorld.ts to understand the structure and locate all the issues:
+[tool] Reading GraveyardWorld.ts:1-100
+[tool] status: Completed
+Let me continue reading to find the pumpkinPositions and decal baking code:
+[tool] Reading GraveyardWorld.ts:351-850
+[tool] status: Completed
+Let me continue reading to find the second pumpkinPositions block and understand the full structure:
+[tool] Reading GraveyardWorld.ts:201-500
+[tool] status: Completed
+Now let me check the Tombstone.ts file to understand the cast shadow code there:
+[tool] Reading Tombstone.ts:1-100
+[tool] status: Completed
+Now let me look at where `bakeStaticDecalsToTexture` is called in the `create()` method:
+[tool] Searching for 'bakeStaticDecalsToTexture' in scenes
+[tool] status: Completed
+Good. Now let me view the full `create()` method to see where it's called:
+[tool] Reading GraveyardWorld.ts:91-210
+[tool] status: Completed
+Perfect. Now I have a clear picture. Let me create a task list and fix all three issues:
+[tool] Creating task list: Fix three Round 2 review issues in GraveyardWorld: (1) HI...
+[tool] status: Completed
+Now let me start fixing. First, let me tackle task #1 and #2 together since they both involve the `bakeStaticDecalsToTexture()` method and cast shadows. Let me read the full method and understand the fix:
+[tool] Reading GraveyardWorld.ts:445-474
+[tool] status: Completed
+Now let me make all the fixes. I'll start with GraveyardWorld.ts:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now fix task #2 - reduce cast shadow scaleY. First, update GraveyardWorld.ts pumpkin cast shadows:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now update wizard cast shadow in spawnWizard:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now update Tombstone.ts cast shadows:
+[tool] Editing Tombstone.ts
+[tool] status: Completed
+Now fix task #3 - mushrooms and roots. First, let me fix the roots to use seeded RNG instead of Math.random():
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now I need to fix task #3 - remove mushrooms from scatter list and place 1-2 per tree. Let me replace the spawnGroundDecals function:
+[tool] Editing GraveyardWorld.ts
+[tool] status: Completed
+Now let me find and check for the duplicate pumpkinPositions blocks for task #4:
+[tool] Searching for 'pumpkinPositions\s*=' in GraveyardWorld.ts
+[tool] status: Completed
+I see there are two - one in spawnDecoratives (around line 425) and one in setupLights (around line 652). Let me read setupLights to understand why:
+[tool] Reading GraveyardWorld.ts:646-685
+[tool] status: Completed
+Good - the second one is in setupLights for placing lights, not spawning sprites. So it's not a duplicate spawn - they serve different purposes. The first one in spawnDecoratives creates the pumpkin sprites, and the second in setupLights creates the lights. This is correct. However, let me verify there are no other pumpkin creations I missed. Let me search for 'jackolantern_lit':
+[tool] Searching for 'jackolantern_lit' in GraveyardWorld.ts
+[tool] status: Completed
+Good! There's only one pumpkin spawn. The issue mentioned in the review was about two pumpkinPositions blocks around lines 351 and 545 - let me check if those line numbers still match or if the code has changed. Looking at the current state, line 425 has the first pumpkinPositions in spawnDecoratives, and line 652 has it in setupLights. These are not duplicates - they're for different purposes (sprites vs lights). The review was correct but the duplication is intentional for sprites and lights. So task #4 is already done (no actual duplicate spawning).
+
+Let me mark task #1-4 as understanding:
+[tool] Completing #1, #2, #3, #4
+[tool] status: Completed
+Now let me run the build to verify no errors:
+[tool] Running: cd /workspace/raise-dead && npm run build 2>&1
+[tool] status: Completed
+Perfect! The build passed with no errors. Let me mark the final task as complete:
+[tool] Completing #5
+[tool] status: Completed
+Perfect! All fixes are complete. Here's a summary:
+
+## Fixed Round 2 Review Issues ✓
+
+**1. HIGH – Baked decals RenderTexture (FIXED)**
+- Added `this.add.existing(rt)` to put the RenderTexture on the display list so grave mounds and ground decals render
+- Extended baking to include roots (`decal_roots`) and static prop shadows (trees, pumpkins, stones) from depth `-8` and below
+- Kept wizard's shadows live (not baked) so they update each frame
+
+**2. MEDIUM – Cast shadows too tall (FIXED)**
+- Reduced `scaleY` from `36/40` to `10/40` (~8–12 px tall) on:
+  - Pumpkin cast shadows in `spawnDecoratives()` 
+  - Wizard cast shadow in `spawnWizard()`
+  - Tombstone cast shadows in `Tombstone.ts`
+- Tree cast shadows kept at correct `36/40` (they're already tall for foliage)
+
+**3. MEDIUM – Mushroom placement & root RNG (FIXED)**
+- Removed 6 mushrooms from scatter loop; created `placeMushroomsPerTree()` 
+- Places 1–2 mushrooms beside ~50% of trees using seeded RNG
+- Fixed root scale and flip to use seeded `mulberry32(1031 + x*1000 + y)` instead of `Math.random()`
+
+**4. Pumpkin duplicate check**
+- Confirmed `pumpkinPositions` appears twice intentionally:
+  - `spawnDecoratives()` line 425 → creates pumpkin sprites  
+  - `setupLights()` line 652 → creates lights (no duplicate spawning)
+
+**Build:** ✓ `npm run build` passes with zero errors.
+EXIT_CODE=0
