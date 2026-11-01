@@ -1,0 +1,88 @@
+I'll fix the quota tracking bug in Clicky. Let me start by examining the relevant files.
+[tool] status: Failed
+Let me correct that—check the directory structure and files:
+[tool] Reading listing clicky, listing clippy
+[tool] status: Completed
+Now read the relevant sections:
+[tool] Reading chat.ts:331-340, _lib.ts:1, ClickyChat.ts:1, api.ts:1
+[tool] status: Completed
+Now I have a clear picture. Let me read the full chat.ts file around line 333-337 to see the exact issue:
+[tool] Reading chat.ts:326-355
+[tool] status: Completed
+Perfect. Now I see the bug: line 336 uses `const remaining = Math.max(0, userLifetime - 1);` which always subtracts 1 from the cap, rather than calculating from actual usage. Let me fix this by:
+
+1. **Updating `checkAndReserveQuota`** to return `ipUsed` and `tokUsed` from the RETURNING values
+2. **Fixing chat.ts** to compute `remaining` correctly
+3. **Updating the client** to handle 429 errors with matching system lines and disable input
+
+Let me start:
+[tool] Editing _lib.ts
+[tool] status: Completed
+[tool] Editing _lib.ts
+[tool] status: Completed
+Now let me read more of chat.ts to find where quotaResult is used and update it:
+[tool] Reading chat.ts:151-200
+[tool] status: Completed
+Good. Now I need to find where the `remaining` is calculated and update it. Let me look at the section right before the final response:
+[tool] Reading chat.ts:241-290
+[tool] status: Completed
+Now let me update chat.ts to pass the quota result's ipUsed and tokUsed values. First, let me see where ipKey and tokKey are available so I can modify the quota line:
+[tool] Reading chat.ts:161-180
+[tool] status: Completed
+Perfect. Now let me update the section where we compute `remaining`. I'll modify the `transform` function's final part to use the quota result:
+[tool] Reading chat.ts:301-315
+[tool] status: Completed
+Now let me look at the section right before line 337 to understand the structure better:
+[tool] Reading chat.ts:319-338
+[tool] status: Completed
+Now I need to make the quota result available in the transform function. Let me replace the section where remaining is computed:
+[tool] Editing chat.ts
+[tool] status: Completed
+Now let me update the client to handle 429 errors properly. First, let me check the current error handling in api.ts:
+[tool] Reading api.ts:1
+[tool] status: Completed
+Good. The api.ts is already correct. Now I need to update ClickyChat.ts to handle the 429 errors properly. Let me look at the error handling section again:
+[tool] Reading ClickyChat.ts:651-690
+[tool] status: Completed
+Let me search for where the error handling happens in ClickyChat:
+[tool] Reading ClickyChat.ts:566-615
+[tool] status: Completed
+Perfect! I can see the error handling. Now I need to update it to disable input properly for both limit and daily errors, and ensure the placeholder messages and system lines are shown. The code is almost correct, but I need to verify the flow. Let me look for any remaining issues and also check if presets have the system lines for these errors:
+[tool] Reading presets.ts:1
+[tool] status: Completed
+Good. Now let me verify the error handling in ClickyChat is correct. Looking at the code again, I see that it already disables input correctly for both 'limit' and 'daily' errors. However, I need to make sure that when we call `setInputsEnabled(false)` we also disable the options buttons. Let me look at that section again to ensure it's correct:
+[tool] Reading ClickyChat.ts:588-637
+[tool] status: Completed
+I see a potential issue: the code calls `this.setInputsEnabled(true)` first, then sets `disabled = true` on just the inputEl for limit/daily errors. We should skip the `setInputsEnabled(true)` or call it after checking error type. However, to keep it simple and not change extra logic, let me refactor this to only disable when needed. Actually, looking more carefully, after `setInputsEnabled(true)` is called, we then manually set `disabled = true` on the input field, so it overrides the enable call. But we should also disable the buttons. Let me update the code:
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Good! Now I also need to ensure the presets are loaded to get the system line. Let me check if presets are loaded at the right time. Looking at the ClickyChat.mount() method, yes, presets are loaded. Now let's verify the builds work:
+[tool] Running: cd /workspace/raise-dead && npm run build
+[tool] status: Completed
+Excellent! Now let's run the functions typecheck:
+[tool] Running: cd /workspace/raise-dead && npm run typecheck:functions
+[tool] status: Completed
+Perfect! Both builds pass. Let me create a summary of the fixes:
+
+## Summary
+
+**Bug fixed:** Production Clicky quota tracking was always reporting `remaining = userLifetime - 1` instead of the actual remaining quota.
+
+**Changes made:**
+
+1. **`functions/api/clicky/_lib.ts`** — `checkAndReserveQuota()`:
+   - Updated `QuotaCheckResult` interface to include `ipUsed?: number` and `tokUsed?: number`
+   - Return the RETURNING values from the quota reserve operation so the caller gets actual post-reserve usage counts
+
+2. **`functions/api/clicky/chat.ts`** — quota calculation:
+   - Changed remaining calculation from `Math.max(0, userLifetime - 1)` to `Math.max(0, userLifetime - max(ipUsed, tokUsed))`
+   - Now correctly uses the returned usage counts from the reserve operation
+
+3. **`src/graves/clippy/ClickyChat.ts`** — error handling:
+   - Fixed 429 error handling to disable both input field AND option buttons (not just the field)
+   - Ensured system_lines messages ("Clicky is out of words for you" for `limit`, "Clicky is resting today..." for `daily`) are shown
+   - Presets stay enabled for other errors (`off_topic`, `empty`, `error`)
+
+✓ `npm run build` passes  
+✓ `npm run typecheck:functions` passes
+EXIT_CODE=0

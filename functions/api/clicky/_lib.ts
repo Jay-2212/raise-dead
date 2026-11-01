@@ -193,6 +193,8 @@ export async function json<T>(response: Response): Promise<T | null> {
 export interface QuotaCheckResult {
   allowed: boolean;
   reason?: string;
+  ipUsed?: number;
+  tokUsed?: number;
 }
 
 export async function checkAndReserveQuota(
@@ -271,7 +273,11 @@ export async function checkAndReserveQuota(
     return { allowed: false, reason: !dailyOk ? 'daily' : 'limit' };
   }
 
-  return { allowed: true };
+  // Extract the new used counts from RETURNING
+  const ipUsedAfter = ipOk ? (results[1].results![0] as any).used : ipUsed;
+  const tokUsedAfter = tokOk ? (results[2].results![0] as any).used : tokUsed;
+
+  return { allowed: true, ipUsed: ipUsedAfter, tokUsed: tokUsedAfter };
 }
 
 export async function refundQuota(db: D1Database, ipKey: string, tokKey: string, today: string): Promise<void> {

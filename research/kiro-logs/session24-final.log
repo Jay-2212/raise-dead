@@ -1,0 +1,61 @@
+I'll start by reading the Clicky Chat component to understand the current state and identify the issues.
+[tool] Reading ClickyChat.ts:1
+[tool] status: Completed
+Now I'll read the CSS/styles that might affect the layout and also check how the component is mounted:
+[tool] Finding **/clippy/**/*.css", "limit": 10
+[tool] status: Completed
+Let me check the GraveOverlay to see how Clicky is mounted:
+[tool] Reading GraveOverlay.ts:1
+[tool] status: Completed
+Now let me check the Clicky index to see how it's structured:
+[tool] Reading index.ts:1
+[tool] status: Completed
+Now I understand the layout. Let me create a task list and address the two issues:
+[tool] Creating task list: Fix Clicky Chat: (1) preset buttons remain enabled on lim...
+[tool] status: Completed
+Now I'll make the fixes. **Issue #1**: The problem is in `handleTypedSubmit()` where `setInputsEnabled(false)` disables ALL inputs including the preset option buttons. I need to:
+1. Create a new method that only disables text input and ask button
+2. Change the behavior for limit/daily so options stay enabled
+3. Re-show and re-enable options in all error branches (except showing the error message once)
+
+**Issue #2**: Reduce bubble min-height, option button padding, and make the hint text more compact.
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Now I'll update the `handleTypedSubmit()` method to properly handle errors while keeping options enabled:
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Now I need to fix Issue #2 by reducing the bubble min-height, option button padding, and making the hint text more compact. Let me update the CSS:
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Now update the option buttons padding and the hint text:
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Now update the option buttons styling:
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Now let me mark task #1 complete and run the build and typecheck:
+[tool] Completing #1
+[tool] status: Completed
+Now complete task #2:
+[tool] Completing #2
+[tool] status: Completed
+Now let's run the build and typecheck:
+[tool] Running: cd /workspace/raise-dead && npm run build 2>&1 | head -100
+[tool] status: Completed
+Good! Now let's run typecheck for functions:
+[tool] Running: cd /workspace/raise-dead && npm run typecheck:functions 2>&1
+[tool] status: Completed
+Perfect! Both checks passed. Let me complete the task list:
+[tool] Completing #3
+[tool] status: Completed
+Now let me complete the final task with the summary:
+[tool] Completing #4
+[tool] status: Completed
+## Summary
+
+Both issues in Clicky Chat are fixed. ✓ `npm run build` and `npm run typecheck:functions` pass.
+
+**Issue #1 (HIGH):** Preset option buttons now stay enabled when hitting 429 limit or daily cap. Added `setTextInputEnabled()` method to disable only text input + Ask button. In all error branches (limit, daily, off_topic, blocked, empty, error, timeout), options are re-shown and remain tappable. Users can still tap preset questions even after hitting limits.
+
+**Issue #2 (MEDIUM):** Fixed 1280×720 layout clipping for 3-line bubbles by reducing vertical footprint: bubble min-height 4.5em→3.8em, padding 14px 18px→12px 16px; option button padding 8px 14px→6px 12px (min-height stays ≥36px); hint text line-height 1.1→1 and shortened to "Or ask a question...". Input row no longer clips under "Requiescat in pace" button.
+EXIT_CODE=0

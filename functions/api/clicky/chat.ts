@@ -330,10 +330,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         // Item 2 fix: empty completion — send {"empty":true}, no done+remaining
         controller.enqueue(new TextEncoder().encode(`data: {"empty":true}\n\n`));
       } else {
-        // Item 2 fix: compute remaining from the reserved values
-        // We use userLifetime - 1 as a conservative lower bound since we already reserved 1.
-        // The exact value requires a DB read; we use the post-reserve value passed from quota.
-        const remaining = Math.max(0, userLifetime - 1);
+        // Item 2 fix: compute remaining from the reserved values returned by checkAndReserveQuota
+        // remaining = max(0, userLifetime - max(ipUsed, tokUsed))
+        const maxUsed = Math.max(quota.ipUsed || 0, quota.tokUsed || 0);
+        const remaining = Math.max(0, userLifetime - maxUsed);
         const evt = JSON.stringify({ done: true, remaining });
         controller.enqueue(new TextEncoder().encode(`data: ${evt}\n\n`));
       }

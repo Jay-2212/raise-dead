@@ -180,8 +180,8 @@ export class ClickyChat {
       background: #16213a;
       border: 2px solid #c9b98a;
       border-radius: 6px;
-      padding: 14px 18px;
-      min-height: 4.5em;
+      padding: 12px 16px;
+      min-height: 3.8em;
       line-height: 1.45;
       font-size: 1.05rem;
       color: #d9f2ee;
@@ -242,8 +242,8 @@ export class ClickyChat {
     `;
 
     const hint = document.createElement('p');
-    hint.style.cssText = `font-size: 0.75rem; color: #5d6b80; margin: 0 0 0 0; line-height: 1.1;`;
-    hint.textContent = this.presets?.system_lines.greeting_typed_hint || 'Or type a question below...';
+    hint.style.cssText = `font-size: 0.75rem; color: #5d6b80; margin: 0 0 0 0; line-height: 1;`;
+    hint.textContent = this.presets?.system_lines.greeting_typed_hint || 'Or ask a question...';
     containerEl.appendChild(hint);
 
     const row = document.createElement('div');
@@ -300,14 +300,14 @@ export class ClickyChat {
       background: transparent;
       border: 2px solid #c9b98a;
       color: #c9b98a;
-      padding: 8px 14px;
+      padding: 6px 12px;
       font-family: 'Pixelify Sans', sans-serif;
       font-size: 0.95rem;
       cursor: pointer;
       flex-shrink: 0;
       transition: all 0.2s;
       touch-action: manipulation;
-      min-height: 40px;
+      min-height: 36px;
     `;
     this.askBtnEl.addEventListener('mouseenter', () => {
       this.askBtnEl!.style.color = '#d9f2ee';
@@ -327,7 +327,7 @@ export class ClickyChat {
     containerEl.appendChild(row);
 
     this.questionsLeftEl = document.createElement('p');
-    this.questionsLeftEl.style.cssText = `font-size: 0.75rem; color: #5d6b80; margin: 2px 0 0 0; line-height: 1.1;`;
+    this.questionsLeftEl.style.cssText = `font-size: 0.75rem; color: #5d6b80; margin: 2px 0 0 0; line-height: 1;`;
     this.questionsLeftEl.textContent = `Questions left: ${this.state.remaining}`;
     containerEl.appendChild(this.questionsLeftEl);
 
@@ -456,14 +456,14 @@ export class ClickyChat {
         background: transparent;
         border: 2px solid #c9b98a;
         color: #c9b98a;
-        padding: 8px 14px;
+        padding: 6px 12px;
         font-family: 'Pixelify Sans', sans-serif;
         font-size: 0.95rem;
         cursor: pointer;
         opacity: 0;
         transition: opacity 0.2s, color 0.2s, border-color 0.2s;
         touch-action: manipulation;
-        min-height: 40px;
+        min-height: 36px;
         width: 100%;
         text-align: left;
       `;
@@ -523,6 +523,11 @@ export class ClickyChat {
     }
   }
 
+  private setTextInputEnabled(enabled: boolean): void {
+    if (this.inputEl) this.inputEl.disabled = !enabled;
+    if (this.askBtnEl) this.askBtnEl.disabled = !enabled;
+  }
+
   private async handleTypedSubmit(): Promise<void> {
     if (!this.inputEl || this.state.busy || this.state.dailyClosed) return;
 
@@ -546,7 +551,7 @@ export class ClickyChat {
     }
 
     this.state.busy = true;
-    this.setInputsEnabled(false);
+    this.setTextInputEnabled(false);
 
     if (this.echoEl) this.echoEl.textContent = `You: ${text}`;
 
@@ -587,16 +592,18 @@ export class ClickyChat {
           }
         }
 
-        this.setInputsEnabled(true);
+        this.setTextInputEnabled(true);
 
         if (error) {
           let errorKey = 'error';
+          let disableTextInputOnly = false;
+          
           if (error === 'off_topic' || error === 'blocked') errorKey = 'off_topic';
           else if (error === 'empty') errorKey = 'empty';
           else if (error === 'limit') {
             errorKey = 'limit_reached';
+            disableTextInputOnly = true;
             if (this.inputEl) {
-              this.inputEl.disabled = true;
               this.inputEl.placeholder = 'Clicky is out of words for you. Tap a question above!';
             }
             if (this.state.remaining !== undefined) {
@@ -605,17 +612,27 @@ export class ClickyChat {
           }
           else if (error === 'daily') {
             errorKey = 'daily_tired';
+            disableTextInputOnly = true;
             this.state.dailyClosed = true;
             if (this.inputEl) {
-              this.inputEl.disabled = true;
               this.inputEl.placeholder = 'Clicky is resting today...';
             }
+          }
+
+          if (disableTextInputOnly) {
+            this.setTextInputEnabled(false);
           }
 
           if (this.presets && this.bubbleEl) {
             const lines = (this.presets.system_lines as unknown as Record<string, string[]>)[errorKey];
             const msg = (lines && lines[Math.floor(Math.random() * lines.length)]) || 'Something went wrong.';
             this.bubbleEl.textContent = msg;
+          }
+
+          // Re-show current node's preset options in all error branches (so they're always tappable)
+          const node = this.presets?.nodes[this.state.currentNodeId];
+          if (node) {
+            this.showOptions(node.options, node.end);
           }
 
           // Remove the user turn we pushed if the server refunded / never charged
