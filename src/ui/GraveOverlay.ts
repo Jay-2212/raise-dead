@@ -173,6 +173,21 @@ export class GraveOverlay {
     exitBtn.addEventListener('touchend', () => this.triggerExit());
     content.appendChild(exitBtn);
 
+    // N7: a corner close button too (testers looked for an X)
+    const xBtn = document.createElement('button');
+    xBtn.textContent = '✕';
+    xBtn.setAttribute('aria-label', 'Close');
+    xBtn.title = 'Close (Esc)';
+    xBtn.style.cssText = `
+      position: absolute; top: 6px; right: 8px; z-index: 5;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(11,16,32,0.85); color: #c9b98a;
+      border: 1px solid #c9b98a; font-size: 16px; line-height: 1;
+      cursor: pointer;
+    `;
+    xBtn.addEventListener('click', () => this.triggerExit());
+    content.appendChild(xBtn);
+
     panel.appendChild(content);
     wrapper.appendChild(panel);
     overlay.appendChild(wrapper);

@@ -830,6 +830,9 @@ export class GraveyardWorld extends Phaser.Scene {
         if (d < bestD) { bestD = d; best = { x: egg.x, y: egg.y + 18 }; }
       }
       this.moveTarget = best ? { ...best, interact: true } : { x: wx, y: wy, interact: false };
+      // N7: show where we're heading
+      const ring = this.add.circle(this.moveTarget.x, this.moveTarget.y, 10).setStrokeStyle(2, 0x7fffe0, 0.9).setDepth(this.moveTarget.y - 1);
+      this.tweens.add({ targets: ring, scale: 0.3, alpha: 0, duration: 600, onComplete: () => ring.destroy() });
       this.moveStuckMs = 0;
       this.moveBestDist = undefined;
     });
@@ -982,7 +985,7 @@ export class GraveyardWorld extends Phaser.Scene {
       // progress check: give up if we haven't closed in for 1.2 s
       if (dist < (this.moveBestDist ?? Infinity) - 2) { this.moveBestDist = dist; this.moveStuckMs = 0; }
       else this.moveStuckMs += delta;
-      if (dist < 6 || this.moveStuckMs > 1200) {
+      if (dist < Math.max(6, (WALK_SPEED * delta) / 1000 + 2) || this.moveStuckMs > 1200) {
         const doInteract = this.moveTarget.interact && dist < 40;
         this.moveTarget = null;
         this.moveBestDist = undefined;
