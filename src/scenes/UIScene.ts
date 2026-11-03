@@ -332,6 +332,7 @@ export class UIScene extends Phaser.Scene {
 
   private showPlaque(): void {
     if (this.plaqueVisible) return;
+    if (this.loreCardVisible) this.hideLoreCard(); // N5: never stack plaque + lore card
     this.plaqueVisible = true;
     this.plaque.setVisible(true);
     this.plaque.setAlpha(0);

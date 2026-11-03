@@ -430,9 +430,14 @@ export class GraveOverlay {
     // Re-enable Phaser keyboard global capture
     if (this.gameScene?.input?.keyboard) {
       this.gameScene.input.keyboard.enableGlobalCapture();
+      this.gameScene.input.keyboard.resetKeys(); // N5: no stuck walking after an iframe ate the keyup
     }
-    // N3: take keyboard focus back from a game iframe
-    try { (this.gameScene?.game?.canvas as HTMLCanvasElement | undefined)?.focus(); } catch { /* ignore */ }
+    // N3/N5: take keyboard focus back from a game iframe
+    try {
+      window.focus();
+      const cv = this.gameScene?.game?.canvas as HTMLCanvasElement | undefined;
+      if (cv) { if (!cv.hasAttribute('tabindex')) cv.setAttribute('tabindex', '0'); cv.focus(); }
+    } catch { /* ignore */ }
 
     // Remove Esc key handler
     if ((this as any).escKeyHandler) {
@@ -446,6 +451,7 @@ export class GraveOverlay {
         panel.style.opacity = '0';
         panel.style.transform = 'translateY(20px)';
       }
+      this.overlayEl.style.pointerEvents = 'none'; // N5: don't swallow clicks during the fade
       this.overlayEl.style.opacity = '0';
       const el = this.overlayEl;
       setTimeout(() => el.remove(), 420);

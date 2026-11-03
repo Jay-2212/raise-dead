@@ -1018,6 +1018,15 @@ export class GraveyardWorld extends Phaser.Scene {
 
   private checkProximity(): void {
     if (this.ritualActive) return;
+    // N5: no "raise the dead" prompt while fighting a zombie wave (F casts spells then)
+    if (this.zombieWave?.active) {
+      if (this.lastProxGraveId !== null) {
+        this.lastProxGraveId = null;
+        this.activeGrave = null;
+        this.scene.get('UIScene')?.events.emit('proximityChanged', null);
+      }
+      return;
+    }
 
     let closest: GraveEntry | null = null;
     let closestDist = Infinity;

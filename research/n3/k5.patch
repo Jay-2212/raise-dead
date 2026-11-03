@@ -1,0 +1,148 @@
+diff --git a/src/main.ts b/src/main.ts
+index 80e6e3d..7bb912c 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -39,7 +39,12 @@ async function main(): Promise<void> {
+     // If font loading fails, continue anyway
+   });
+ 
+-  const game = new Phaser.Game(GAME_CONFIG);
++  // N5: software WebGL (SwiftShader/llvmpipe, GPU-less VMs, blocklisted drivers) runs at ~0 fps
++  // with our lighting; Phaser's Canvas renderer runs the same game at 20-30 fps there.
++  const rendererParam = new URLSearchParams(window.location.search).get('renderer');
++  const useCanvas = rendererParam === 'canvas' || (rendererParam !== 'webgl' && isSoftwareWebGL());
++  const game = new Phaser.Game({ ...GAME_CONFIG, type: useCanvas ? Phaser.CANVAS : GAME_CONFIG.type });
++  if (!useCanvas && rendererParam !== 'webgl') startFpsWatchdog(game);
+ 
+   // P2-1: Expose window.__RD only in DEV mode or with ?debug=1 query param
+   const params = new URLSearchParams(window.location.search);
+@@ -125,3 +130,35 @@ async function main(): Promise<void> {
+ }
+ 
+ main().catch(console.error);
++
++/** N5: true when the browser would give us a software / major-performance-caveat WebGL context. */
++function isSoftwareWebGL(): boolean {
++  try {
++    const c = document.createElement('canvas');
++    const strict = c.getContext('webgl', { failIfMajorPerformanceCaveat: true }) as WebGLRenderingContext | null;
++    if (!strict) return true;
++    const ext = strict.getExtension('WEBGL_debug_renderer_info');
++    const name = ext ? String(strict.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
++    strict.getExtension('WEBGL_lose_context')?.loseContext();
++    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
++  } catch {
++    return false;
++  }
++}
++
++/** N5: if WebGL still crawls (< 6 fps over 5 s once the title is up), reload once on the Canvas renderer. */
++function startFpsWatchdog(game: Phaser.Game): void {
++  if (sessionStorage.getItem('rd_canvas_fallback')) return;
++  window.setTimeout(() => {
++    const f0 = game.loop.frame;
++    window.setTimeout(() => {
++      if (document.hidden) return;
++      if (game.loop.frame - f0 < 30) {
++        sessionStorage.setItem('rd_canvas_fallback', '1');
++        const u = new URL(window.location.href);
++        u.searchParams.set('renderer', 'canvas');
++        window.location.replace(u.toString());
++      }
++    }, 5000);
++  }, 4000);
++}
+diff --git a/src/scenes/CreditsScene.ts b/src/scenes/CreditsScene.ts
+index f992d89..b918727 100644
+--- a/src/scenes/CreditsScene.ts
++++ b/src/scenes/CreditsScene.ts
+@@ -60,10 +60,11 @@ export class CreditsScene extends Phaser.Scene {
+     this.textContainer = this.add.container(0, 0).setDepth(3);
+ 
+     // Mask for scroll area
+-    const maskRect = this.add.rectangle(width / 2, 340, width - 40, height - 140, 0xffffff)
+-      .setVisible(false)
+-      .setDepth(3);
+-    this.mask = new Phaser.Display.Masks.GeometryMask(this, maskRect as unknown as Phaser.GameObjects.Graphics);
++    // N5: a real Graphics mask (the Rectangle cast drew a white box on the Canvas renderer)
++    const maskGfx = this.make.graphics({ x: 0, y: 0 }, false);
++    maskGfx.fillStyle(0xffffff, 1);
++    maskGfx.fillRect(20, 340 - (height - 140) / 2, width - 40, height - 140);
++    this.mask = new Phaser.Display.Masks.GeometryMask(this, maskGfx);
+     this.textContainer.setMask(this.mask);
+ 
+     // Scroll input
+diff --git a/src/scenes/GraveyardWorld.ts b/src/scenes/GraveyardWorld.ts
+index b35cd13..aec82b8 100644
+--- a/src/scenes/GraveyardWorld.ts
++++ b/src/scenes/GraveyardWorld.ts
+@@ -1018,6 +1018,15 @@ export class GraveyardWorld extends Phaser.Scene {
+ 
+   private checkProximity(): void {
+     if (this.ritualActive) return;
++    // N5: no "raise the dead" prompt while fighting a zombie wave (F casts spells then)
++    if (this.zombieWave?.active) {
++      if (this.lastProxGraveId !== null) {
++        this.lastProxGraveId = null;
++        this.activeGrave = null;
++        this.scene.get('UIScene')?.events.emit('proximityChanged', null);
++      }
++      return;
++    }
+ 
+     let closest: GraveEntry | null = null;
+     let closestDist = Infinity;
+diff --git a/src/scenes/TitleScene.ts b/src/scenes/TitleScene.ts
+index 5493a5a..7812d13 100644
+--- a/src/scenes/TitleScene.ts
++++ b/src/scenes/TitleScene.ts
+@@ -158,7 +158,7 @@ export class TitleScene extends Phaser.Scene {
+       });
+       
+       // Change prompt text
+-      clickPrompt.setText('Press Enter to enter the graveyard');
++      clickPrompt.setText('Click again · or press Enter/Space · to enter the graveyard');
+       return; // Don't proceed to graveyard yet
+     }
+ 
+diff --git a/src/scenes/UIScene.ts b/src/scenes/UIScene.ts
+index ba65469..f94ad95 100644
+--- a/src/scenes/UIScene.ts
++++ b/src/scenes/UIScene.ts
+@@ -332,6 +332,7 @@ export class UIScene extends Phaser.Scene {
+ 
+   private showPlaque(): void {
+     if (this.plaqueVisible) return;
++    if (this.loreCardVisible) this.hideLoreCard(); // N5: never stack plaque + lore card
+     this.plaqueVisible = true;
+     this.plaque.setVisible(true);
+     this.plaque.setAlpha(0);
+diff --git a/src/ui/GraveOverlay.ts b/src/ui/GraveOverlay.ts
+index ea31185..3e9fd3b 100644
+--- a/src/ui/GraveOverlay.ts
++++ b/src/ui/GraveOverlay.ts
+@@ -430,9 +430,14 @@ export class GraveOverlay {
+     // Re-enable Phaser keyboard global capture
+     if (this.gameScene?.input?.keyboard) {
+       this.gameScene.input.keyboard.enableGlobalCapture();
++      this.gameScene.input.keyboard.resetKeys(); // N5: no stuck walking after an iframe ate the keyup
+     }
+-    // N3: take keyboard focus back from a game iframe
+-    try { (this.gameScene?.game?.canvas as HTMLCanvasElement | undefined)?.focus(); } catch { /* ignore */ }
++    // N3/N5: take keyboard focus back from a game iframe
++    try {
++      window.focus();
++      const cv = this.gameScene?.game?.canvas as HTMLCanvasElement | undefined;
++      if (cv) { if (!cv.hasAttribute('tabindex')) cv.setAttribute('tabindex', '0'); cv.focus(); }
++    } catch { /* ignore */ }
+ 
+     // Remove Esc key handler
+     if ((this as any).escKeyHandler) {
+@@ -446,6 +451,7 @@ export class GraveOverlay {
+         panel.style.opacity = '0';
+         panel.style.transform = 'translateY(20px)';
+       }
++      this.overlayEl.style.pointerEvents = 'none'; // N5: don't swallow clicks during the fade
+       this.overlayEl.style.opacity = '0';
+       const el = this.overlayEl;
+       setTimeout(() => el.remove(), 420);

@@ -39,7 +39,12 @@ async function main(): Promise<void> {
     // If font loading fails, continue anyway
   });
 
-  const game = new Phaser.Game(GAME_CONFIG);
+  // N5: software WebGL (SwiftShader/llvmpipe, GPU-less VMs, blocklisted drivers) runs at ~0 fps
+  // with our lighting; Phaser's Canvas renderer runs the same game at 20-30 fps there.
+  const rendererParam = new URLSearchParams(window.location.search).get('renderer');
+  const useCanvas = rendererParam === 'canvas' || (rendererParam !== 'webgl' && isSoftwareWebGL());
+  const game = new Phaser.Game({ ...GAME_CONFIG, type: useCanvas ? Phaser.CANVAS : GAME_CONFIG.type });
+  if (!useCanvas && rendererParam !== 'webgl') startFpsWatchdog(game);
 
   // P2-1: Expose window.__RD only in DEV mode or with ?debug=1 query param
   const params = new URLSearchParams(window.location.search);
@@ -125,3 +130,35 @@ async function main(): Promise<void> {
 }
 
 main().catch(console.error);
+
+/** N5: true when the browser would give us a software / major-performance-caveat WebGL context. */
+function isSoftwareWebGL(): boolean {
+  try {
+    const c = document.createElement('canvas');
+    const strict = c.getContext('webgl', { failIfMajorPerformanceCaveat: true }) as WebGLRenderingContext | null;
+    if (!strict) return true;
+    const ext = strict.getExtension('WEBGL_debug_renderer_info');
+    const name = ext ? String(strict.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+    strict.getExtension('WEBGL_lose_context')?.loseContext();
+    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+  } catch {
+    return false;
+  }
+}
+
+/** N5: if WebGL still crawls (< 6 fps over 5 s once the title is up), reload once on the Canvas renderer. */
+function startFpsWatchdog(game: Phaser.Game): void {
+  if (sessionStorage.getItem('rd_canvas_fallback')) return;
+  window.setTimeout(() => {
+    const f0 = game.loop.frame;
+    window.setTimeout(() => {
+      if (document.hidden) return;
+      if (game.loop.frame - f0 < 30) {
+        sessionStorage.setItem('rd_canvas_fallback', '1');
+        const u = new URL(window.location.href);
+        u.searchParams.set('renderer', 'canvas');
+        window.location.replace(u.toString());
+      }
+    }, 5000);
+  }, 4000);
+}

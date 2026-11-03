@@ -158,7 +158,7 @@ export class TitleScene extends Phaser.Scene {
       });
       
       // Change prompt text
-      clickPrompt.setText('Press Enter to enter the graveyard');
+      clickPrompt.setText('Click again · or press Enter/Space · to enter the graveyard');
       return; // Don't proceed to graveyard yet
     }
 

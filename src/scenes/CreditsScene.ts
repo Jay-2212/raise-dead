@@ -60,10 +60,11 @@ export class CreditsScene extends Phaser.Scene {
     this.textContainer = this.add.container(0, 0).setDepth(3);
 
     // Mask for scroll area
-    const maskRect = this.add.rectangle(width / 2, 340, width - 40, height - 140, 0xffffff)
-      .setVisible(false)
-      .setDepth(3);
-    this.mask = new Phaser.Display.Masks.GeometryMask(this, maskRect as unknown as Phaser.GameObjects.Graphics);
+    // N5: a real Graphics mask (the Rectangle cast drew a white box on the Canvas renderer)
+    const maskGfx = this.make.graphics({ x: 0, y: 0 }, false);
+    maskGfx.fillStyle(0xffffff, 1);
+    maskGfx.fillRect(20, 340 - (height - 140) / 2, width - 40, height - 140);
+    this.mask = new Phaser.Display.Masks.GeometryMask(this, maskGfx);
     this.textContainer.setMask(this.mask);
 
     // Scroll input
