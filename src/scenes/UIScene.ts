@@ -24,6 +24,20 @@ export class UIScene extends Phaser.Scene {
   }
 
   create(): void {
+    // N6: first-visit controls toast (once per session)
+    if (!sessionStorage.getItem('rd_controls_seen')) {
+      sessionStorage.setItem('rd_controls_seen', '1');
+      const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
+      const msg = touch
+        ? 'Drag the joystick to walk  ·  tap F at a glowing grave to raise it'
+        : 'WASD / arrow keys to walk  ·  or click where to go  ·  F at a glowing grave to raise it';
+      const t = this.add.text(640, 92, msg, {
+        fontFamily: "'Pixelify Sans', sans-serif", fontSize: '16px', color: '#d9f2ee',
+        backgroundColor: 'rgba(11,16,32,0.78)', padding: { x: 14, y: 8 },
+      }).setOrigin(0.5).setDepth(900).setAlpha(0).setScrollFactor(0);
+      this.tweens.add({ targets: t, alpha: 1, duration: 600, delay: 900 });
+      this.tweens.add({ targets: t, alpha: 0, duration: 900, delay: 9000, onComplete: () => t.destroy() });
+    }
     const { width, height } = this.scale;
 
     // Vignette (fullscreen, non-interactive)

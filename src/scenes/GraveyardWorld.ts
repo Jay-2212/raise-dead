@@ -63,6 +63,10 @@ export class GraveyardWorld extends Phaser.Scene {
 
   // HUD (proximate hint lives in UIScene)
   private activeGrave: GraveEntry | null = null;
+  /** N6: click-to-move target (mouse players) and whether to interact on arrival. */
+  private moveTarget: { x: number; y: number; interact: boolean } | null = null;
+  private moveStuckMs = 0;
+  private moveBestDist: number | undefined = undefined;
   private lastProxGraveId: string | null = null;
   private promptPlayedFor: string | null = null;
   private ritualActive = false;
@@ -808,6 +812,28 @@ export class GraveyardWorld extends Phaser.Scene {
       this.interact();
     });
 
+    // N6: click-to-move for mouse players. Click a tombstone or secret to walk there and use it.
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+      if (this.ritualActive || p.wasTouch || (over && over.length > 0)) return;
+      if (this.zombieWave?.active) { this.interact(); return; }
+      const wx = p.worldX;
+      const wy = p.worldY;
+      let best: { x: number; y: number } | null = null;
+      let bestD = 48;
+      for (const ts of this.tombstones) {
+        if (!ts.grave.resurrectable) continue;
+        const d = Phaser.Math.Distance.Between(wx, wy, ts.x, ts.y - 16);
+        if (d < bestD) { bestD = d; best = { x: ts.x, y: ts.y + 26 }; }
+      }
+      for (const egg of this.eggManager?.defs ?? []) {
+        const d = Phaser.Math.Distance.Between(wx, wy, egg.x, egg.y);
+        if (d < bestD) { bestD = d; best = { x: egg.x, y: egg.y + 18 }; }
+      }
+      this.moveTarget = best ? { ...best, interact: true } : { x: wx, y: wy, interact: false };
+      this.moveStuckMs = 0;
+      this.moveBestDist = undefined;
+    });
+
     // M key mute toggle
     this.mKey.on('down', () => {
       this.audio.toggleMute();
@@ -943,6 +969,36 @@ export class GraveyardWorld extends Phaser.Scene {
       const force = uiScene.joystick.getForce();
       if (Math.abs(force.forceX) > 0.1) dx = force.forceX;
       if (Math.abs(force.forceY) > 0.1) dy = force.forceY;
+    }
+
+    // N6: keyboard/joystick cancels click-to-move; otherwise steer toward the clicked spot
+    if (dx !== 0 || dy !== 0) {
+      this.moveTarget = null;
+    } else if (this.moveTarget) {
+      const tx = this.moveTarget.x - this.wizard.x;
+      const ty = this.moveTarget.y - this.wizard.y;
+      const dist = Math.sqrt(tx * tx + ty * ty);
+      const body = this.wizard.body as Phaser.Physics.Arcade.Body;
+      // progress check: give up if we haven't closed in for 1.2 s
+      if (dist < (this.moveBestDist ?? Infinity) - 2) { this.moveBestDist = dist; this.moveStuckMs = 0; }
+      else this.moveStuckMs += delta;
+      if (dist < 6 || this.moveStuckMs > 1200) {
+        const doInteract = this.moveTarget.interact && dist < 40;
+        this.moveTarget = null;
+        this.moveBestDist = undefined;
+        if (doInteract) {
+          this.checkProximity();
+          this.interact();
+        }
+      } else {
+        dx = tx / dist;
+        dy = ty / dist;
+        // slide around obstacles: drop the blocked axis and push along the other
+        const hx = body && (body.touching.left || body.touching.right || body.blocked.left || body.blocked.right);
+        const hy = body && (body.touching.up || body.touching.down || body.blocked.up || body.blocked.down);
+        if (hx && !hy) { dx = 0; dy = Math.abs(ty) > 2 ? Math.sign(ty) : 1; }
+        else if (hy && !hx) { dy = 0; dx = Math.abs(tx) > 2 ? Math.sign(tx) : 1; }
+      }
     }
 
     // Normalise diagonal
