@@ -99,3 +99,7 @@ Road Rash, Google Reader, Clippy, Winamp and other product names referenced in R
 | medal_spacecadet.png, medal_pipes.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |
 | public/games/muse/ (Road Rash and Winamp tributes) | Meta Muse Spark (muse-spark-1.3-contributor) | CC0 1.0 (project original) | AI-generated playable tributes written for Raise Dead; original shapes-only art |
 | Unmarked Grave games (public/games/unmarked/) | Meta Muse Spark (muse-spark-1.3-contributor) | CC0 1.0 (project original) | AI-generated on-demand playable tributes for any dead app; original shapes-only art; cached in D1; served sandboxed |
+| Zombie moans | Darsycho | CC0 1.0 | https://opengameart.org/content/zombie-moans — trimmed, normalised to `assets/audio/sfx/zombie_groan_1..3` |
+| Zombie noises and moans | ianzazz | CC0 1.0 | https://opengameart.org/content/zombie-noises-and-moans — zombie_die, zombie_hit, zombie_rise to `assets/audio/sfx/` |
+| Zombie sprites, zombie hand, medal_bounce.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated images for Raise Dead zombie-hand grave and Bouncing Logo screensaver |
+| The Bouncing Logo (public/games/bounce) | Raise Dead team | MIT (project original) | Original code for Raise Dead |

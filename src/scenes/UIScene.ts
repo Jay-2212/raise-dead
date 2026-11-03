@@ -283,6 +283,7 @@ export class UIScene extends Phaser.Scene {
       'unmarked-grave': 'medal_unmarked',
       'space-cadet':    'medal_spacecadet',
       '3d-pipes':       'medal_pipes',
+      'bouncing-logo':  'medal_bounce',
     };
     
     const PANEL_W = 500;

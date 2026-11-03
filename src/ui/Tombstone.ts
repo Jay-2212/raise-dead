@@ -17,6 +17,7 @@ const MEDALLION_KEYS: Record<string, string> = {
   'unmarked-grave': 'medal_unmarked',
   'space-cadet':    'medal_spacecadet',
   '3d-pipes':       'medal_pipes',
+  'bouncing-logo':  'medal_bounce',
 };
 
 /** Sprite keys per deco type (cycled by sort_priority) */

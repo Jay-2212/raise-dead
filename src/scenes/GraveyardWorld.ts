@@ -11,6 +11,7 @@ import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
 import { queueWorldAssets, createWizardAnimations } from './worldAssets';
 import { WitchFlyBy } from './WitchFlyBy'; // A7
 import { EasterEggManager } from '../easter/EasterEggManager'; // B
+import { ZombieWave } from '../easter/ZombieWave'; // N3
 
 const WORLD_W = 2400;
 const WORLD_H = 1800;
@@ -81,6 +82,7 @@ export class GraveyardWorld extends Phaser.Scene {
 
   // B: Easter eggs
   public eggManager!: EasterEggManager;
+  public zombieWave!: ZombieWave; // N3
 
   constructor() {
     super({ key: 'GraveyardWorld' });
@@ -130,6 +132,7 @@ export class GraveyardWorld extends Phaser.Scene {
     });
 
     // B: Initialize easter egg manager
+    this.zombieWave = new ZombieWave(this); // N3
     this.eggManager = new EasterEggManager(this, this.treeColliders);
 
     // Launch UIScene on top
@@ -823,6 +826,11 @@ export class GraveyardWorld extends Phaser.Scene {
   }
 
   /** B: black-cat omen summons the witch right away. */
+  /** N3: zombie hand egg starts a wave; onDone fires when the last zombie falls. */
+  public startZombieWave(onDone: () => void): void {
+    this.zombieWave.start(onDone);
+  }
+
   public summonWitch(): void {
     this.witch.forceSpawn();
   }
@@ -832,6 +840,12 @@ export class GraveyardWorld extends Phaser.Scene {
   public interact(): void {
     // Guard against re-entrancy during ritual/overlay
     if (this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isPaused('ResurrectionRitual')) return;
+
+    // N3: during a zombie wave F casts spells
+    if (this.zombieWave?.active) {
+      this.zombieWave.cast();
+      return;
+    }
 
     // Priority 1: Try to raise a resurrectable grave if active
     if (this.activeGrave && this.activeGrave.resurrectable) {
@@ -888,6 +902,7 @@ export class GraveyardWorld extends Phaser.Scene {
     this.updateCrow(delta);
     this.witch.update(delta); // A7
     if (!this.ritualActive) this.eggManager?.update(delta); // B
+    this.zombieWave?.update(delta); // N3
     this.audio.updateRandomShots(delta);
 
     // Update wizard light position

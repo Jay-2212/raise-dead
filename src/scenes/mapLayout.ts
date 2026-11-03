@@ -22,6 +22,7 @@ const RESURRECTABLES: TombstoneLayout[] = [
   // N3: south arc — Muse-written tributes
   { id: 'road-rash',      x: 1110, y: 1045 },
   { id: 'winamp',         x: 1360, y: 1040 },
+  { id: 'bouncing-logo',  x: 1480, y: 1050 },
 ];
 
 // ─── Decorative rows (sort_priority 6–40) ────────────────────────────────

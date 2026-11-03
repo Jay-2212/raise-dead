@@ -78,6 +78,16 @@ export const EGG_DEFINITIONS: EggDefinition[] = [
     text: 'European legends told of werewolves: people who turned into wolves under the full moon. The moon was blamed for odd behaviour too; \'lunatic\' comes from luna, Latin for moon. Real wolves don\'t actually howl at the moon. They howl to call their pack, and lift their heads so the sound carries.',
     spriteKey: 'wolf_spirit',
   },
+  {
+    id: 'zombie_hand',
+    x: 1400,
+    y: 1612,
+    radius: 44,
+    triggerType: 'f-key',
+    title: 'Where zombies come from',
+    text: "Zombies began in Haitian folklore: the zonbi, a person said to be raised by a sorcerer (a bokor) and made to work with no will of their own. Hollywood borrowed the idea in White Zombie (1932), and George A. Romero's Night of the Living Dead (1968) turned them into the slow, hungry hordes we know today, though Romero called them ghouls.",
+    spriteKey: 'zombie_hand',
+  },
 ];
 
 export function getEggById(id: string): EggDefinition | undefined {

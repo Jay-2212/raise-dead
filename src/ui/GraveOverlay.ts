@@ -245,6 +245,7 @@ export class GraveOverlay {
         'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
         'space-cadet':    `${baseUrl}assets/images/portraits/medal_spacecadet.png`,
         '3d-pipes':       `${baseUrl}assets/images/portraits/medal_pipes.png`,
+        'bouncing-logo':  `${baseUrl}assets/images/portraits/medal_bounce.png`,
       };
       if (medalMap[grave.id]) {
         const med = document.createElement('img');
@@ -306,6 +307,7 @@ export class GraveOverlay {
         'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
         'space-cadet':    `${baseUrl}assets/images/portraits/medal_spacecadet.png`,
         '3d-pipes':       `${baseUrl}assets/images/portraits/medal_pipes.png`,
+        'bouncing-logo':  `${baseUrl}assets/images/portraits/medal_bounce.png`,
       };
       if (medalMap[grave.id]) {
         const med = document.createElement('img');

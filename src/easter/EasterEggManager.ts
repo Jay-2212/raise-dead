@@ -20,6 +20,7 @@ const WELL_WINDOW_MS = 4000;      // three F presses inside this window
 type World = Phaser.Scene & {
   wizard: Phaser.Physics.Arcade.Sprite;
   summonWitch?: () => void;
+  startZombieWave?: (onDone: () => void) => void;
 };
 
 export class EasterEggManager {
@@ -83,6 +84,14 @@ export class EasterEggManager {
       if (w.textures.exists('shadow_contact')) {
         w.add.image(egg.x, egg.y - 1, 'shadow_contact')
           .setScale(Math.max(0.5, img.width / 48), 0.6).setAlpha(0.55).setDepth(egg.y - 2);
+      }
+
+      if (egg.id === 'zombie_hand') {
+        if (w.textures.exists('glow_moon')) {
+          const g = w.add.image(egg.x, egg.y - 8, 'glow_moon').setTint(0x6dff9a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.6).setAlpha(0.25).setDepth(egg.y - 3);
+          w.tweens.add({ targets: g, alpha: { from: 0.15, to: 0.35 }, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        }
+        w.tweens.add({ targets: img, angle: { from: -4, to: 4 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
 
       if (egg.id === 'grave_13') {
@@ -155,6 +164,7 @@ export class EasterEggManager {
   }
 
   private computeHint(wiz: Phaser.Physics.Arcade.Sprite): string | null {
+    if ((this.world as unknown as { zombieWave?: { active: boolean } }).zombieWave?.active) return null;
     const egg = this.nearestInteractable(wiz);
     const touch = this.world.sys.game.device.input.touch;
     const P = touch ? 'Tap F' : 'Press F';
@@ -163,6 +173,7 @@ export class EasterEggManager {
       if (egg.id === 'jack_pumpkin') return `${P} to carve the pumpkin`;
       if (egg.id === 'crypt_knock') return `${P} to knock on the crypt`;
       if (egg.id === 'grave_13') return `${P} to read the 13th grave`;
+      if (egg.id === 'zombie_hand') return `${P} to touch the zombie hand...`;
       return P;
     }
     const moon = getEggById('moon_howl');
@@ -216,6 +227,7 @@ export class EasterEggManager {
       case 'crypt_knock':  this.doCryptKnock(done); break;
       case 'mirror_well':  this.doMirrorWell(done); break;
       case 'moon_howl':    this.doMoonHowl(done); break;
+      case 'zombie_hand':  this.doZombieHand(done); break;
       default: done();
     }
 
@@ -224,8 +236,8 @@ export class EasterEggManager {
       this.saveFound();
       const ui = this.world.scene.get('UIScene');
       ui?.events.emit('eggFound', eggId, this.foundIds.size, EGG_DEFINITIONS.length);
-      // lore card after the visual beat
-      this.world.time.delayedCall(eggId === 'black_cat' ? 9500 : 900, () => {
+      // lore card after the visual beat (the zombie hand shows its card when the wave ends)
+      if (eggId !== 'zombie_hand') this.world.time.delayedCall(eggId === 'black_cat' ? 9500 : 900, () => {
         if (this.world.scene.isActive('ResurrectionRitual')) return;
         this.loreAt = { x: this.world.wizard.x, y: this.world.wizard.y };
         ui?.events.emit('showLoreCard', egg.title, egg.text, egg.iconKey ?? egg.spriteKey);
@@ -266,6 +278,19 @@ export class EasterEggManager {
       w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
       w.time.delayedCall(700, () => w.summonWitch?.());
       w.time.delayedCall(1200, done);
+    });
+  }
+
+  private doZombieHand(done: () => void): void {
+    const w = this.world;
+    const img = this.eggSprites.get('zombie_hand') as Phaser.GameObjects.Image | undefined;
+    if (img) w.tweens.add({ targets: img, y: img.y - 4, duration: 90, yoyo: true, repeat: 3 });
+    if (!w.startZombieWave) { done(); return; }
+    w.startZombieWave(() => {
+      const egg = getEggById('zombie_hand')!;
+      this.loreAt = { x: w.wizard.x, y: w.wizard.y };
+      w.scene.get('UIScene')?.events.emit('showLoreCard', egg.title, egg.text, 'zombie_hand');
+      done();
     });
   }
 

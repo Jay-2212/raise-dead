@@ -34,6 +34,24 @@
     "game_credit": "Pipes by Isaiah Odhner (MIT)."
   },
   {
+    "id": "bouncing-logo",
+    "name": "The Bouncing Logo",
+    "maker": "Every DVD player",
+    "born": 1997,
+    "died": null,
+    "category": "app",
+    "epitaph": "It never hit the corner while you were watching.",
+    "cause_of_death": "Streaming left the idle disc menu with nobody to wait for it.",
+    "resurrectable": true,
+    "source_url": null,
+    "sort_priority": 3,
+    "verified": false,
+    "note": "tribute to the idle bouncing-logo screen; our own RIP logo, no third-party marks",
+    "game": "games/bounce/index.html",
+    "game_sandbox": "allow-scripts",
+    "game_credit": "An original tribute by Raise Dead. Space or tap to fast-forward, C to cheat."
+  },
+  {
     "id": "road-rash",
     "name": "Road Rash",
     "maker": "Electronic Arts",

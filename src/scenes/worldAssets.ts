@@ -178,6 +178,7 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   load.image('medal_unmarked', 'assets/images/portraits/medal_unmarked.png');
   load.image('medal_spacecadet', 'assets/images/portraits/medal_spacecadet.png');
   load.image('medal_pipes', 'assets/images/portraits/medal_pipes.png');
+  load.image('medal_bounce', 'assets/images/portraits/medal_bounce.png');
 
   // A7: Witch fly-by
   load.image('witch_broom', 'assets/images/eggs/witch_broom.png');
@@ -196,6 +197,9 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   load.image('candy', 'assets/images/eggs/candy.png');
   load.image('candy_bag', 'assets/images/eggs/candy_bag.png');
   load.image('turnip_lantern', 'assets/images/eggs/turnip_lantern.png');
+  load.image('zombie_a', 'assets/images/eggs/zombie_a.png');
+  load.image('zombie_b', 'assets/images/eggs/zombie_b.png');
+  load.image('zombie_hand', 'assets/images/eggs/zombie_hand.png');
 
   // Wizard spritesheets (64×64 frames)
   load.spritesheet('wizard_walk_down', 'assets/images/wizard/walk_down.png', {
@@ -285,6 +289,7 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
   load.audio('ritual_confirm', ['assets/audio/ui/ritual_confirm.ogg', 'assets/audio/ui/ritual_confirm.mp3']);
 
   // Exorcism / ritual
+  load.audio('rune_sparkle_short', ['assets/audio/exorcism/rune_sparkle_short.ogg', 'assets/audio/exorcism/rune_sparkle_short.mp3']);
   load.audio('rune_sparkles', ['assets/audio/exorcism/rune_sparkles.ogg', 'assets/audio/exorcism/rune_sparkles.mp3']);
   load.audio('chant_drone_loop', ['assets/audio/exorcism/chant_drone_loop.ogg', 'assets/audio/exorcism/chant_drone_loop.mp3']);
   load.audio('wind_swell', ['assets/audio/exorcism/wind_swell.ogg', 'assets/audio/exorcism/wind_swell.mp3']);
@@ -325,4 +330,10 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
   load.audio('pumpkin_carve', ['assets/audio/sfx/pumpkin_carve.ogg', 'assets/audio/sfx/pumpkin_carve.mp3']);
   load.audio('wolf_howl', ['assets/audio/sfx/wolf_howl.ogg', 'assets/audio/sfx/wolf_howl.mp3']);
   load.audio('ghost_breath', ['assets/audio/sfx/ghost_breath.ogg', 'assets/audio/sfx/ghost_breath.mp3']);
+  load.audio('zombie_groan_1', ['assets/audio/sfx/zombie_groan_1.ogg', 'assets/audio/sfx/zombie_groan_1.mp3']);
+  load.audio('zombie_groan_2', ['assets/audio/sfx/zombie_groan_2.ogg', 'assets/audio/sfx/zombie_groan_2.mp3']);
+  load.audio('zombie_groan_3', ['assets/audio/sfx/zombie_groan_3.ogg', 'assets/audio/sfx/zombie_groan_3.mp3']);
+  load.audio('zombie_die', ['assets/audio/sfx/zombie_die.ogg', 'assets/audio/sfx/zombie_die.mp3']);
+  load.audio('zombie_hit', ['assets/audio/sfx/zombie_hit.ogg', 'assets/audio/sfx/zombie_hit.mp3']);
+  load.audio('zombie_rise', ['assets/audio/sfx/zombie_rise.ogg', 'assets/audio/sfx/zombie_rise.mp3']);
 }

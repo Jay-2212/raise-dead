@@ -37,7 +37,8 @@ export type ResurrectableId =
   | 'winamp'
   | 'unmarked-grave'
   | 'space-cadet'
-  | '3d-pipes';
+  | '3d-pipes'
+  | 'bouncing-logo';
 
 /** Extract 4-digit year from a number or ISO date string */
 export function extractYear(value: number | string | null): string {
