@@ -1,0 +1,14 @@
+I'll read the file first to see what needs to be executed.
+[tool] Reading KIRO-K7.md:1
+[tool] status: Completed
+I'll execute these steps exactly as specified.
+[tool] Running: cd /workspace/raise-dead && git apply research/n3/k7.patch
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && npm run build
+[tool] status: Completed
+Build succeeded with "built in 12.06s". Now committing:
+[tool] Running: cd /workspace/raise-dead && git add -A src research/n3 && git commit -m "Night 3 K7 (Kiro applies council fix): click-to-move + controls toast for mouse players"
+[tool] status: Completed
+**e9211fc**
+
+OK
