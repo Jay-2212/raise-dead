@@ -83,7 +83,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Set-Cookie': `rd_ck=${newToken}; Path=/api/clicky; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`,
+              'Set-Cookie': `rd_ck=${newToken}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`,
             },
           }
         );

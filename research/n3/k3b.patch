@@ -1,0 +1,78 @@
+diff --git a/functions/api/clicky/session.ts b/functions/api/clicky/session.ts
+index a4f79c2..ed168cc 100644
+--- a/functions/api/clicky/session.ts
++++ b/functions/api/clicky/session.ts
+@@ -83,7 +83,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
+           {
+             headers: {
+               'Content-Type': 'application/json',
+-              'Set-Cookie': `rd_ck=${newToken}; Path=/api/clicky; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`,
++              'Set-Cookie': `rd_ck=${newToken}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`,
+             },
+           }
+         );
+diff --git a/functions/api/unmarked/_shared.ts b/functions/api/unmarked/_shared.ts
+index 74d6c27..b5bfe08 100644
+--- a/functions/api/unmarked/_shared.ts
++++ b/functions/api/unmarked/_shared.ts
+@@ -16,12 +16,17 @@ export function cleanName(raw: unknown): string | null {
+   if (typeof raw !== 'string') return null;
+   const s = raw.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+   if (s.length < 2 || s.length > MAX_NAME) return null;
+-  if (!/^[\p{L}\p{N} .,'&!:+\-]+$/u.test(s)) return null;
++  if (!/^[\p{L}\p{N} .,'&!:+\-]+$/u.test(s) || !/[\p{L}\p{N}]/u.test(s)) return null;
+   return s;
+ }
+ 
+ export function slugify(name: string): string {
+-  return name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'unknown';
++  const ascii = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
++  if (ascii) return ascii;
++  // non-Latin names get a stable hash slug instead of colliding on one key
++  let h = 0x811c9dc5;
++  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193) >>> 0;
++  return 'u-' + h.toString(16);
+ }
+ 
+ /** Keep only <!DOCTYPE html> … </html>; reject anything that is not a full HTML page with a script. */
+diff --git a/functions/api/unmarked/raise.ts b/functions/api/unmarked/raise.ts
+index 801da8a..66af464 100644
+--- a/functions/api/unmarked/raise.ts
++++ b/functions/api/unmarked/raise.ts
+@@ -110,7 +110,10 @@ export const onRequest: PagesFunction<Env> = async ({ request, env, waitUntil })
+     ]);
+     return reply({ slug, name, cached: false, remaining: await remainingFor(env, db, ipK, tokK) });
+   } catch {
+-    await refund(true);
++    // Give the visitor their raise back, but keep the daily slot spent: Meta may have billed the call,
++    // and the daily cap is what bounds total spend.
++    ok[0] = false;
++    await refund(false);
+     waitUntil(db.prepare('UPDATE unmarked_daily SET errors = errors + 1 WHERE day = ?').bind(day).run());
+     return reply({ error: 'upstream' }, 502);
+   } finally {
+diff --git a/public/games/muse/road-rash.html b/public/games/muse/road-rash.html
+index 026cf2d..f5e20dd 100644
+--- a/public/games/muse/road-rash.html
++++ b/public/games/muse/road-rash.html
+@@ -24,7 +24,7 @@ button:active{background:#2de2c5;color:#070f2a}
+ </head>
+ <body>
+ <div id="wrap">
+-<div id="top><h1 style="font-size:15px;letter-spacing:1px;text-shadow:0 0 8px #2de2c5">Road Rash — risen (tribute)</h1><p>Dodge traffic 60s, ram &amp; SPACE-punch rival riders! Arrows/WASD ride.</p></div>
++<div id="top"><h1 style="font-size:15px;letter-spacing:1px;text-shadow:0 0 8px #2de2c5">Road Rash — risen (tribute)</h1><p>Dodge traffic 60s, ram &amp; SPACE-punch rival riders! Arrows/WASD ride.</p></div>
+ <div id="hud"><span>⏳<b id="t">60</b></span><span>SCORE <b id="s">0</b></span><span>KOs <b id="k">0</b></span><span>HP <b id="h">100</b></span><span>MPH <b id="v">0</b></span></div>
+ <canvas id="c"></canvas>
+ </div>
+diff --git a/src/graves/unmarked-grave/UnmarkedGrave.ts b/src/graves/unmarked-grave/UnmarkedGrave.ts
+index 4d48e1f..5154b9d 100644
+--- a/src/graves/unmarked-grave/UnmarkedGrave.ts
++++ b/src/graves/unmarked-grave/UnmarkedGrave.ts
+@@ -107,6 +107,7 @@ export class UnmarkedGrave {
+ 
+     this.abort = new AbortController();
+     try {
++      if (!localStorage.getItem('rd_clicky_token')) await getSession();
+       const token = localStorage.getItem('rd_clicky_token');
+       const res = await fetch(BASE + 'api/unmarked/raise', {
+         method: 'POST',

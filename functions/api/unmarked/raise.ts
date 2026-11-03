@@ -110,7 +110,10 @@ export const onRequest: PagesFunction<Env> = async ({ request, env, waitUntil })
     ]);
     return reply({ slug, name, cached: false, remaining: await remainingFor(env, db, ipK, tokK) });
   } catch {
-    await refund(true);
+    // Give the visitor their raise back, but keep the daily slot spent: Meta may have billed the call,
+    // and the daily cap is what bounds total spend.
+    ok[0] = false;
+    await refund(false);
     waitUntil(db.prepare('UPDATE unmarked_daily SET errors = errors + 1 WHERE day = ?').bind(day).run());
     return reply({ error: 'upstream' }, 502);
   } finally {

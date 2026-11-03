@@ -107,6 +107,7 @@ export class UnmarkedGrave {
 
     this.abort = new AbortController();
     try {
+      if (!localStorage.getItem('rd_clicky_token')) await getSession();
       const token = localStorage.getItem('rd_clicky_token');
       const res = await fetch(BASE + 'api/unmarked/raise', {
         method: 'POST',

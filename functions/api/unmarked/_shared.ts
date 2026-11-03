@@ -16,12 +16,17 @@ export function cleanName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const s = raw.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
   if (s.length < 2 || s.length > MAX_NAME) return null;
-  if (!/^[\p{L}\p{N} .,'&!:+\-]+$/u.test(s)) return null;
+  if (!/^[\p{L}\p{N} .,'&!:+\-]+$/u.test(s) || !/[\p{L}\p{N}]/u.test(s)) return null;
   return s;
 }
 
 export function slugify(name: string): string {
-  return name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'unknown';
+  const ascii = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  if (ascii) return ascii;
+  // non-Latin names get a stable hash slug instead of colliding on one key
+  let h = 0x811c9dc5;
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193) >>> 0;
+  return 'u-' + h.toString(16);
 }
 
 /** Keep only <!DOCTYPE html> … </html>; reject anything that is not a full HTML page with a script. */
