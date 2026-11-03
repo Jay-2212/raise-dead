@@ -1,0 +1,21 @@
+I'll read the file and execute it step by step.
+[tool] Reading KIRO-K3.md:1
+[tool] status: Completed
+I'll execute this step by step.
+
+**Step 1: Apply the patch**
+[tool] Running: git apply research/n3/k3.patch
+[tool] status: Completed
+**Step 2: Run build**
+[tool] Running: npm run build
+[tool] status: Completed
+Build succeeded. Now **Step 3: Append to CREDITS.md**
+[tool] Reading CREDITS.md:1
+[tool] status: Completed
+Now I'll append the Road Rash, Winamp, and Unmarked Grave entries to the Night 3 additions section:
+[tool] Editing CREDITS.md
+[tool] status: Completed
+**Step 4: Create commit**
+[tool] Running: git add -A src public data functions migrations README.md CREDITS.md research/n3 && git commit -m "Night 3 K3 (Kiro applies council plan): Unmarked Grave — Muse Spark writes playable tri...
+[tool] status: Completed
+690780f OK
