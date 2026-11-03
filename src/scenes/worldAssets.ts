@@ -97,6 +97,16 @@ export function createWizardAnimations(scene: Phaser.Scene): void {
       repeat: 0,
     });
   }
+
+  // B: Black cat walk (4 frames at 10 fps)
+  if (!anims.exists('cat_walk')) {
+    anims.create({
+      key: 'cat_walk',
+      frames: anims.generateFrameNumbers('black_cat_walk', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+  }
 }
 
 function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
@@ -166,9 +176,26 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   load.image('medal_clicky', 'assets/images/portraits/medal_clicky.png');
   load.image('medal_winamp', 'assets/images/portraits/medal_winamp.png');
   load.image('medal_unmarked', 'assets/images/portraits/medal_unmarked.png');
+  load.image('medal_spacecadet', 'assets/images/portraits/medal_spacecadet.png');
+  load.image('medal_pipes', 'assets/images/portraits/medal_pipes.png');
 
   // A7: Witch fly-by
   load.image('witch_broom', 'assets/images/eggs/witch_broom.png');
+
+  // B: Easter eggs
+  load.spritesheet('black_cat_walk', 'assets/images/eggs/black_cat_walk.png', {
+    frameWidth: 22,
+    frameHeight: 20,
+  });
+  load.image('pumpkin_plain', 'assets/images/eggs/pumpkin_plain.png');
+  load.image('crypt', 'assets/images/eggs/crypt.png');
+  load.image('crypt_open', 'assets/images/eggs/crypt_open.png');
+  load.image('well', 'assets/images/eggs/well.png');
+  load.image('ghost_lady', 'assets/images/eggs/ghost_lady.png');
+  load.image('wolf_spirit', 'assets/images/eggs/wolf_spirit.png');
+  load.image('candy', 'assets/images/eggs/candy.png');
+  load.image('candy_bag', 'assets/images/eggs/candy_bag.png');
+  load.image('turnip_lantern', 'assets/images/eggs/turnip_lantern.png');
 
   // Wizard spritesheets (64×64 frames)
   load.spritesheet('wizard_walk_down', 'assets/images/wizard/walk_down.png', {
@@ -290,4 +317,12 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
   // A7: Witch fly-by audio
   load.audio('witch_cackle', ['assets/audio/sfx/witch_cackle.ogg', 'assets/audio/sfx/witch_cackle.mp3']);
   load.audio('witch_cackle_2', ['assets/audio/sfx/witch_cackle_2.ogg', 'assets/audio/sfx/witch_cackle_2.mp3']);
+
+  // B: Easter egg audio
+  load.audio('cat_meow', ['assets/audio/sfx/cat_meow.ogg', 'assets/audio/sfx/cat_meow.mp3']);
+  load.audio('knock_wood', ['assets/audio/sfx/knock_wood.ogg', 'assets/audio/sfx/knock_wood.mp3']);
+  load.audio('candy_chime', ['assets/audio/sfx/candy_chime.ogg', 'assets/audio/sfx/candy_chime.mp3']);
+  load.audio('pumpkin_carve', ['assets/audio/sfx/pumpkin_carve.ogg', 'assets/audio/sfx/pumpkin_carve.mp3']);
+  load.audio('wolf_howl', ['assets/audio/sfx/wolf_howl.ogg', 'assets/audio/sfx/wolf_howl.mp3']);
+  load.audio('ghost_breath', ['assets/audio/sfx/ghost_breath.ogg', 'assets/audio/sfx/ghost_breath.mp3']);
 }

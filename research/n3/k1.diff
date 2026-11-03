@@ -1,0 +1,833 @@
+diff --git a/src/easter/EasterEggManager.ts b/src/easter/EasterEggManager.ts
+new file mode 100644
+index 0000000..3f09b86
+--- /dev/null
++++ b/src/easter/EasterEggManager.ts
+@@ -0,0 +1,341 @@
++/**
++ * EasterEggManager.ts — Halloween lore Easter eggs (Session B, Nov 3 rewrite).
++ * Plain helper owned by GraveyardWorld (NOT a Phaser.Scene).
++ * All timing uses world.time (pauses with the scene); no setTimeout.
++ * Found eggs persist in localStorage (rd_eggs_found).
++ *
++ * Events emitted on the UIScene event bus:
++ *   'eggFound'      (eggId: string, found: number, total: number)  first find only
++ *   'showLoreCard'  (title: string, text: string, iconKey?: string) first find only
++ *   'eggHint'       (hint: string | null)                            when the nearby prompt changes
++ */
++import Phaser from 'phaser';
++import { EGG_DEFINITIONS, EggDefinition, getEggById } from './eggDefinitions';
++
++const STORAGE_KEY = 'rd_eggs_found';
++const AREA_COOLDOWN_MS = 45000;   // black cat can cross again after 45 s
++const STILL_MS = 2500;            // moon howl: stand still this long
++const WELL_WINDOW_MS = 4000;      // three F presses inside this window
++
++type World = Phaser.Scene & {
++  wizard: Phaser.Physics.Arcade.Sprite;
++  summonWitch?: () => void;
++};
++
++export class EasterEggManager {
++  private world: World;
++  /** exposed for debug/screenshot scripts */
++  readonly defs = EGG_DEFINITIONS;
++  private foundIds = new Set<string>();
++  private eggSprites = new Map<string, Phaser.GameObjects.Image | Phaser.GameObjects.Sprite>();
++  private busy = new Set<string>();           // egg animations currently playing
++  private areaCooldownUntil = new Map<string, number>();
++  private lastHint: string | null = null;
++
++  private stillMs = 0;
++  private lastX = 0;
++  private lastY = 0;
++  private wellPresses = 0;
++  private wellFirstPressAt = 0;
++  private grave13Glow: Phaser.GameObjects.Image | null = null;
++  private moonPool: Phaser.GameObjects.Image | null = null;
++
++  constructor(world: World, colliderGroup?: Phaser.Physics.Arcade.StaticGroup) {
++    this.world = world;
++    this.loadFound();
++    this.placeProps(colliderGroup);
++  }
++
++  // ─── Persistence ────────────────────────────────────────────────────────
++  private loadFound(): void {
++    try {
++      const raw = localStorage.getItem(STORAGE_KEY);
++      if (raw) this.foundIds = new Set(JSON.parse(raw) as string[]);
++    } catch { this.foundIds = new Set(); }
++  }
++  private saveFound(): void {
++    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...this.foundIds])); } catch { /* private mode */ }
++  }
++
++  // ─── Props in the world ─────────────────────────────────────────────────
++  private placeProps(colliderGroup?: Phaser.Physics.Arcade.StaticGroup): void {
++    const w = this.world;
++    for (const egg of EGG_DEFINITIONS) {
++      let key = egg.spriteKey;
++      if (egg.id === 'black_cat' || egg.id === 'moon_howl') continue; // spawned on trigger
++      if (egg.id === 'grave_13') key = 'tomb_cracked';
++      if (egg.id === 'jack_pumpkin' && this.foundIds.has(egg.id)) key = 'jackolantern_lit';
++      if (egg.id === 'crypt_knock' && this.foundIds.has(egg.id)) key = 'crypt_open';
++      if (!key || !w.textures.exists(key)) continue;
++
++      const img = w.add.image(egg.x, egg.y, key).setOrigin(0.5, 1).setDepth(egg.y);
++      this.eggSprites.set(egg.id, img);
++
++      // contact shadow so props sit on the ground
++      if (w.textures.exists('shadow_contact')) {
++        w.add.image(egg.x, egg.y - 1, 'shadow_contact')
++          .setScale(Math.max(0.5, img.width / 48), 0.6).setAlpha(0.55).setDepth(egg.y - 2);
++      }
++
++      if (egg.id === 'grave_13') {
++        w.add.text(egg.x, egg.y - img.height * 0.55, 'XIII', {
++          fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#9fb3c8',
++        }).setOrigin(0.5).setDepth(egg.y + 1).setAlpha(0.85);
++      }
++
++      // solid base for big props (crypt, well) so the wizard can't walk through
++      if (colliderGroup && (egg.id === 'crypt_knock' || egg.id === 'mirror_well')) {
++        const body = colliderGroup.create(egg.x, egg.y - 8, undefined) as Phaser.Physics.Arcade.Image;
++        body.setVisible(false);
++        const sb = body.body as Phaser.Physics.Arcade.StaticBody;
++        sb.setSize(Math.round(img.width * 0.7), 14);
++        sb.reset(egg.x, egg.y - 6);
++      }
++    }
++  }
++
++  // ─── Per-frame ──────────────────────────────────────────────────────────
++  /** Call from GraveyardWorld.update(time, delta) while no ritual is active. */
++  update(delta: number): void {
++    const wiz = this.world.wizard;
++    if (!wiz) return;
++    const now = this.world.time.now;
++
++    // area eggs (black cat)
++    for (const egg of EGG_DEFINITIONS) {
++      if (egg.triggerType !== 'area') continue;
++      if (this.busy.has(egg.id)) continue;
++      if ((this.areaCooldownUntil.get(egg.id) ?? 0) > now) continue;
++      if (Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y) < egg.radius) {
++        this.areaCooldownUntil.set(egg.id, now + AREA_COOLDOWN_MS);
++        this.trigger(egg.id);
++      }
++    }
++
++    // moon howl: stand still in the moon pool
++    const moon = getEggById('moon_howl');
++    if (moon && !this.busy.has('moon_howl')) {
++      const inPool = Phaser.Math.Distance.Between(wiz.x, wiz.y, moon.x, moon.y) < moon.radius;
++      const moved = Math.abs(wiz.x - this.lastX) > 0.5 || Math.abs(wiz.y - this.lastY) > 0.5;
++      this.stillMs = inPool && !moved ? this.stillMs + delta : 0;
++      if (this.stillMs >= STILL_MS) { this.stillMs = 0; this.trigger('moon_howl'); }
++    }
++    this.lastX = wiz.x; this.lastY = wiz.y;
++
++    // well press window expiry
++    if (this.wellPresses > 0 && now - this.wellFirstPressAt > WELL_WINDOW_MS) this.wellPresses = 0;
++
++    // nearby prompt
++    this.emitHint(this.computeHint(wiz));
++  }
++
++  private nearestInteractable(wiz: Phaser.Physics.Arcade.Sprite): EggDefinition | null {
++    let best: EggDefinition | null = null;
++    let bestD = Infinity;
++    for (const egg of EGG_DEFINITIONS) {
++      if (egg.triggerType !== 'f-key' && egg.triggerType !== 'triple-f') continue;
++      const d = Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y);
++      if (d < egg.radius && d < bestD) { best = egg; bestD = d; }
++    }
++    return best;
++  }
++
++  private computeHint(wiz: Phaser.Physics.Arcade.Sprite): string | null {
++    const egg = this.nearestInteractable(wiz);
++    if (egg) {
++      if (egg.id === 'mirror_well') return `Press F to peer into the well (${this.wellPresses}/3)`;
++      if (egg.id === 'jack_pumpkin') return 'Press F to carve the pumpkin';
++      if (egg.id === 'crypt_knock') return 'Press F to knock on the crypt';
++      if (egg.id === 'grave_13') return 'Press F to read the 13th grave';
++      return 'Press F';
++    }
++    const moon = getEggById('moon_howl');
++    if (moon && Phaser.Math.Distance.Between(wiz.x, wiz.y, moon.x, moon.y) < moon.radius) {
++      return 'Stand still in the moonlight...';
++    }
++    return null;
++  }
++
++  private emitHint(hint: string | null): void {
++    if (hint === this.lastHint) return;
++    this.lastHint = hint;
++    this.world.scene.get('UIScene')?.events.emit('eggHint', hint);
++  }
++
++  /** F pressed and no resurrectable grave is active. Returns true if an egg used it. */
++  tryInteract(): boolean {
++    const wiz = this.world.wizard;
++    if (!wiz) return false;
++    const egg = this.nearestInteractable(wiz);
++    if (!egg) return false;
++    if (this.busy.has(egg.id)) return true;
++
++    if (egg.triggerType === 'triple-f') {
++      const now = this.world.time.now;
++      if (this.wellPresses === 0 || now - this.wellFirstPressAt > WELL_WINDOW_MS) {
++        this.wellPresses = 0;
++        this.wellFirstPressAt = now;
++      }
++      this.wellPresses += 1;
++      this.world.sound.play('ghost_breath', { volume: 0.15 + 0.1 * this.wellPresses });
++      if (this.wellPresses >= 3) { this.wellPresses = 0; this.trigger(egg.id); }
++      this.lastHint = null; // refresh counter text next frame
++      return true;
++    }
++    this.trigger(egg.id);
++    return true;
++  }
++
++  // ─── Trigger + bookkeeping ──────────────────────────────────────────────
++  trigger(eggId: string): void {
++    const egg = getEggById(eggId);
++    if (!egg || this.busy.has(eggId)) return;
++    this.busy.add(eggId);
++    const done = () => this.busy.delete(eggId);
++
++    switch (eggId) {
++      case 'black_cat':    this.doBlackCat(done); break;
++      case 'jack_pumpkin': this.doJackPumpkin(done); break;
++      case 'grave_13':     this.doGrave13(done); break;
++      case 'crypt_knock':  this.doCryptKnock(done); break;
++      case 'mirror_well':  this.doMirrorWell(done); break;
++      case 'moon_howl':    this.doMoonHowl(done); break;
++      default: done();
++    }
++
++    if (!this.foundIds.has(eggId)) {
++      this.foundIds.add(eggId);
++      this.saveFound();
++      const ui = this.world.scene.get('UIScene');
++      ui?.events.emit('eggFound', eggId, this.foundIds.size, EGG_DEFINITIONS.length);
++      // lore card after the visual beat
++      this.world.time.delayedCall(eggId === 'black_cat' ? 2600 : 900, () => {
++        ui?.events.emit('showLoreCard', egg.title, egg.text, egg.iconKey ?? egg.spriteKey);
++      });
++    }
++  }
++
++  // ─── Egg sequences ──────────────────────────────────────────────────────
++  private doBlackCat(done: () => void): void {
++    const w = this.world;
++    const wiz = w.wizard;
++    const dir = Math.random() < 0.5 ? 1 : -1;
++    const y = wiz.y - 18;                     // crosses just in front of the wizard
++    const startX = wiz.x - dir * 140;
++    const endX = wiz.x + dir * 140;
++
++    const cat = w.add.sprite(startX, y, 'black_cat_walk').setOrigin(0.5, 1).setDepth(y).setFlipX(dir < 0);
++    if (w.anims.exists('cat_walk')) cat.play('cat_walk');
++    const shadow = w.add.image(startX, y - 1, 'shadow_contact').setScale(0.45, 0.4).setAlpha(0.55).setDepth(y - 1);
++    w.sound.play('cat_meow', { volume: 0.5 });
++
++    w.tweens.add({ targets: [cat, shadow], x: endX, duration: 1500, ease: 'Linear',
++      onComplete: () => {
++        w.tweens.add({ targets: [cat, shadow], alpha: 0, duration: 300, onComplete: () => { cat.destroy(); shadow.destroy(); } });
++      } });
++
++    // the omen: something bad is about to happen
++    w.time.delayedCall(1700, () => {
++      const cam = w.cameras.main;
++      const flash = w.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xdfe8ff)
++        .setScrollFactor(0).setDepth(9999).setAlpha(0);
++      w.tweens.add({ targets: flash, alpha: { from: 0.55, to: 0 }, duration: 120, yoyo: false,
++        onComplete: () => {
++          w.tweens.add({ targets: flash, alpha: { from: 0.35, to: 0 }, duration: 260, delay: 90, onComplete: () => flash.destroy() });
++        } });
++      cam.shake(350, 0.004);
++      w.sound.play('ground_rumble', { volume: 0.5 });
++      w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
++      w.time.delayedCall(700, () => w.summonWitch?.());
++      w.time.delayedCall(1200, done);
++    });
++  }
++
++  private doJackPumpkin(done: () => void): void {
++    const w = this.world;
++    const img = this.eggSprites.get('jack_pumpkin') as Phaser.GameObjects.Image | undefined;
++    if (!img) { done(); return; }
++    const x0 = img.x;
++    w.sound.play('pumpkin_carve', { volume: 0.6 });
++    w.tweens.add({ targets: img, x: x0 - 2, duration: 70, yoyo: true, repeat: 3,
++      onComplete: () => {
++        img.x = x0;
++        img.setTexture('jackolantern_lit');
++        const glow = w.add.image(img.x, img.y - img.height / 2, 'glow_warm').setDepth(img.depth - 1).setAlpha(0);
++        w.tweens.add({ targets: glow, alpha: 0.45, duration: 400 });
++        done();
++      } });
++  }
++
++  private doGrave13(done: () => void): void {
++    const w = this.world;
++    const egg = getEggById('grave_13')!;
++    w.cameras.main.shake(300, 0.003);
++    w.sound.play('gate_creak_01', { detune: -300, volume: 0.6 });
++    if (!this.grave13Glow) {
++      this.grave13Glow = w.add.image(egg.x, egg.y - 20, 'glow_warm').setDepth(egg.y - 1).setAlpha(0).setTint(0x9fffcf);
++    }
++    w.tweens.add({ targets: this.grave13Glow, alpha: { from: 0.45, to: 0.2 }, duration: 900, ease: 'Sine.easeOut', onComplete: done });
++  }
++
++  private doCryptKnock(done: () => void): void {
++    const w = this.world;
++    const img = this.eggSprites.get('crypt_knock') as Phaser.GameObjects.Image | undefined;
++    if (!img) { done(); return; }
++    w.sound.play('knock_wood', { volume: 0.7 });
++    w.time.delayedCall(700, () => {
++      img.setTexture('crypt_open');
++      w.sound.play('candy_chime', { volume: 0.5 });
++      for (let i = 0; i < 6; i++) {
++        const candy = w.add.image(img.x, img.y - 24, 'candy').setDepth(img.y + 1);
++        const tx = img.x + Phaser.Math.Between(-50, 50);
++        const ty = img.y + Phaser.Math.Between(4, 24);
++        w.tweens.add({ targets: candy, x: tx, duration: 650, ease: 'Linear' });
++        w.tweens.add({ targets: candy, y: { from: img.y - 24, to: ty }, duration: 650, ease: 'Bounce.easeOut',
++          onComplete: () => { candy.setDepth(ty); w.time.delayedCall(5000, () => w.tweens.add({ targets: candy, alpha: 0, duration: 500, onComplete: () => candy.destroy() })); } });
++      }
++      done();
++    });
++  }
++
++  private doMirrorWell(done: () => void): void {
++    const w = this.world;
++    const img = this.eggSprites.get('mirror_well') as Phaser.GameObjects.Image | undefined;
++    if (!img) { done(); return; }
++    const glow = w.add.image(img.x, img.y - 20, 'glow_moon').setTint(0x7fc3ff).setDepth(img.y - 1).setAlpha(0);
++    const ghost = w.add.image(img.x, img.y - 24, 'ghost_lady').setOrigin(0.5, 1).setDepth(img.y + 1).setAlpha(0);
++    w.sound.play('ghost_breath', { volume: 0.6 });
++    w.tweens.add({ targets: glow, alpha: 0.35, duration: 600 });
++    w.tweens.add({ targets: ghost, alpha: 0.85, y: img.y - 64, duration: 1400, ease: 'Sine.easeOut' });
++    w.tweens.add({ targets: ghost, x: img.x - 5, duration: 900, yoyo: true, repeat: 2, ease: 'Sine.easeInOut', delay: 1400 });
++    w.time.delayedCall(4200, () => {
++      w.tweens.add({ targets: [ghost, glow], alpha: 0, duration: 1200, onComplete: () => { ghost.destroy(); glow.destroy(); done(); } });
++    });
++  }
++
++  private doMoonHowl(done: () => void): void {
++    const w = this.world;
++    const egg = getEggById('moon_howl')!;
++    const cam = w.cameras.main;
++    const tint = w.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xbfd8ff)
++      .setScrollFactor(0).setDepth(9998).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
++    w.tweens.add({ targets: tint, alpha: 0.12, duration: 1500 });
++    if (!this.moonPool) {
++      this.moonPool = w.add.image(egg.x, egg.y, 'glow_moon').setTint(0xbfd8ff).setScale(1.2).setAlpha(0.25).setDepth(egg.y - 50);
++    }
++    const wolf = w.add.image(egg.x - 60, egg.y - 40, 'wolf_spirit').setOrigin(0.5, 1).setFlipX(true)
++      .setDepth(egg.y + 1).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
++    w.tweens.add({ targets: wolf, alpha: 0.75, y: egg.y - 100, duration: 1200, ease: 'Sine.easeOut' });
++    w.sound.play('wolf_howl', { volume: 0.45 });
++    w.time.delayedCall(4000, () => {
++      w.tweens.add({ targets: [wolf, tint], alpha: 0, duration: 1500, onComplete: () => { wolf.destroy(); tint.destroy(); done(); } });
++    });
++  }
++
++  // ─── Getters ────────────────────────────────────────────────────────────
++  getFoundCount(): number { return this.foundIds.size; }
++  getTotal(): number { return EGG_DEFINITIONS.length; }
++  isFound(id: string): boolean { return this.foundIds.has(id); }
++  /** Debug: ?debug=1 → window.__RD.eggs.reset() */
++  reset(): void { this.foundIds.clear(); this.saveFound(); }
++}
+diff --git a/src/easter/eggDefinitions.ts b/src/easter/eggDefinitions.ts
+new file mode 100644
+index 0000000..2d2bde9
+--- /dev/null
++++ b/src/easter/eggDefinitions.ts
+@@ -0,0 +1,85 @@
++/**
++ * eggDefinitions.ts — Data for the six Halloween Easter eggs.
++ * Each egg has: id, position, radius, trigger type, lore title and text, sprite keys.
++ */
++
++export type EggTriggerType = 'area' | 'f-key' | 'triple-f' | 'still';
++
++export interface EggDefinition {
++  id: string;
++  x: number;
++  y: number;
++  radius: number;
++  triggerType: EggTriggerType;
++  title: string;
++  text: string;
++  spriteKey?: string;
++  iconKey?: string;
++}
++
++export const EGG_DEFINITIONS: EggDefinition[] = [
++  {
++    id: 'black_cat',
++    x: 420,
++    y: 900,
++    radius: 40,
++    triggerType: 'area',
++    title: 'A black cat crossed your path!',
++    text: 'In old European folklore, black cats were said to be witches\' companions, or even witches in disguise, so one crossing your path meant bad luck. Not everywhere agrees: in Scotland and Japan a black cat is a sign of good fortune. On Halloween they\'re simply the season\'s mascot.',
++    spriteKey: 'black_cat_walk',
++  },
++  {
++    id: 'jack_pumpkin',
++    x: 680,
++    y: 1180,
++    radius: 34,
++    triggerType: 'f-key',
++    title: 'The legend of Stingy Jack',
++    text: 'Irish folklore tells of Stingy Jack, a trickster who fooled the Devil twice. When he died, neither Heaven nor Hell would take him, so he wanders the night with a coal glowing inside a carved turnip. People carved scary faces into turnips to keep him away. Irish immigrants in America found pumpkins bigger and easier to carve: the jack-o\'-lantern.',
++    spriteKey: 'pumpkin_plain',
++    iconKey: 'turnip_lantern',
++  },
++  {
++    id: 'grave_13',
++    x: 2080,
++    y: 1520,
++    radius: 36,
++    triggerType: 'f-key',
++    title: 'The 13th grave',
++    text: 'Many people in the West consider 13 unlucky, a fear called triskaidekaphobia. One story points to the Last Supper, where Judas was the 13th guest; a popular retelling of a Norse myth has the trickster Loki crash a feast of 12 gods. Some buildings still skip the 13th floor, and Friday the 13th is the unluckiest day of all.',
++  },
++  {
++    id: 'crypt_knock',
++    x: 200,
++    y: 640,
++    radius: 40,
++    triggerType: 'f-key',
++    title: 'Trick or treat!',
++    text: 'Halloween grew from Samhain, a Celtic festival marking summer\'s end, when the boundary with the spirit world was thought to thin. In medieval Britain and Ireland the poor went \'souling\' door to door, praying for the dead in return for soul cakes; in Scotland, children in costume went \'guising\' and performed for treats. Today it\'s knock, say \'trick or treat!\', and collect candy.',
++    spriteKey: 'crypt',
++  },
++  {
++    id: 'mirror_well',
++    x: 2230,
++    y: 560,
++    radius: 40,
++    triggerType: 'triple-f',
++    title: 'Bloody Mary in the well',
++    text: 'An old Halloween party game: at midnight, gaze into a mirror (or a still well) by candlelight and you might glimpse the face of the person you\'ll marry. Folklorists think it may have grown into the sleepover dare of chanting \'Bloody Mary\' three times at a mirror to summon a ghost. This one only wanted to say hello.',
++    spriteKey: 'well',
++  },
++  {
++    id: 'moon_howl',
++    x: 980,
++    y: 1690,
++    radius: 30,
++    triggerType: 'still',
++    title: 'Howling at the moon',
++    text: 'European legends told of werewolves: people who turned into wolves under the full moon. The moon was blamed for odd behaviour too; \'lunatic\' comes from luna, Latin for moon. Real wolves don\'t actually howl at the moon. They howl to call their pack, and lift their heads so the sound carries.',
++    spriteKey: 'wolf_spirit',
++  },
++];
++
++export function getEggById(id: string): EggDefinition | undefined {
++  return EGG_DEFINITIONS.find(egg => egg.id === id);
++}
+diff --git a/src/main.ts b/src/main.ts
+index 83eca8c..80e6e3d 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -20,6 +20,8 @@ declare global {
+       spawnWitch(): void;
+       /** A8: Return the live GraveyardWorld scene (or null if not active). */
+       world(): GraveyardWorld | null;
++      /** B: found egg ids; pass true to reset. */
++      eggs(reset?: boolean): string[];
+     };
+   }
+ }
+@@ -48,6 +50,15 @@ async function main(): Promise<void> {
+       /** The live Phaser.Game instance */
+       game,
+ 
++      /** B: found egg ids (?debug=1). Pass true to reset. */
++      eggs(reset?: boolean): string[] {
++        const world = game.scene.getScene('GraveyardWorld') as unknown as { eggManager?: { defs: { id: string }[]; isFound(id: string): boolean; reset(): void } } | null;
++        const m = world?.eggManager;
++        if (!m) return [];
++        if (reset) m.reset();
++        return m.defs.filter((d) => m.isFound(d.id)).map((d) => d.id);
++      },
++
+       /** Switch to any scene by key */
+       goto(sceneKey: string): void {
+         const current = game.scene.getScenes(true)[0];
+diff --git a/src/scenes/GraveyardWorld.ts b/src/scenes/GraveyardWorld.ts
+index 82d1b50..a941d54 100644
+--- a/src/scenes/GraveyardWorld.ts
++++ b/src/scenes/GraveyardWorld.ts
+@@ -10,6 +10,7 @@ import { AudioManager } from '../audio/AudioManager';
+ import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
+ import { queueWorldAssets, createWizardAnimations } from './worldAssets';
+ import { WitchFlyBy } from './WitchFlyBy'; // A7
++import { EasterEggManager } from '../easter/EasterEggManager'; // B
+ 
+ const WORLD_W = 2400;
+ const WORLD_H = 1800;
+@@ -29,7 +30,7 @@ function mulberry32(a: number) {
+ 
+ export class GraveyardWorld extends Phaser.Scene {
+   // Wizard
+-  private wizard!: Phaser.Physics.Arcade.Sprite;
++  public wizard!: Phaser.Physics.Arcade.Sprite;
+   private wizardLight!: Phaser.GameObjects.Light;
+   private facing: 'down' | 'up' | 'left' | 'right' = 'down';
+   private shadow!: Phaser.GameObjects.Image;
+@@ -78,6 +79,9 @@ export class GraveyardWorld extends Phaser.Scene {
+   // A7: Witch fly-by
+   private witch!: WitchFlyBy;
+ 
++  // B: Easter eggs
++  public eggManager!: EasterEggManager;
++
+   constructor() {
+     super({ key: 'GraveyardWorld' });
+   }
+@@ -125,6 +129,9 @@ export class GraveyardWorld extends Phaser.Scene {
+       isCrowActive: () => this.crow !== null,
+     });
+ 
++    // B: Initialize easter egg manager
++    this.eggManager = new EasterEggManager(this, this.treeColliders);
++
+     // Launch UIScene on top
+     this.scene.launch('UIScene');
+ 
+@@ -791,8 +798,8 @@ export class GraveyardWorld extends Phaser.Scene {
+     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+ 
+     // P0-5: Joystick now lives in UIScene; F key listener here handles keyboard input
+-    // F key event listener
+-    this.input.keyboard!.on('keydown-F', () => this.tryRaiseGrave());
++    // B: F key event listener — unified interact handler
++    this.input.keyboard!.on('keydown-F', () => this.interact());
+ 
+     // M key mute toggle
+     this.mKey.on('down', () => {
+@@ -811,9 +818,34 @@ export class GraveyardWorld extends Phaser.Scene {
+     // Vignette — fullscreen, HUD layer (handled by UIScene)
+   }
+ 
+-  // ─── Raise grave ─────────────────────────────────────────────────────────
++  /** B: black-cat omen summons the witch right away. */
++  public summonWitch(): void {
++    if (!this.witch.isActive) this.witch.spawnNow();
++  }
++
++  // ─── B: Unified interact handler (F key priority: grave > egg) ─────────────
++
++  public interact(): void {
++    // Guard against re-entrancy during ritual/overlay
++    if (this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isPaused('ResurrectionRitual')) return;
++    if (this.scene.isActive('GraveOverlay')) return; // Overlay is open
++
++    // Priority 1: Try to raise a resurrectable grave if active
++    if (this.activeGrave && this.activeGrave.resurrectable) {
++      this.tryRaiseGrave();
++      return;
++    }
++
++    // Priority 2: Try to trigger an egg
++    const eggConsumed = this.eggManager?.tryInteract();
++    if (eggConsumed) {
++      // Show lore card if this is a new find
++      // (EasterEggManager will emit 'eggFound' event to UIScene)
++      return;
++    }
++  }
+ 
+-  public tryRaiseGrave(): void {
++  private tryRaiseGrave(): void {
+     // P0-1: Guard against re-entrancy during ritual/overlay
+     if (this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isPaused('ResurrectionRitual')) return;
+     if (!this.activeGrave) return;
+@@ -852,6 +884,7 @@ export class GraveyardWorld extends Phaser.Scene {
+     this.updateFog();
+     this.updateCrow(delta);
+     this.witch.update(delta); // A7
++    if (!this.ritualActive) this.eggManager?.update(delta); // B
+     this.audio.updateRandomShots(delta);
+ 
+     // Update wizard light position
+diff --git a/src/scenes/UIScene.ts b/src/scenes/UIScene.ts
+index 89dcb7d..32b1800 100644
+--- a/src/scenes/UIScene.ts
++++ b/src/scenes/UIScene.ts
+@@ -11,8 +11,13 @@ export class UIScene extends Phaser.Scene {
+   private hint!: ProximityHint;
+   private plaque!: Phaser.GameObjects.Container;
+   private plaqueVisible = false;
++  private loreCard!: Phaser.GameObjects.Container | null;
++  private loreCardVisible = false;
+   private muteBtn!: Phaser.GameObjects.Text;
+   private joystick!: Joystick;
++  private secretsCounter!: Phaser.GameObjects.Text;
++  private loreCardHideTimer: Phaser.Time.TimerEvent | null = null;
++  private eggHintText!: Phaser.GameObjects.Text;
+ 
+   constructor() {
+     super({ key: 'UIScene' });
+@@ -37,6 +42,11 @@ export class UIScene extends Phaser.Scene {
+     this.plaque.setVisible(false);
+     this.plaque.setDepth(95);
+ 
++    // B: Lore card (initially hidden)
++    this.loreCard = this.createLoreCard();
++    this.loreCard.setVisible(false);
++    this.loreCard.setDepth(95);
++
+     // P1-18: Read saved mute state and apply to sound manager
+     const isMuted = localStorage.getItem('rd_muted') === '1';
+     this.sound.mute = isMuted;
+@@ -54,6 +64,16 @@ export class UIScene extends Phaser.Scene {
+       }
+     });
+ 
++    // B: Secrets counter (shows once at least one is found)
++    this.secretsCounter = this.add.text(width - 12, 44, '', {
++      fontFamily: "'Pixelify Sans', sans-serif",
++      fontSize: '14px',
++      color: '#c9b98a',
++    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100).setVisible(false);
++    const worldForEggs = this.scene.get('GraveyardWorld') as unknown as { eggManager?: { getFoundCount(): number; getTotal(): number } };
++    const foundSoFar = worldForEggs?.eggManager?.getFoundCount() ?? 0;
++    if (foundSoFar > 0) this.secretsCounter.setText(`Secrets ${foundSoFar}/${worldForEggs!.eggManager!.getTotal()}`).setVisible(true);
++
+     // Credits button
+     const creditsBtn = this.add.text(12, 12, 'Credits', {
+       fontFamily: "'Pixelify Sans', sans-serif",
+@@ -87,8 +107,30 @@ export class UIScene extends Phaser.Scene {
+     this.events.on('plaqueChanged',    this.onPlaqueChanged,    this);
+     this.events.on('muteChanged',      (muted: boolean) => this.updateMuteIcon(muted), this);
+ 
++    // B: egg prompt (bottom centre, same place as the grave hint)
++    this.eggHintText = this.add.text(width / 2, this.scale.height - 64, '', {
++      fontFamily: "'Pixelify Sans', sans-serif",
++      fontSize: '18px',
++      color: '#d9f2ee',
++      backgroundColor: 'rgba(8,14,28,0.72)',
++      padding: { x: 12, y: 6 },
++    }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setVisible(false);
++    this.events.on('eggHint', (hint: string | null) => {
++      if (hint) { this.eggHintText.setText(hint).setVisible(true); }
++      else { this.eggHintText.setVisible(false); }
++    }, this);
++
++    // B: Listen for egg events
++    this.events.on('eggFound', this.onEggFound, this);
++    this.events.on('showLoreCard', (title: string, text: string, iconKey?: string) => {
++      this.showLoreCard(title, text, iconKey);
++    }, this);
++    this.events.on('hideLoreCard', () => this.hideLoreCard(), this);
++
+     // Listen for ritual and overlay events
+     this.events.on('ritualStarted', () => {
++      this.hideLoreCard();
++      this.eggHintText?.setVisible(false);
+       this.hidePlaque();
+       // P0-4: Use immediate hide to prevent faint display under subtitles
+       this.hint.hide(true);
+@@ -302,4 +344,134 @@ export class UIScene extends Phaser.Scene {
+     this.plaque.setVisible(false);
+     this.hint.hide();
+   }
++
++  // ─── B: Lore card ────────────────────────────────────────────────────────
++
++  private createLoreCard(): Phaser.GameObjects.Container {
++    const container = this.add.container(640, 24);
++
++    const PANEL_W = 500;
++    const PANEL_H = 200;
++    const PADDING = 64;
++    const PADDING_TOP = 60;
++    const PADDING_SIDE = 64;
++
++    // NineSlice panel (same as plaque)
++    const panel = this.add.nineslice(
++      0, 0, 'frame_panel', undefined,
++      PANEL_W, PANEL_H,
++      60, 64, 60, 60
++    );
++    panel.setOrigin(0.5, 0);
++    panel.setName('panel');
++
++    // Icon (top-left)
++    const icon = this.add.image(
++      -PANEL_W / 2 + PADDING_SIDE,
++      PADDING_TOP,
++      'candy'
++    );
++    icon.setOrigin(0, 0);
++    icon.setDisplaySize(56, 56);
++    icon.setName('icon');
++
++    // Title (next to icon)
++    const titleText = this.add.text(
++      -PANEL_W / 2 + PADDING_SIDE + 70,
++      PADDING_TOP,
++      '',
++      {
++        fontFamily: "'Pixelify Sans', sans-serif",
++        fontSize: '18px',
++        color: '#d9f2ee',
++        align: 'left',
++        wordWrap: { width: PANEL_W - 2 * PADDING_SIDE - 70 },
++      }
++    ).setOrigin(0, 0);
++    titleText.setName('titleText');
++
++    // Body text
++    const bodyText = this.add.text(
++      -PANEL_W / 2 + PADDING_SIDE,
++      PADDING_TOP + 50,
++      '',
++      {
++        fontFamily: "'Cinzel', serif",
++        fontSize: '14px',
++        fontStyle: 'italic',
++        color: '#d9f2ee',
++        align: 'left',
++        wordWrap: { width: PANEL_W - 2 * PADDING_SIDE },
++      }
++    ).setOrigin(0, 0);
++    bodyText.setName('bodyText');
++
++    container.add([panel, icon, titleText, bodyText]);
++    container.setScrollFactor(0);
++
++    return container;
++  }
++
++  public showLoreCard(title: string, body: string, iconKey?: string): void {
++    if (this.loreCardVisible) return;
++    this.loreCardVisible = true;
++
++    // Clear any existing hide timer
++    this.loreCardHideTimer?.remove(false);
++
++    // Hide plaque while lore card is showing
++    if (this.plaqueVisible) {
++      this.hidePlaque();
++    }
++
++    // Update card content
++    const titleText = this.loreCard?.getByName('titleText') as Phaser.GameObjects.Text;
++    const bodyText = this.loreCard?.getByName('bodyText') as Phaser.GameObjects.Text;
++    const icon = this.loreCard?.getByName('icon') as Phaser.GameObjects.Image;
++
++    if (titleText) titleText.setText(title);
++    if (bodyText) bodyText.setText(body);
++    if (icon && iconKey) {
++      icon.setTexture(iconKey);
++      icon.setVisible(true);
++    } else if (icon) {
++      icon.setVisible(false);
++    }
++
++    // Resize panel
++    const panel = this.loreCard?.getByName('panel') as unknown as Phaser.GameObjects.NineSlice;
++    if (panel && bodyText) {
++      const panelHeight = Math.max(200, bodyText.y + bodyText.displayHeight + 64);
++      panel.setSize(500, panelHeight);
++    }
++
++    // Show with fade
++    this.loreCard?.setVisible(true);
++    this.loreCard?.setAlpha(0);
++    this.tweens.add({
++      targets: this.loreCard,
++      alpha: 1,
++      duration: 250,
++      ease: 'Sine.easeOut',
++    });
++
++    // Auto-hide after 9 seconds
++    this.loreCardHideTimer = this.time.delayedCall(9000, () => this.hideLoreCard());
++  }
++
++  public hideLoreCard(): void {
++    if (!this.loreCardVisible) return;
++    this.loreCardVisible = false;
++
++    this.loreCardHideTimer?.remove(false);
++    this.loreCardHideTimer = null;
++
++    this.loreCard?.setVisible(false);
++  }
++
++  private onEggFound(_eggId: string, found: number, total: number): void {
++    this.sound.play('candy_chime', { volume: 0.5 });
++    this.secretsCounter.setText(`Secrets ${found}/${total}`).setVisible(true);
++    this.tweens.add({ targets: this.secretsCounter, scale: { from: 1.25, to: 1 }, duration: 400, ease: 'Back.easeOut' });
++  }
+ }
+diff --git a/src/scenes/worldAssets.ts b/src/scenes/worldAssets.ts
+index 4ad7004..de03852 100644
+--- a/src/scenes/worldAssets.ts
++++ b/src/scenes/worldAssets.ts
+@@ -97,6 +97,16 @@ export function createWizardAnimations(scene: Phaser.Scene): void {
+       repeat: 0,
+     });
+   }
++
++  // B: Black cat walk (4 frames at 10 fps)
++  if (!anims.exists('cat_walk')) {
++    anims.create({
++      key: 'cat_walk',
++      frames: anims.generateFrameNumbers('black_cat_walk', { start: 0, end: 3 }),
++      frameRate: 10,
++      repeat: -1,
++    });
++  }
+ }
+ 
+ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
+@@ -170,6 +180,21 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
+   // A7: Witch fly-by
+   load.image('witch_broom', 'assets/images/eggs/witch_broom.png');
+ 
++  // B: Easter eggs
++  load.spritesheet('black_cat_walk', 'assets/images/eggs/black_cat_walk.png', {
++    frameWidth: 22,
++    frameHeight: 20,
++  });
++  load.image('pumpkin_plain', 'assets/images/eggs/pumpkin_plain.png');
++  load.image('crypt', 'assets/images/eggs/crypt.png');
++  load.image('crypt_open', 'assets/images/eggs/crypt_open.png');
++  load.image('well', 'assets/images/eggs/well.png');
++  load.image('ghost_lady', 'assets/images/eggs/ghost_lady.png');
++  load.image('wolf_spirit', 'assets/images/eggs/wolf_spirit.png');
++  load.image('candy', 'assets/images/eggs/candy.png');
++  load.image('candy_bag', 'assets/images/eggs/candy_bag.png');
++  load.image('turnip_lantern', 'assets/images/eggs/turnip_lantern.png');
++
+   // Wizard spritesheets (64×64 frames)
+   load.spritesheet('wizard_walk_down', 'assets/images/wizard/walk_down.png', {
+     frameWidth: 64,
+@@ -290,4 +315,12 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
+   // A7: Witch fly-by audio
+   load.audio('witch_cackle', ['assets/audio/sfx/witch_cackle.ogg', 'assets/audio/sfx/witch_cackle.mp3']);
+   load.audio('witch_cackle_2', ['assets/audio/sfx/witch_cackle_2.ogg', 'assets/audio/sfx/witch_cackle_2.mp3']);
++
++  // B: Easter egg audio
++  load.audio('cat_meow', ['assets/audio/sfx/cat_meow.ogg', 'assets/audio/sfx/cat_meow.mp3']);
++  load.audio('knock_wood', ['assets/audio/sfx/knock_wood.ogg', 'assets/audio/sfx/knock_wood.mp3']);
++  load.audio('candy_chime', ['assets/audio/sfx/candy_chime.ogg', 'assets/audio/sfx/candy_chime.mp3']);
++  load.audio('pumpkin_carve', ['assets/audio/sfx/pumpkin_carve.ogg', 'assets/audio/sfx/pumpkin_carve.mp3']);
++  load.audio('wolf_howl', ['assets/audio/sfx/wolf_howl.ogg', 'assets/audio/sfx/wolf_howl.mp3']);
++  load.audio('ghost_breath', ['assets/audio/sfx/ghost_breath.ogg', 'assets/audio/sfx/ghost_breath.mp3']);
+ }

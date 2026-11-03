@@ -15,6 +15,8 @@ const MEDALLION_KEYS: Record<string, string> = {
   'clippy':         'medal_clicky',
   'winamp':         'medal_winamp',
   'unmarked-grave': 'medal_unmarked',
+  'space-cadet':    'medal_spacecadet',
+  '3d-pipes':       'medal_pipes',
 };
 
 /** Sprite keys per deco type (cycled by sort_priority) */

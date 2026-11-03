@@ -14,11 +14,14 @@ export interface TombstoneLayout {
 
 // ─── Resurrectable arc (around plaza centre ~1200, 850) ───────────────────
 const RESURRECTABLES: TombstoneLayout[] = [
-  { id: 'road-rash',      x: 1040, y: 760 },
+  { id: 'space-cadet',    x: 1040, y: 760 },
   { id: 'google-reader',  x: 1150, y: 720 },
   { id: 'clippy',         x: 1280, y: 710 },
-  { id: 'winamp',         x: 1400, y: 720 },
+  { id: '3d-pipes',       x: 1400, y: 720 },
   { id: 'unmarked-grave', x: 1500, y: 760 },
+  // N3: retired from the arc (decorative until their tributes exist)
+  { id: 'road-rash',      x: 1110, y: 1045 },
+  { id: 'winamp',         x: 1360, y: 1040 },
 ];
 
 // ─── Decorative rows (sort_priority 6–40) ────────────────────────────────

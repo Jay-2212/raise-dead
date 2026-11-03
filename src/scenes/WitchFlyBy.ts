@@ -78,6 +78,14 @@ export class WitchFlyBy {
     this.spawnWitch();
   }
 
+  /** N3: black-cat omen — restart the fly-by even if one is in progress. */
+  forceSpawn(): void {
+    if (this.active) this.cleanup();
+    this.timer = 0;
+    this.interval = Phaser.Math.Between(35000, 75000);
+    this.spawnWitch();
+  }
+
   // ─── Internal ─────────────────────────────────────────────────────────────
 
   private spawnWitch(): void {

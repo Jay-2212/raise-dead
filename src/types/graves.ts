@@ -21,6 +21,10 @@ export interface GraveEntry {
   sort_priority: number;
   verified: boolean;
   note: string | null;
+  /** N3: path (relative to BASE_URL) of a vendored static game to open in an iframe */
+  game?: string;
+  /** N3: one-line licence credit shown under the game */
+  game_credit?: string;
 }
 
 /** The 5 resurrectable grave IDs */
@@ -29,7 +33,9 @@ export type ResurrectableId =
   | 'google-reader'
   | 'clippy'
   | 'winamp'
-  | 'unmarked-grave';
+  | 'unmarked-grave'
+  | 'space-cadet'
+  | '3d-pipes';
 
 /** Extract 4-digit year from a number or ISO date string */
 export function extractYear(value: number | string | null): string {

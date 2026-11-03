@@ -88,3 +88,12 @@ Full per-file list (purpose, duration, loop, loudness, source, license, author) 
 ## Trademark Disclaimer
 
 Road Rash, Google Reader, Clippy, Winamp and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos, art or code from the trademarked products are used in this project. All tribute implementations are built from permissively-licensed open-source code and original/generated art.
+
+
+## Night 3 additions
+
+| Asset | Author | License | Source |
+|---|---|---|---|
+| Star Cadet (3D Pinball Space Cadet remake) | Rich Dubbs | MIT | https://github.com/richdubbs/star-cadet — vendored in `public/games/space-cadet` (includes three.js 0.160.0, MIT) |
+| Pipes (3D Pipes screensaver remake) | 1j01 | MIT | https://github.com/1j01/pipes — vendored in `public/games/pipes` |
+| medal_spacecadet.png, medal_pipes.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |

@@ -10,6 +10,7 @@ import { AudioManager } from '../audio/AudioManager';
 import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
 import { queueWorldAssets, createWizardAnimations } from './worldAssets';
 import { WitchFlyBy } from './WitchFlyBy'; // A7
+import { EasterEggManager } from '../easter/EasterEggManager'; // B
 
 const WORLD_W = 2400;
 const WORLD_H = 1800;
@@ -29,7 +30,7 @@ function mulberry32(a: number) {
 
 export class GraveyardWorld extends Phaser.Scene {
   // Wizard
-  private wizard!: Phaser.Physics.Arcade.Sprite;
+  public wizard!: Phaser.Physics.Arcade.Sprite;
   private wizardLight!: Phaser.GameObjects.Light;
   private facing: 'down' | 'up' | 'left' | 'right' = 'down';
   private shadow!: Phaser.GameObjects.Image;
@@ -78,6 +79,9 @@ export class GraveyardWorld extends Phaser.Scene {
   // A7: Witch fly-by
   private witch!: WitchFlyBy;
 
+  // B: Easter eggs
+  public eggManager!: EasterEggManager;
+
   constructor() {
     super({ key: 'GraveyardWorld' });
   }
@@ -125,11 +129,15 @@ export class GraveyardWorld extends Phaser.Scene {
       isCrowActive: () => this.crow !== null,
     });
 
+    // B: Initialize easter egg manager
+    this.eggManager = new EasterEggManager(this, this.treeColliders);
+
     // Launch UIScene on top
     this.scene.launch('UIScene');
 
     // Listen for ritual fully ended (when ResurrectionRitual completes the exit sequence)
     this.events.on('ritualFullyEnded', () => {
+      this.eggManager?.clearHint(); // N3: re-show egg prompt after a ritual
       this.ritualActive = false;
       // P0-2: Reset stuck keys after exit
       this.input.keyboard?.resetKeys();
@@ -791,8 +799,11 @@ export class GraveyardWorld extends Phaser.Scene {
     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
     // P0-5: Joystick now lives in UIScene; F key listener here handles keyboard input
-    // F key event listener
-    this.input.keyboard!.on('keydown-F', () => this.tryRaiseGrave());
+    // B: F key event listener — unified interact handler
+    this.input.keyboard!.on('keydown-F', (ev: KeyboardEvent) => {
+      if (ev.repeat) return; // held F must not count as three presses
+      this.interact();
+    });
 
     // M key mute toggle
     this.mKey.on('down', () => {
@@ -811,9 +822,33 @@ export class GraveyardWorld extends Phaser.Scene {
     // Vignette — fullscreen, HUD layer (handled by UIScene)
   }
 
-  // ─── Raise grave ─────────────────────────────────────────────────────────
+  /** B: black-cat omen summons the witch right away. */
+  public summonWitch(): void {
+    this.witch.forceSpawn();
+  }
 
-  public tryRaiseGrave(): void {
+  // ─── B: Unified interact handler (F key priority: grave > egg) ─────────────
+
+  public interact(): void {
+    // Guard against re-entrancy during ritual/overlay
+    if (this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isPaused('ResurrectionRitual')) return;
+
+    // Priority 1: Try to raise a resurrectable grave if active
+    if (this.activeGrave && this.activeGrave.resurrectable) {
+      this.tryRaiseGrave();
+      return;
+    }
+
+    // Priority 2: Try to trigger an egg
+    const eggConsumed = this.eggManager?.tryInteract();
+    if (eggConsumed) {
+      // Show lore card if this is a new find
+      // (EasterEggManager will emit 'eggFound' event to UIScene)
+      return;
+    }
+  }
+
+  private tryRaiseGrave(): void {
     // P0-1: Guard against re-entrancy during ritual/overlay
     if (this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isPaused('ResurrectionRitual')) return;
     if (!this.activeGrave) return;
@@ -852,6 +887,7 @@ export class GraveyardWorld extends Phaser.Scene {
     this.updateFog();
     this.updateCrow(delta);
     this.witch.update(delta); // A7
+    if (!this.ritualActive) this.eggManager?.update(delta); // B
     this.audio.updateRandomShots(delta);
 
     // Update wizard light position

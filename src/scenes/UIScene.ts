@@ -11,8 +11,13 @@ export class UIScene extends Phaser.Scene {
   private hint!: ProximityHint;
   private plaque!: Phaser.GameObjects.Container;
   private plaqueVisible = false;
+  private loreCard!: Phaser.GameObjects.Container | null;
+  private loreCardVisible = false;
   private muteBtn!: Phaser.GameObjects.Text;
   private joystick!: Joystick;
+  private secretsCounter!: Phaser.GameObjects.Text;
+  private loreCardHideTimer: Phaser.Time.TimerEvent | null = null;
+  private eggHintText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -37,6 +42,11 @@ export class UIScene extends Phaser.Scene {
     this.plaque.setVisible(false);
     this.plaque.setDepth(95);
 
+    // B: Lore card (initially hidden)
+    this.loreCard = this.createLoreCard();
+    this.loreCard.setVisible(false);
+    this.loreCard.setDepth(95);
+
     // P1-18: Read saved mute state and apply to sound manager
     const isMuted = localStorage.getItem('rd_muted') === '1';
     this.sound.mute = isMuted;
@@ -53,6 +63,16 @@ export class UIScene extends Phaser.Scene {
         this.updateMuteIcon(world.audio.isMuted);
       }
     });
+
+    // B: Secrets counter (shows once at least one is found)
+    this.secretsCounter = this.add.text(width - 12, 44, '', {
+      fontFamily: "'Pixelify Sans', sans-serif",
+      fontSize: '14px',
+      color: '#c9b98a',
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100).setVisible(false);
+    const worldForEggs = this.scene.get('GraveyardWorld') as unknown as { eggManager?: { getFoundCount(): number; getTotal(): number } };
+    const foundSoFar = worldForEggs?.eggManager?.getFoundCount() ?? 0;
+    if (foundSoFar > 0) this.secretsCounter.setText(`Secrets ${foundSoFar}/${worldForEggs!.eggManager!.getTotal()}`).setVisible(true);
 
     // Credits button
     const creditsBtn = this.add.text(12, 12, 'Credits', {
@@ -78,8 +98,8 @@ export class UIScene extends Phaser.Scene {
     // P0-5: Create joystick in UIScene (zoom 1, not affected by world camera zoom)
     this.joystick = new Joystick(this);
     this.joystick.onFPress(() => {
-      const world = this.scene.get('GraveyardWorld') as { tryRaiseGrave?: () => void };
-      world?.tryRaiseGrave?.();
+      const world = this.scene.get('GraveyardWorld') as { interact?: () => void };
+      world?.interact?.();
     });
 
     // Listen for events from GraveyardWorld
@@ -87,8 +107,30 @@ export class UIScene extends Phaser.Scene {
     this.events.on('plaqueChanged',    this.onPlaqueChanged,    this);
     this.events.on('muteChanged',      (muted: boolean) => this.updateMuteIcon(muted), this);
 
+    // B: egg prompt (bottom centre, same place as the grave hint)
+    this.eggHintText = this.add.text(width / 2, this.scale.height - 64, '', {
+      fontFamily: "'Pixelify Sans', sans-serif",
+      fontSize: '18px',
+      color: '#d9f2ee',
+      backgroundColor: 'rgba(8,14,28,0.72)',
+      padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setVisible(false);
+    this.events.on('eggHint', (hint: string | null) => {
+      if (hint && !this.hint.visible) { this.eggHintText.setText(hint).setVisible(true); }
+      else { this.eggHintText.setVisible(false); }
+    }, this);
+
+    // B: Listen for egg events
+    this.events.on('eggFound', this.onEggFound, this);
+    this.events.on('showLoreCard', (title: string, text: string, iconKey?: string) => {
+      this.showLoreCard(title, text, iconKey);
+    }, this);
+    this.events.on('hideLoreCard', () => this.hideLoreCard(), this);
+
     // Listen for ritual and overlay events
     this.events.on('ritualStarted', () => {
+      this.hideLoreCard();
+      this.eggHintText?.setVisible(false);
       this.hidePlaque();
       // P0-4: Use immediate hide to prevent faint display under subtitles
       this.hint.hide(true);
@@ -96,6 +138,8 @@ export class UIScene extends Phaser.Scene {
       this.joystick.hide();
     });
     this.events.on('overlayOpened', () => {
+      this.eggHintText?.setVisible(false);
+      this.hideLoreCard();
       // P0-4: Use immediate hide during overlay
       this.hint.hide(true);
       // P0-5: Hide joystick during overlay
@@ -237,6 +281,8 @@ export class UIScene extends Phaser.Scene {
       'clippy':         'medal_clicky',
       'winamp':         'medal_winamp',
       'unmarked-grave': 'medal_unmarked',
+      'space-cadet':    'medal_spacecadet',
+      '3d-pipes':       'medal_pipes',
     };
     
     const PANEL_W = 500;
@@ -301,5 +347,134 @@ export class UIScene extends Phaser.Scene {
     this.plaqueVisible = false;
     this.plaque.setVisible(false);
     this.hint.hide();
+  }
+
+  // ─── B: Lore card ────────────────────────────────────────────────────────
+
+  private createLoreCard(): Phaser.GameObjects.Container {
+    const container = this.add.container(640, 24);
+
+    const PANEL_W = 500;
+    const PANEL_H = 200;
+    const PADDING = 64;
+    const PADDING_TOP = 60;
+    const PADDING_SIDE = 64;
+
+    // NineSlice panel (same as plaque)
+    const panel = this.add.nineslice(
+      0, 0, 'frame_panel', undefined,
+      PANEL_W, PANEL_H,
+      60, 64, 60, 60
+    );
+    panel.setOrigin(0.5, 0);
+    panel.setName('panel');
+
+    // Icon (top-left)
+    const icon = this.add.image(
+      -PANEL_W / 2 + PADDING_SIDE,
+      PADDING_TOP,
+      'candy'
+    );
+    icon.setOrigin(0, 0);
+    icon.setDisplaySize(56, 56);
+    icon.setName('icon');
+
+    // Title (next to icon)
+    const titleText = this.add.text(
+      -PANEL_W / 2 + PADDING_SIDE + 70,
+      PADDING_TOP,
+      '',
+      {
+        fontFamily: "'Pixelify Sans', sans-serif",
+        fontSize: '18px',
+        color: '#d9f2ee',
+        align: 'left',
+        wordWrap: { width: PANEL_W - 2 * PADDING_SIDE - 70 },
+      }
+    ).setOrigin(0, 0);
+    titleText.setName('titleText');
+
+    // Body text
+    const bodyText = this.add.text(
+      -PANEL_W / 2 + PADDING_SIDE,
+      PADDING_TOP + 50,
+      '',
+      {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '14px',
+        fontStyle: 'italic',
+        color: '#d9f2ee',
+        align: 'left',
+        wordWrap: { width: PANEL_W - 2 * PADDING_SIDE },
+      }
+    ).setOrigin(0, 0);
+    bodyText.setName('bodyText');
+
+    container.add([panel, icon, titleText, bodyText]);
+    container.setScrollFactor(0);
+
+    return container;
+  }
+
+  public showLoreCard(title: string, body: string, iconKey?: string): void {
+    this.loreCardVisible = true; // N3: a newer find replaces the card instead of being dropped
+
+    // Clear any existing hide timer
+    this.loreCardHideTimer?.remove(false);
+
+    // Hide plaque while lore card is showing
+    if (this.plaqueVisible) {
+      this.hidePlaque();
+    }
+
+    // Update card content
+    const titleText = this.loreCard?.getByName('titleText') as Phaser.GameObjects.Text;
+    const bodyText = this.loreCard?.getByName('bodyText') as Phaser.GameObjects.Text;
+    const icon = this.loreCard?.getByName('icon') as Phaser.GameObjects.Image;
+
+    if (titleText) titleText.setText(title);
+    if (bodyText) bodyText.setText(body);
+    if (icon && iconKey) {
+      icon.setTexture(iconKey);
+      icon.setVisible(true);
+    } else if (icon) {
+      icon.setVisible(false);
+    }
+
+    // Resize panel
+    const panel = this.loreCard?.getByName('panel') as unknown as Phaser.GameObjects.NineSlice;
+    if (panel && bodyText) {
+      const panelHeight = Math.max(200, bodyText.y + bodyText.displayHeight + 64);
+      panel.setSize(500, panelHeight);
+    }
+
+    // Show with fade
+    this.loreCard?.setVisible(true);
+    this.loreCard?.setAlpha(0);
+    this.tweens.add({
+      targets: this.loreCard,
+      alpha: 1,
+      duration: 250,
+      ease: 'Sine.easeOut',
+    });
+
+    // Auto-hide after 9 seconds
+    this.loreCardHideTimer = this.time.delayedCall(9000, () => this.hideLoreCard());
+  }
+
+  public hideLoreCard(): void {
+    if (!this.loreCardVisible) return;
+    this.loreCardVisible = false;
+
+    this.loreCardHideTimer?.remove(false);
+    this.loreCardHideTimer = null;
+
+    this.loreCard?.setVisible(false);
+  }
+
+  private onEggFound(_eggId: string, found: number, total: number): void {
+    this.sound.play('candy_chime', { volume: 0.5 });
+    this.secretsCounter.setText(`Secrets ${found}/${total}`).setVisible(true);
+    this.tweens.add({ targets: this.secretsCounter, scale: { from: 1.25, to: 1 }, duration: 400, ease: 'Back.easeOut' });
   }
 }

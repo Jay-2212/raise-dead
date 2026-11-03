@@ -136,6 +136,10 @@ export class GraveOverlay {
       // Phase 1: no app modules exist yet — silently ignore
     }
 
+    // N3: static OSS game graves render in an iframe with the compact header
+    const gamePath = grave.game;
+    if (gamePath) compactHeader = true;
+
     // Now build the header based on compactHeader flag
     this.buildHeader(grave, baseUrl, content, appContainer, compactHeader);
 
@@ -198,6 +202,11 @@ export class GraveOverlay {
       panel.style.transform = 'translateY(0)';
     });
 
+    // N3: mount the game iframe
+    if (gamePath) {
+      this.mountGameFrame(grave, baseUrl, appContainer);
+    }
+
     // Mount the app if it exists
     if (this.appInstance) {
       try {
@@ -234,6 +243,8 @@ export class GraveOverlay {
         'clippy':         `${baseUrl}assets/images/portraits/medal_clicky.png`,
         'winamp':         `${baseUrl}assets/images/portraits/medal_winamp.png`,
         'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
+        'space-cadet':    `${baseUrl}assets/images/portraits/medal_spacecadet.png`,
+        '3d-pipes':       `${baseUrl}assets/images/portraits/medal_pipes.png`,
       };
       if (medalMap[grave.id]) {
         const med = document.createElement('img');
@@ -293,6 +304,8 @@ export class GraveOverlay {
         'clippy':         `${baseUrl}assets/images/portraits/medal_clicky.png`,
         'winamp':         `${baseUrl}assets/images/portraits/medal_winamp.png`,
         'unmarked-grave': `${baseUrl}assets/images/portraits/medal_unmarked.png`,
+        'space-cadet':    `${baseUrl}assets/images/portraits/medal_spacecadet.png`,
+        '3d-pipes':       `${baseUrl}assets/images/portraits/medal_pipes.png`,
       };
       if (medalMap[grave.id]) {
         const med = document.createElement('img');
@@ -343,7 +356,7 @@ export class GraveOverlay {
 
       // Phase 2 placeholder
       const placeholder = document.createElement('p');
-      placeholder.textContent = 'The full tribute app arrives in Phase 2.';
+      placeholder.textContent = 'This one still sleeps. Its tribute is being carved by moonlight; come back soon.';
       placeholder.style.cssText = `
         font-family: 'Pixelify Sans', sans-serif;
         font-size: 0.9rem;
@@ -351,6 +364,39 @@ export class GraveOverlay {
         margin-bottom: 24px;
       `;
       content.appendChild(placeholder);
+    }
+  }
+
+  /** N3: vendored static game in a same-origin, script-only sandbox (no top navigation, no popups, no forms). */
+  private mountGameFrame(grave: GraveEntry, baseUrl: string, appContainer: HTMLElement): void {
+    appContainer.style.overflow = 'hidden';
+    appContainer.style.display = 'flex';
+    appContainer.style.flexDirection = 'column';
+    appContainer.style.height = 'min(68vh, 62vw)';
+    appContainer.style.minHeight = '260px';
+
+    const iframe = document.createElement('iframe');
+    iframe.src = `${baseUrl}${grave.game}`;
+    iframe.title = grave.name;
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock');
+    iframe.setAttribute('allow', 'fullscreen; autoplay');
+    iframe.style.cssText = 'flex: 1; width: 100%; border: 1px solid #2b3a4f; border-radius: 6px; background: #000; display: block;';
+    iframe.addEventListener('load', () => {
+      try {
+        // Esc inside the game still lays it to rest (same-origin static content we host)
+        iframe.contentWindow?.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (e.key === 'Escape') this.triggerExit();
+        });
+      } catch { /* cross-origin: rely on the button */ }
+      iframe.focus();
+    });
+    appContainer.appendChild(iframe);
+
+    if (grave.game_credit) {
+      const credit = document.createElement('p');
+      credit.textContent = `${grave.game_credit} · Esc or the button below to lay it to rest.`;
+      credit.style.cssText = "font-family: 'Pixelify Sans', sans-serif; font-size: 0.75rem; color: #7d8ba0; margin: 6px 0 0; text-align: center;";
+      appContainer.appendChild(credit);
     }
   }
 
@@ -383,6 +429,8 @@ export class GraveOverlay {
     if (this.gameScene?.input?.keyboard) {
       this.gameScene.input.keyboard.enableGlobalCapture();
     }
+    // N3: take keyboard focus back from a game iframe
+    try { (this.gameScene?.game?.canvas as HTMLCanvasElement | undefined)?.focus(); } catch { /* ignore */ }
 
     // Remove Esc key handler
     if ((this as any).escKeyHandler) {

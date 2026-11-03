@@ -20,6 +20,8 @@ declare global {
       spawnWitch(): void;
       /** A8: Return the live GraveyardWorld scene (or null if not active). */
       world(): GraveyardWorld | null;
+      /** B: found egg ids; pass true to reset. */
+      eggs(reset?: boolean): string[];
     };
   }
 }
@@ -47,6 +49,15 @@ async function main(): Promise<void> {
     window.__RD = {
       /** The live Phaser.Game instance */
       game,
+
+      /** B: found egg ids (?debug=1). Pass true to reset. */
+      eggs(reset?: boolean): string[] {
+        const world = game.scene.getScene('GraveyardWorld') as unknown as { eggManager?: { defs: { id: string }[]; isFound(id: string): boolean; reset(): void } } | null;
+        const m = world?.eggManager;
+        if (!m) return [];
+        if (reset) m.reset();
+        return m.defs.filter((d) => m.isFound(d.id)).map((d) => d.id);
+      },
 
       /** Switch to any scene by key */
       goto(sceneKey: string): void {
