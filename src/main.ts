@@ -146,19 +146,26 @@ function isSoftwareWebGL(): boolean {
   }
 }
 
-/** N5: if WebGL still crawls (< 6 fps over 5 s once the title is up), reload once on the Canvas renderer. */
+/** N5b: if WebGL crawls at any point in the first 2 minutes (title OR graveyard), reload once on Canvas. */
 function startFpsWatchdog(game: Phaser.Game): void {
   if (sessionStorage.getItem('rd_canvas_fallback')) return;
-  window.setTimeout(() => {
-    const f0 = game.loop.frame;
-    window.setTimeout(() => {
-      if (document.hidden) return;
-      if (game.loop.frame - f0 < 30) {
-        sessionStorage.setItem('rd_canvas_fallback', '1');
-        const u = new URL(window.location.href);
-        u.searchParams.set('renderer', 'canvas');
-        window.location.replace(u.toString());
-      }
-    }, 5000);
-  }, 4000);
+  let last = game.loop.frame;
+  let slow = 0;
+  const started = Date.now();
+  const id = window.setInterval(() => {
+    const now = game.loop.frame;
+    const frames = now - last;
+    last = now;
+    if (document.hidden) { slow = 0; return; }
+    slow = frames < 8 ? slow + 1 : 0; // < 4 fps over a 2 s window
+    if (slow >= 3) {
+      window.clearInterval(id);
+      sessionStorage.setItem('rd_canvas_fallback', '1');
+      const u = new URL(window.location.href);
+      u.searchParams.set('renderer', 'canvas');
+      window.location.replace(u.toString());
+    } else if (Date.now() - started > 120000) {
+      window.clearInterval(id);
+    }
+  }, 2000);
 }
