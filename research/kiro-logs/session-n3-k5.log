@@ -1,0 +1,19 @@
+I'll read the file and execute it exactly.
+[tool] Reading KIRO-K5.md:1
+[tool] status: Completed
+I'll execute this step by step.
+
+**Step 1: Apply the patch**
+[tool] Running: cd /workspace/raise-dead && git apply research/n3/k5.patch
+[tool] status: Completed
+**Step 2: Build and check for TypeScript errors**
+[tool] Running: cd /workspace/raise-dead && npm run build
+[tool] status: Completed
+Build succeeded with "built in 14.89s". 
+
+**Step 3: Commit the changes**
+[tool] Running: cd /workspace/raise-dead && git add -A src research/n3 && git commit -m "Night 3 K5 (Kiro applies council triage): software-WebGL Canvas fallback + fps watchdog, credits mask, iframe focus...
+[tool] status: Completed
+**Commit hash:** `f038342`
+
+OK
