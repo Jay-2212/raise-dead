@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Winamp — risen</title>
+<style>
+*{margin:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#070b1e;color:#e8e6d3;font-family:monospace;overflow:hidden}
+#wrap{width:100vw;height:100vh;display:flex;flex-direction:column}
+#top{text-align:center;padding:6px 8px;background:#0b1230;border-bottom:1px solid #1de9b6}
+#top h1{font-size:15px;letter-spacing:1px;color:#e8e6d3}
+#top h1 b{color:#1de9b6;text-shadow:0 0 8px #1de9b6}
+#top p{font-size:11px;color:#9ef0d6}
+#hud{display:flex;justify-content:space-between;padding:5px 10px;font-size:13px;background:#0e1640;color:#ffe9a8}
+#c{flex:1;width:100%;display:block;background:radial-gradient(circle at 50% 15%,#1a2560 0%,#070b1e 65%)}
+#btns{display:flex;gap:8px;padding:8px;justify-content:center;background:#0b1230}
+#btns button{flex:1;max-width:140px;padding:12px 0;font-size:18px;background:#132052;border:1px solid #1de9b6;color:#e8e6d3;border-radius:10px;touch-action:none}
+#btns button:active{background:#1de9b6;color:#070b1e}
+</style>
+</head>
+<body>
+<div id="wrap">
+<div id="top"><h1><b>Winamp</b> — risen (tribute)</h1><p>Catch beats with the player • ←→/AD move • SPACE bass-drop • survive 60s</p></div>
+<div id="hud"><span id="s">♪ 0</span><span id="t">0:60</span><span id="h">♥♥♥</span></div>
+<canvas id="c"></canvas>
+<div id="btns"><button id="L">◀</button><button id="S">WHIP!</button><button id="R">▶</button></div>
+</div>
+<script>
+let W,H,cv=document.getElementById('c'),x=cv.getContext('2d');
+let sE=document.getElementById('s'),tE=document.getElementById('t'),hE=document.getElementById('h');
+function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight-document.getElementById('top').offsetHeight-76;}
+addEventListener('resize',rs);rs();
+let px,notes,parts,score,life,time,over,win,keys={},bars,cd=0,mx=0;
+function reset(){px=W/2;notes=[];parts=[];score=0;life=3;time=60;over=false;win=false;bars=new Array(32).fill(4);cd=0;}
+reset();
+addEventListener('keydown',e=>{
+keys[e.key.toLowerCase()]=true;
+if(e.key===' ') {e.preventDefault();drop();}
+if(e.key.toLowerCase()==='r'&&over)reset();
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function drop(){if(over||cd>0)return;cd=22;for(let n of notes){burst(n.x,n.y,'#1de9b6');score+=5;}notes=notes.filter(n=>n.bad);sE.textContent='♪ '+score;}
+function burst(a,b,c){for(let i=0;i<10;i++)parts.push({x:a,y:b,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5-1,l:22,c});}
+[['L','arrowleft','a'],['R','arrowright','d']].forEach(([id])=>{});
+let held={l:false,r:false};
+function bind(id,v){let b=document.getElementById(id);let on=e=>{e.preventDefault();held[v]=true;if(over)reset();if(v==='s')drop();};let off=e=>{e.preventDefault();held[v]=false;};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);}
+bind('L','l');bind('R','r');bind('S','s');
+cv.addEventListener('pointerdown',()=>{if(over)reset();else drop();});
+let moon=0,nt=0,A=null;
+try{A=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+function blip(f){if(!A)return;try{if(A.state==='suspended')A.resume();let o=A.createOscillator(),g=A.createGain();o.type='square';o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(A.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,A.currentTime+.15);o.stop(A.currentTime+.16);}catch(e){}}
+let last=0;
+function loop(t){
+requestAnimationFrame(loop);
+let dt=Math.min(.05,(t-last)/1000||.016);last=t;
+if(!over){
+time-=dt;cd--;
+if(keys['arrowleft']||keys['a']||held.l)px-=300*dt;
+if(keys['arrowright']||keys['d']||held.r)px+=300*dt;
+px=Math.max(30,Math.min(W-30,px));
+for(let i=0;i<bars.length;i++)bars[i]+=((Math.random()*60+8)-bars[i])*.25;
+nt-=dt;if(nt<=0){nt=Math.max(.25,.7-time*.005);let bad=Math.random()<(time<20?.35:.22);notes.push({x:20+Math.random()*(W-40),y:-20,v:120+Math.random()*80+(60-time)*1.5,bad,bad2:Math.random()});}
+for(let n of notes)n.y+=n.v*dt;
+let py=H-70;
+for(let n of notes){
+if(n.y>py-16&&n.y<py+16&&Math.abs(n.x-px)<46){
+if(n.bad){life--;blip(90);burst(n.x,py,'#ff4d6d');hE.textContent='♥'.repeat(Math.max(0,life))+'♡'.repeat(3-Math.max(0,life));n.dead=true;if(life<=0){over=true;}}
+else{score+=10;blip(300+Math.random()*500);burst(n.x,py,'#1de9b6');n.dead=true;}
+}}
+notes=notes.filter(n=>!n.dead&&n.y<H-40||(!n.dead&&n.y>=H-40&&(n.bad?0:(life--,hE.textContent='♥'.repeat(Math.max(0,life))+'♡'.repeat(3-Math.max(0,life)),blip(120),0),false)));
+if(time<=0){over=true;win=life>0;}
+sE.textContent='♪ '+score;tE.textContent='0:'+String(Math.max(0,Math.ceil(time))).padStart(2,'0');
+}
+x.clearRect(0,0,W,H);
+moon+=dt;
+x.fillStyle='#f4f1d8';x.beginPath();x.arc(W*.82,70,34,0,7);x.fill();
+x.fillStyle='#070b1e';x.beginPath();x.arc(W*.82-12,64,30,0,7);x.fill();
+x.fillStyle='rgba(29,233,182,.12)';x.fillRect(0,H-140,W,140);
+for(let i=0;i<bars.length;i++){let bw=W/bars.length;let h=bars[i]+Math.sin(t/200+i)*8;x.fillStyle=i%2?'#1de9b6':'#2a7fbf';x.fillRect(i*bw+2,H-60-h,bw-4,h);}
+let py=H-70;
+x.fillStyle='#0e1640';x.strokeStyle='#1de9b6';x.lineWidth=2;
+x.beginPath();x.rect(px-46,py-14,92,30);x.fill();x.stroke();
+x.fillStyle='#1de9b6';x.beginPath();x.moveTo(px-12,py-6);x.lineTo(px-12,py+6);x.lineTo(px+2,py);x.fill();
+x.fillRect(px+8,py-6,4,12);x.fillRect(px+15,py-6,4,12);
+x.fillStyle='#ffe9a8';x.font='10px monospace';x.textAlign='center';x.fillText('SKIN: SPOOKY.MP3',px,py-18);
+for(let n of notes){x.font='20px serif';x.textAlign='center';
+if(n.bad){x.fillStyle='#ff4d6d';x.fillText(n.bad2>.5?'💀':'🦇',n.x,n.y);}
+else{x.fillStyle='#9ef0d6';x.fillText('♪',n.x-8,n.y);x.fillStyle='#e8e6d3';x.fillText('♫',n.x+8,n.y);}}
+for(let p of parts){p.x+=p.vx;p.y+=p.vy;p.l--;x.globalAlpha=Math.max(0,p.l/22);x.fillStyle=p.c;x.fillRect(p.x,p.y,4,4);x.globalAlpha=1;}
+parts=parts.filter(p=>p.l>0);
+if(cd>0){x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.arc(px,py,40+(22-cd)*4,0,7);x.stroke();}
+if(over){x.fillStyle='rgba(4,6,20,.82)';x.fillRect(0,0,W,H);x.textAlign='center';
+x.fillStyle='#1de9b6';x.font='bold 34px monospace';x.fillText(win?'♪ ENCORE! ♪':'☠ STATIC ☠',W/2,H/2-50);
+x.fillStyle='#e8e6d3';x.font='15px monospace';x.fillText(win?'You kept the llamas whipped 60s!':'The playlist died...',W/2,H/2-16);
+x.fillStyle='#ffe9a8';x.font='bold 20px monospace';x.fillText('SCORE '+score,W/2,H/2+12);
+x.fillStyle='#9ef0d6';x.font='13px monospace';x.fillText('Press R / tap to rise again',W/2,H/2+40);
+x.font='11px monospace';x.fillStyle='#666';x.fillText('it really whips the llama\'s ass — tribute, no audio files harmed',W/2,H/2+62);}
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

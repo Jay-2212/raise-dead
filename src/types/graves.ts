@@ -25,6 +25,8 @@ export interface GraveEntry {
   game?: string;
   /** N3: one-line licence credit shown under the game */
   game_credit?: string;
+  /** N3: iframe sandbox override (AI-written pages use 'allow-scripts' only) */
+  game_sandbox?: string;
 }
 
 /** The 5 resurrectable grave IDs */

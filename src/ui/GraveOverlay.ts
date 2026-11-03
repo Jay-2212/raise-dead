@@ -378,7 +378,7 @@ export class GraveOverlay {
     const iframe = document.createElement('iframe');
     iframe.src = `${baseUrl}${grave.game}`;
     iframe.title = grave.name;
-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock');
+    iframe.setAttribute('sandbox', grave.game_sandbox ?? 'allow-scripts allow-same-origin allow-pointer-lock');
     iframe.setAttribute('allow', 'fullscreen; autoplay');
     iframe.style.cssText = 'flex: 1; width: 100%; border: 1px solid #2b3a4f; border-radius: 6px; background: #000; display: block;';
     iframe.addEventListener('load', () => {

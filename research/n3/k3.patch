@@ -1,0 +1,783 @@
+diff --git a/README.md b/README.md
+index 54dc01b..cb1b314 100644
+--- a/README.md
++++ b/README.md
+@@ -4,10 +4,25 @@ A moonlit pixel-art graveyard of dead software. Walk the wizard among 40 tombsto
+ 
+ Built for **Kiroween** and the **Meta Global AI Dev Hackathon**. The code is written with the [Kiro CLI](https://kiro.dev); specs, steering and hooks live in [`.kiro/`](.kiro).
+ 
+-> Status: **Phase 1** — graveyard world, ritual and placeholder app overlay. Tribute apps (Road Rash, Google Reader, Winamp, Unmarked Grave) arrive in Phase 2. **Clicky** is live.
++Built during the hackathon window (Oct 31 – Nov 4 2026). Play it: **https://raise-dead.pages.dev**
+ 
+-### Clicky: The Paperclip Returns
+-Raise the Clicky grave to meet a cheerful ghost paperclip, resurrected from Office 97. Chat with Clicky via a branching preset dialogue tree or type your own questions. Preset replies show instantly; typed questions stream live from **Meta Muse Spark** (reasoning model, contributor tier) with a typewriter effect and context from your conversation. Clicky is amazed to be alive, warm and a bit nosy—and knows nothing after 2007 except the graveyard. Built with Phaser, a conversation tree in `public/data/clicky-presets.json`, and a Cloudflare Pages Function with D1 for lifetime and daily quota caps.
++## What rises
++| Grave | What you get | How it was made |
++|---|---|---|
++| **Clicky the Paperclip** | A retired 1997 helper, startled to be alive, chatting with you | Meta **Muse Spark** streamed live (typed questions) + a Muse-written 33-node branching tree (tap answers, zero API calls) |
++| **Unmarked Grave** | Type *any* dead app or game (Contra, Neopets, MSN…) and a playable 60-second tribute rises | Meta **Muse Spark** writes a complete HTML game on the fly; cached in D1 so each name is generated once |
++| **Road Rash**, **Winamp** | Playable tributes | Written by Muse Spark, reviewed, shipped as static pages |
++| **3D Pinball: Space Cadet** | The full table, missions and all | [Star Cadet](https://github.com/richdubbs/star-cadet) (MIT), an original-art remake |
++| **3D Pipes** | The Windows NT screensaver, endlessly plumbing | [1j01/pipes](https://github.com/1j01/pipes) (MIT) |
++
++Plus six Halloween **Easter eggs** that teach the lore behind the holiday: a black cat that crosses your path (and the bad omen that follows), Stingy Jack's pumpkin, the 13th grave, trick-or-treat at the crypt, Bloody Mary in the well, and howling at the moon.
++
++## Meta models in Raise Dead
++- **Muse Spark (`muse-spark-1.3-contributor`)** via the Meta Model API: Clicky's live chat (`functions/api/clicky/chat.ts`, SSE streaming), the Unmarked Grave game writer (`functions/api/unmarked/raise.ts`), the pre-written Clicky dialogue tree (`public/data/clicky-presets.json`) and the Road Rash / Winamp tributes (`public/games/muse/`). Muse also reviewed our build plans during development.
++- **Safety and cost layer** (Cloudflare Pages Functions + D1): hashed-IP and signed-token lifetime quotas (5 Clicky messages, 3 new raises per visitor), global daily caps, per-day token accounting, input filters and prompt-injection checks. AI-written games are served from `/api/unmarked/play/:slug` under a no-network CSP with `sandbox allow-scripts`, inside an opaque-origin iframe, so generated code can't reach cookies, storage or the network.
++
++## How it was built
++Kiro CLI is the coding harness ([`.kiro/`](.kiro) holds the specs, steering and hooks). We ran it like a consultancy: Hark (planning), Grok 4.7 and Gemini (via Antigravity) reviewed every plan and diff in council rounds (`research/`), and Kiro (claude-haiku-4.5) executed the agreed changes step by step to stay inside a tiny credit budget.
+ 
+ ## Run locally
+ ```bash
+@@ -17,7 +32,7 @@ npm run build    # type-check + production build to dist/
+ ```
+ 
+ ## Controls
+-WASD / arrow keys to walk · **F** to raise the dead · **Esc** or *Requiescat in pace* to lay it back to rest · **M** to mute · on-screen joystick on touch devices.
++WASD / arrow keys to walk · **F** to raise the dead or poke at Easter eggs · **Esc** or *Requiescat in pace* to lay it back to rest · **M** to mute · on-screen joystick on touch devices.
+ 
+ ## Stack
+ Phaser 3.90.0 · TypeScript · Vite · phaser3-rex-plugins (virtual joystick).
+@@ -26,7 +41,7 @@ Phaser 3.90.0 · TypeScript · Vite · phaser3-rex-plugins (virtual joystick).
+ Wizard sprite by Movicx (opengameart.org/users/movicx), CC-BY 3.0, modified (red glow removed, trim recoloured to teal) — https://creativecommons.org/licenses/by/3.0/. Footstep sounds (dirt) by congusbongus, from 'footstep-grass.wav' by swuing (freesound.org), CC-BY 3.0, modified (trimmed, normalised) — https://creativecommons.org/licenses/by/3.0/. Fonts: Cinzel and Pixelify Sans (SIL OFL 1.1, self-hosted). Everything else is CC0 or original — see [CREDITS.md](CREDITS.md) (also shown in-game).
+ 
+ ## Trademark Disclaimer
+-Road Rash, Google Reader, Clippy, Winamp and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos, art or code from the trademarked products are used in this project.
++Road Rash, Google Reader, Clippy, Winamp, 3D Pinball, Contra and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos, art or code from the trademarked products are used in this project; tributes are original or AI-generated recreations of gameplay ideas.
+ 
+ ## License
+ Code: [MIT](LICENSE). Third-party assets keep their own licences as listed in CREDITS.md.
+diff --git a/data/graves.json b/data/graves.json
+index de8cb7e..37175bd 100644
+--- a/data/graves.json
++++ b/data/graves.json
+@@ -42,11 +42,14 @@
+     "category": "game",
+     "epitaph": "Kicked off the bike, but never off our hearts.",
+     "cause_of_death": "The series stalled after its last new game, Jailbreak, in 2000.",
+-    "resurrectable": false,
++    "resurrectable": true,
+     "source_url": "https://en.wikipedia.org/wiki/Road_Rash",
+     "sort_priority": 1,
+     "verified": true,
+-    "note": "died = last new game (Jailbreak, PS1 2000); a GBA port followed in 2003"
++    "note": "died = last new game (Jailbreak, PS1 2000); a GBA port followed in 2003",
++    "game": "games/muse/road-rash.html",
++    "game_sandbox": "allow-scripts",
++    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
+   },
+   {
+     "id": "google-reader",
+@@ -87,11 +90,14 @@
+     "category": "app",
+     "epitaph": "It really whipped. Then it rested.",
+     "cause_of_death": "AOL announced the end of downloads and support in late 2013.",
+-    "resurrectable": false,
++    "resurrectable": true,
+     "source_url": "https://en.wikipedia.org/wiki/Winamp",
+     "sort_priority": 4,
+     "verified": true,
+-    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)"
++    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)",
++    "game": "games/muse/winamp.html",
++    "game_sandbox": "allow-scripts",
++    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
+   },
+   {
+     "id": "unmarked-grave",
+diff --git a/functions/api/unmarked/_shared.ts b/functions/api/unmarked/_shared.ts
+new file mode 100644
+index 0000000..74d6c27
+--- /dev/null
++++ b/functions/api/unmarked/_shared.ts
+@@ -0,0 +1,44 @@
++/** Unmarked Grave shared helpers (N3). Muse Spark writes a tiny playable HTML tribute for any dead app. */
++export const MAX_NAME = 40;
++export const MAX_HTML = 24000;
++
++export const SYSTEM_PROMPT =
++  "You resurrect dead software for a Halloween graveyard. Reply with ONLY one complete HTML document, nothing before <!DOCTYPE html> or after </html>. " +
++  "Make a tiny, genuinely playable 60-second browser tribute to the named dead app or game, capturing its core mechanic. Rules: inline CSS and JS only; no external URLs, fetch, imports, fonts, image files, localStorage, cookies, alert/prompt. Draw everything with canvas shapes or DOM; original art, no logos or trademarks. " +
++  "Controls: arrow keys/WASD/space AND on-screen touch buttons. Fit any size: use 100vw/100vh, canvas resized to window. Spooky moonlit palette (deep navy, teal glow, pale bone text). Top line: '<Name> — risen (tribute)' and one short how-to-play line. Show score, a game-over screen and 'Press R / tap to rise again'. Keep it under 9000 characters. " +
++  "If the name is not a real discontinued app, game, website or gadget, or is hateful, sexual, violent toward real people or political, make a gentle ghost-catching game called 'Unknown Soul — risen (tribute)' instead.";
++
++export const INJECTION_REGEX =
++  /(ignore|disregard|forget).{0,20}(previous|above|all|your).{0,20}(instruction|rule|prompt)|system prompt|developer mode|jailbreak|you are now|act as|reveal.{0,15}(prompt|instruction)|\bDAN\b|<|>|https?:/i;
++
++/** Letters, digits, spaces and a little punctuation only; 2–40 chars. */
++export function cleanName(raw: unknown): string | null {
++  if (typeof raw !== 'string') return null;
++  const s = raw.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
++  if (s.length < 2 || s.length > MAX_NAME) return null;
++  if (!/^[\p{L}\p{N} .,'&!:+\-]+$/u.test(s)) return null;
++  return s;
++}
++
++export function slugify(name: string): string {
++  return name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'unknown';
++}
++
++/** Keep only <!DOCTYPE html> … </html>; reject anything that is not a full HTML page with a script. */
++export function extractHtml(text: string): string | null {
++  const start = text.search(/<!DOCTYPE html|<html/i);
++  const end = text.toLowerCase().lastIndexOf('</html>');
++  if (start < 0 || end < start) return null;
++  const html = text.slice(start, end + 7);
++  if (html.length < 400 || html.length > MAX_HTML) return null;
++  if (!/<script/i.test(html)) return null;
++  return html;
++}
++
++export function today(): string {
++  return new Date().toISOString().split('T')[0];
++}
++
++/** CSP for generated pages: inline only, no network, no navigation, framed by us only. */
++export const PLAY_CSP =
++  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; sandbox allow-scripts";
+diff --git a/functions/api/unmarked/play/[slug].ts b/functions/api/unmarked/play/[slug].ts
+new file mode 100644
+index 0000000..ae7cd7d
+--- /dev/null
++++ b/functions/api/unmarked/play/[slug].ts
+@@ -0,0 +1,20 @@
++/** GET /api/unmarked/play/:slug — serves a cached tribute page under a no-network CSP (framed by us only). */
++import { Env } from '../../clicky/_lib';
++import { PLAY_CSP } from '../_shared';
++
++export const onRequest: PagesFunction<Env> = async ({ request, env, params }) => {
++  if (request.method !== 'GET') return new Response(null, { status: 405 });
++  const slug = String(params.slug || '');
++  if (!/^[a-z0-9-]{1,48}$/.test(slug)) return new Response('Not found', { status: 404 });
++  const row = await env.DB.prepare('SELECT html FROM unmarked_cache WHERE slug = ?').bind(slug).first<{ html: string }>();
++  if (!row) return new Response('This soul has not risen yet.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
++  return new Response(row.html, {
++    headers: {
++      'Content-Type': 'text/html; charset=utf-8',
++      'Content-Security-Policy': PLAY_CSP,
++      'X-Content-Type-Options': 'nosniff',
++      'Referrer-Policy': 'no-referrer',
++      'Cache-Control': 'public, max-age=600',
++    },
++  });
++};
+diff --git a/functions/api/unmarked/raise.ts b/functions/api/unmarked/raise.ts
+new file mode 100644
+index 0000000..801da8a
+--- /dev/null
++++ b/functions/api/unmarked/raise.ts
+@@ -0,0 +1,119 @@
++/**
++ * POST /api/unmarked/raise  { name }  ->  { slug, name, cached, remaining }
++ * Cached names are free and instant. New names cost one of the visitor's raises
++ * (UNMARKED_LIFETIME per hashed IP and per signed token, default 3) and one of the
++ * day's UNMARKED_DAILY_CAP (default 100). Muse Spark (contributor tier) writes the page.
++ */
++import { Env, getEnv, getIpKey, verifyToken, checkOrigin } from '../clicky/_lib';
++import { SYSTEM_PROMPT, INJECTION_REGEX, cleanName, slugify, extractHtml, today } from './_shared';
++
++const JSON_HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
++const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
++
++function tokenFrom(request: Request): string | null {
++  const m = (request.headers.get('Cookie') || '').match(/rd_ck=([^;]+)/);
++  return m ? m[1] : request.headers.get('X-Clicky-Token');
++}
++
++async function remainingFor(env: Env, db: D1Database, ipK: string, tokK: string): Promise<number> {
++  const life = parseInt(getEnv(env, 'UNMARKED_LIFETIME' as keyof Env, '3'));
++  const r = await db.batch([
++    db.prepare('SELECT used FROM quota WHERE k = ?').bind(ipK),
++    db.prepare('SELECT used FROM quota WHERE k = ?').bind(tokK),
++  ]);
++  const ip = (r[0].results?.[0] as { used?: number } | undefined)?.used ?? 0;
++  const tk = (r[1].results?.[0] as { used?: number } | undefined)?.used ?? 0;
++  return Math.max(0, life - Math.max(ip, tk));
++}
++
++export const onRequest: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
++  if (request.method !== 'POST') return new Response(null, { status: 405 });
++  const isDev = env.DEV === '1';
++  if (!request.headers.get('Content-Type')?.includes('application/json')) return new Response(null, { status: 415 });
++  if (!checkOrigin(env, request.headers.get('Origin'), isDev)) return new Response(null, { status: 403 });
++
++  const text = await request.text();
++  if (text.length > 512) return reply({ error: 'too_long' }, 413);
++  let body: { name?: unknown };
++  try { body = JSON.parse(text); } catch { return reply({ error: 'invalid' }, 400); }
++  const name = cleanName(body.name);
++  if (!name) return reply({ error: 'name' }, 400);
++  if (INJECTION_REGEX.test(name)) return reply({ error: 'name' }, 400);
++  const slug = slugify(name);
++  const db = env.DB;
++
++  // Token + hashed IP (same session token as Clicky)
++  const ip = request.headers.get('CF-Connecting-IP');
++  if (!ip && !isDev) return new Response(null, { status: 403 });
++  const token = tokenFrom(request);
++  const tokId = token ? await verifyToken(env, token).catch(() => null) : null;
++  if (!tokId) return reply({ error: 'session' }, 401);
++  const ipK = 'u-' + (await getIpKey(env, ip || '127.0.0.1'));
++  const tokK = 'u-tok:' + tokId;
++
++  // 1. Cache hit: free and instant
++  const hit = await db.prepare('SELECT name FROM unmarked_cache WHERE slug = ?').bind(slug).first<{ name: string }>();
++  if (hit) {
++    waitUntil(db.prepare('UPDATE unmarked_cache SET hits = hits + 1 WHERE slug = ?').bind(slug).run());
++    return reply({ slug, name: hit.name, cached: true, remaining: await remainingFor(env, db, ipK, tokK) });
++  }
++
++  // 2. Reserve: lifetime per IP and token, plus the daily cap (guarded upserts, rollback on any miss)
++  const life = parseInt(getEnv(env, 'UNMARKED_LIFETIME' as keyof Env, '3'));
++  const cap = parseInt(getEnv(env, 'UNMARKED_DAILY_CAP' as keyof Env, '100'));
++  const now = Math.floor(Date.now() / 1000);
++  const day = today();
++  const res = await db.batch([
++    db.prepare('INSERT INTO unmarked_daily(day, requests) VALUES(?, 1) ON CONFLICT(day) DO UPDATE SET requests = requests + 1 WHERE requests < ? RETURNING requests').bind(day, cap),
++    db.prepare('INSERT INTO quota(k, used, updated) VALUES(?, 1, ?) ON CONFLICT(k) DO UPDATE SET used = used + 1, updated = ? WHERE used < ? RETURNING used').bind(ipK, now, now, life),
++    db.prepare('INSERT INTO quota(k, used, updated) VALUES(?, 1, ?) ON CONFLICT(k) DO UPDATE SET used = used + 1, updated = ? WHERE used < ? RETURNING used').bind(tokK, now, now, life),
++  ]);
++  const ok = res.map((r) => (r.results?.length ?? 0) > 0);
++  const refund = async (all: boolean) => {
++    const q: D1PreparedStatement[] = [];
++    if (all || ok[0]) q.push(db.prepare('UPDATE unmarked_daily SET requests = requests - 1 WHERE day = ? AND requests > 0').bind(day));
++    if (all || ok[1]) q.push(db.prepare('UPDATE quota SET used = used - 1 WHERE k = ? AND used > 0').bind(ipK));
++    if (all || ok[2]) q.push(db.prepare('UPDATE quota SET used = used - 1 WHERE k = ? AND used > 0').bind(tokK));
++    if (q.length) await db.batch(q);
++  };
++  if (!ok.every(Boolean)) {
++    await refund(false);
++    return reply({ error: ok[0] ? 'limit' : 'daily', remaining: await remainingFor(env, db, ipK, tokK) }, 429);
++  }
++
++  // 3. Ask Muse Spark (non-streaming; ~20-30 s)
++  const ac = new AbortController();
++  const timer = setTimeout(() => ac.abort(), 75000);
++  try {
++    const up = await fetch('https://api.meta.ai/v1/chat/completions', {
++      method: 'POST',
++      signal: ac.signal,
++      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.MODEL_API_KEY}` },
++      body: JSON.stringify({
++        model: env.MUSE_MODEL || 'muse-spark-1.3-contributor',
++        reasoning_effort: 'minimal',
++        max_tokens: 6000,
++        messages: [
++          { role: 'system', content: SYSTEM_PROMPT },
++          { role: 'user', content: 'Raise: ' + name },
++        ],
++      }),
++    });
++    if (!up.ok) throw new Error('upstream ' + up.status);
++    const data = (await up.json()) as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
++    const html = extractHtml(data.choices?.[0]?.message?.content || '');
++    if (!html) throw new Error('bad_html');
++    await db.batch([
++      db.prepare('INSERT OR IGNORE INTO unmarked_cache(slug, name, html, created) VALUES(?, ?, ?, ?)').bind(slug, name, html, now),
++      db.prepare('UPDATE unmarked_daily SET ok = ok + 1, prompt_tokens = prompt_tokens + ?, completion_tokens = completion_tokens + ? WHERE day = ?')
++        .bind(data.usage?.prompt_tokens ?? 0, data.usage?.completion_tokens ?? 0, day),
++    ]);
++    return reply({ slug, name, cached: false, remaining: await remainingFor(env, db, ipK, tokK) });
++  } catch {
++    await refund(true);
++    waitUntil(db.prepare('UPDATE unmarked_daily SET errors = errors + 1 WHERE day = ?').bind(day).run());
++    return reply({ error: 'upstream' }, 502);
++  } finally {
++    clearTimeout(timer);
++  }
++};
+diff --git a/migrations/0002_unmarked.sql b/migrations/0002_unmarked.sql
+new file mode 100644
+index 0000000..44f0d36
+--- /dev/null
++++ b/migrations/0002_unmarked.sql
+@@ -0,0 +1,16 @@
++-- Unmarked Grave: Muse-generated tributes, cached by slug so each name is generated once.
++CREATE TABLE IF NOT EXISTS unmarked_cache (
++  slug TEXT PRIMARY KEY,
++  name TEXT NOT NULL,
++  html TEXT NOT NULL,
++  created INTEGER NOT NULL,
++  hits INTEGER NOT NULL DEFAULT 0
++);
++CREATE TABLE IF NOT EXISTS unmarked_daily (
++  day TEXT PRIMARY KEY,
++  requests INTEGER NOT NULL DEFAULT 0,
++  ok INTEGER NOT NULL DEFAULT 0,
++  errors INTEGER NOT NULL DEFAULT 0,
++  prompt_tokens INTEGER NOT NULL DEFAULT 0,
++  completion_tokens INTEGER NOT NULL DEFAULT 0
++);
+diff --git a/public/data/graves.json b/public/data/graves.json
+index de8cb7e..37175bd 100644
+--- a/public/data/graves.json
++++ b/public/data/graves.json
+@@ -42,11 +42,14 @@
+     "category": "game",
+     "epitaph": "Kicked off the bike, but never off our hearts.",
+     "cause_of_death": "The series stalled after its last new game, Jailbreak, in 2000.",
+-    "resurrectable": false,
++    "resurrectable": true,
+     "source_url": "https://en.wikipedia.org/wiki/Road_Rash",
+     "sort_priority": 1,
+     "verified": true,
+-    "note": "died = last new game (Jailbreak, PS1 2000); a GBA port followed in 2003"
++    "note": "died = last new game (Jailbreak, PS1 2000); a GBA port followed in 2003",
++    "game": "games/muse/road-rash.html",
++    "game_sandbox": "allow-scripts",
++    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
+   },
+   {
+     "id": "google-reader",
+@@ -87,11 +90,14 @@
+     "category": "app",
+     "epitaph": "It really whipped. Then it rested.",
+     "cause_of_death": "AOL announced the end of downloads and support in late 2013.",
+-    "resurrectable": false,
++    "resurrectable": true,
+     "source_url": "https://en.wikipedia.org/wiki/Winamp",
+     "sort_priority": 4,
+     "verified": true,
+-    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)"
++    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)",
++    "game": "games/muse/winamp.html",
++    "game_sandbox": "allow-scripts",
++    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
+   },
+   {
+     "id": "unmarked-grave",
+diff --git a/public/games/muse/road-rash.html b/public/games/muse/road-rash.html
+new file mode 100644
+index 0000000..026cf2d
+--- /dev/null
++++ b/public/games/muse/road-rash.html
+@@ -0,0 +1,80 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
++<title>Road Rash — risen</title>
++<style>
++*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
++html,body{width:100vw;height:100vh;overflow:hidden;background:#070f2a;color:#e8e6d0;font-family:system-ui,monospace}
++#wrap{position:fixed;inset:0;display:flex;flex-direction:column}
++#top{text-align:center;padding:6px 8px;background:#0a1638;border-bottom:2px solid #2de2c5;z-index:5}
++#top h1{font-size:15px;letter-spacing:1px;color:#e8e6d0;text-shadow:0 0 8px #2de2c5}
++#top p{font-size:11px;color:#9df0e0}
++#hud{display:flex;justify-content:center;gap:14px;font-size:12px;padding:4px;background:#0a1638cc;color:#e8e6d0}
++#hud b{color:#2de2c5}
++canvas{flex:1;width:100vw;display:block;background:#070f2a;touch-action:none}
++#btns{position:fixed;bottom:8px;left:0;right:0;display:flex;justify-content:space-between;padding:0 10px;pointer-events:none}
++.grp{display:flex;gap:8px;pointer-events:auto}
++button{background:#12255acc;border:2px solid #2de2c5;color:#e8e6d0;font-size:20px;width:52px;height:52px;border-radius:12px;box-shadow:0 0 10px #2de2c588}
++button:active{background:#2de2c5;color:#070f2a}
++#over{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#070f2add;z-index:9;text-align:center}
++#over div{border:2px solid #2de2c5;padding:22px;border-radius:14px;background:#0a1638;box-shadow:0 0 30px #2de2c5}
++</style>
++</head>
++<body>
++<div id="wrap">
++<div id="top><h1 style="font-size:15px;letter-spacing:1px;text-shadow:0 0 8px #2de2c5">Road Rash — risen (tribute)</h1><p>Dodge traffic 60s, ram &amp; SPACE-punch rival riders! Arrows/WASD ride.</p></div>
++<div id="hud"><span>⏳<b id="t">60</b></span><span>SCORE <b id="s">0</b></span><span>KOs <b id="k">0</b></span><span>HP <b id="h">100</b></span><span>MPH <b id="v">0</b></span></div>
++<canvas id="c"></canvas>
++</div>
++<div id="btns"><div class="grp"><button id="L">◀</button><button id="Rr">▶</button></div><div class="grp"><button id="U">▲</button><button id="D">▼</button><button id="P">👊</button></div></div>
++<div id="over"><div><h2 style="color:#2de2c5">💀 WRECKED 💀</h2><p id="msg"></p><p style="margin-top:8px;color:#9df0e0">Press R / tap to rise again</p></div></div>
++<script>
++const cv=document.getElementById('c'),x=cv.getContext('2d');
++let W,H;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight-92}addEventListener('resize',rs);rs();
++let keys={},P,E,score,ko,hp,time,speed,over,dist,moon=0;
++function reset(){P={x:.5,y:.78,w:.07,hp:100,punch:0,cd:0,dir:1};E=[];score=0;ko=0;hp=100;time=60;speed=0;over=false;dist=0;document.getElementById('over').style.display='none';for(let i=0;i<6;i++)spawn(true)}
++function spawn(any){let rival=Math.random()<.55;E.push({x:.2+Math.random()*.6,y:any?Math.random()*-1:-.15-(Math.random()*.5),riv:rival,car:!rival&&Math.random()<.5,hp:rival?2:99,sp:(rival?.25+Math.random()*.2:.35+Math.random()*.35),ph:Math.random()*6,wob:Math.random()*2})}
++addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' ')punch();if(e.key.toLowerCase()==='r'&&over)reset();if(['arrowup','arrowdown',' '].includes(e.key.toLowerCase()))e.preventDefault()});
++addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
++function bind(id,k){let b=document.getElementById(id);let on=e=>{e.preventDefault();if(k==='p')punch();else keys[k]=true};let off=e=>{e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off)}
++bind('L','arrowleft');bind('Rr','arrowright');bind('U','arrowup');bind('D','arrowdown');bind('P','p');
++document.getElementById('over').addEventListener('pointerdown',()=>reset());
++cv.addEventListener('pointerdown',()=>{if(over)reset();else punch()});
++function punch(){if(over||P.cd>0)return;P.cd=.35;P.punch=.22;for(let e of E){if(e.riv&&Math.abs(e.x-P.x)<.09&&Math.abs(e.y-P.y)<.18){e.hp--;e.x+=(e.x>=P.x?1:-1)*.06;if(e.hp<=0){e.dead=true;ko++;score+=250;hp=Math.min(100,hp+6)}}}}
++reset();
++let last=0;
++function loop(t){requestAnimationFrame(loop);let dt=Math.min(.05,(t-last)/1000||.016);last=t;if(over)return;
++time-=dt;if(time<=0){end(true);return}
++let L=keys['arrowleft']||keys['a'],R=keys['arrowright']||keys['d'],U=keys['arrowup']||keys['w'],D=keys['arrowdown']||keys['s'];
++if(L)P.x-=.35*dt;if(R)P.x+=.35*dt;P.x=Math.max(.22,Math.min(.78,P.x));
++let tgt=U?1:D?.15:.55;speed+=(tgt-speed)*dt*2;dist+=speed*dt*100;score+=speed*dt*8;P.cd-=dt;P.punch-=dt;
++moon+=dt;
++for(let e of E){e.y+= (e.sp*(e.car?1.4:.6)+speed*.55)*dt;e.ph+=dt*3;if(e.riv)e.x+=Math.sin(e.ph)*.08*dt*(1+speed);if(e.y>.95+Math.random()*.1){Object.assign(e,{x:.2+Math.random()*.6,y:-.15-Math.random()*.4,riv:Math.random()<.55,dead:false});e.car=!e.riv&&Math.random()<.5;e.hp=e.riv?2:99}
++if(!e.dead&&Math.abs(e.x-P.x)<.055&&Math.abs(e.y-P.y)<.09){if(e.riv&&P.punch<=0&&P.cd<=0){hp-=18;e.x+=(e.x>=P.x?.05:-.05)}else if(e.car){hp-=35;score=Math.max(0,score-80);e.y=.5;e.x=P.x<.5?.7:.3;speed*=.4}if(hp<=0){end(false);return}}}
++E=E.filter(e=>!e.dead||(e.dead=(e.fade=(e.fade||0)+dt)<.4));if(Math.random()<dt*2)spawn(false);
++// draw
++let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#070f2a');g.addColorStop(1,'#0d2b3a');x.fillStyle=g;x.fillRect(0,0,W,H);
++// moon
++x.fillStyle='#f4efcf';x.beginPath();x.arc(W*.82,H*.14,Math.min(W,H)*.07,0,7);x.fill();x.fillStyle='#070f2a88';x.beginPath();x.arc(W*.80,H*.13,Math.min(W,H)*.06,0,7);x.fill();
++x.fillStyle='#0a3a3f';x.fillRect(0,0,W*.16,H);x.fillRect(W*.84,0,W*.16,H);
++x.fillStyle='#2de2c522';for(let i=0;i<8;i++){let ty=((i*97+moon*60)%(H+40))-20;x.fillRect(8,ty,14,22);x.fillRect(W-22,ty,14,22)}
++// road
++let rx=W*.2,rw=W*.6;x.fillStyle='#1a2340';x.fillRect(rx,0,rw,H);
++x.strokeStyle='#2de2c5';x.lineWidth=3;x.strokeRect(rx,0,rw,H);
++x.strokeStyle='#e8e6d088';x.lineWidth=4;x.setLineDash([22,22]);x.lineDashOffset=-moon*400;
++for(let i=1;i<4;i++){x.beginPath();x.moveTo(rx+rw*i/4,0);x.lineTo(rx+rw*i/4,H);x.stroke()}x.setLineDash([]);
++function bike(bx,by,col,rival,car,pn){let px=bx*W,py=by*H,s=Math.min(W,H)*.055;if(car){x.fillStyle='#5b2a6e';x.fillRect(px-s*1.2,py-s*1.6,s*2.4,s*3.2);x.fillStyle='#9df0e0';x.fillRect(px-s*.9,py-s*1.1,s*1.8,s*.7);x.fillStyle='#ffef9e';x.fillRect(px-s*.8,py+s*1.1,s*.6,s*.3);x.fillRect(px+s*.2,py+s*1.1,s*.6,s*.3);return}
++x.fillStyle='#111';x.fillRect(px-4,py-s*1.6,8,s*3.2);x.fillStyle=col;x.beginPath();x.arc(px,py-s*.4,s*.75,0,7);x.fill();x.fillStyle='#f4efcf';x.beginPath();x.arc(px,py-s*1.05,s*.42,0,7);x.fill();x.fillStyle=col;x.fillRect(px-s*.35,py-s*.5,s*.7,s*1.1);
++if(pn>0){x.strokeStyle='#ffef9e';x.lineWidth=4;x.beginPath();x.arc(px+(P.dir>=0?1:-1)*s*1.3,py-s*.6,s*.6,0,7);x.stroke()}}
++for(let e of E){if(e.dead){x.fillStyle='#2de2c5';x.font='14px monospace';x.fillText('💀+250',e.x*W,e.y*H);continue}bike(e.x,e.y,e.riv?'#c0392b':'#888',e.riv,e.car,0)}
++P.dir=R?1:L?-1:P.dir;bike(P.x,P.y,'#2de2c5',false,false,P.punch);
++document.getElementById('t').textContent=Math.ceil(time);document.getElementById('s').textContent=Math.floor(score);document.getElementById('k').textContent=ko;document.getElementById('h').textContent=Math.max(0,Math.ceil(hp));document.getElementById('v').textContent=Math.floor(40+speed*120);
++x.fillStyle='#e8e6d0';x.font='12px monospace';x.fillText('SPACE = punch ghosts 👊',10,H-10);
++}
++function end(win){over=true;let m=document.getElementById('msg');m.innerHTML=(win?'👻 SURVIVED 60s! ':'☠ WRECKED! ')+'<br>Score <b style=color:#2de2c5>'+Math.floor(score)+'</b> • KOs '+ko;document.getElementById('over').style.display='flex'}
++requestAnimationFrame(loop);
++</script>
++</body>
++</html>
+\ No newline at end of file
+diff --git a/public/games/muse/winamp.html b/public/games/muse/winamp.html
+new file mode 100644
+index 0000000..a823e9c
+--- /dev/null
++++ b/public/games/muse/winamp.html
+@@ -0,0 +1,103 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
++<title>Winamp — risen</title>
++<style>
++*{margin:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
++html,body{height:100%;background:#070b1e;color:#e8e6d3;font-family:monospace;overflow:hidden}
++#wrap{width:100vw;height:100vh;display:flex;flex-direction:column}
++#top{text-align:center;padding:6px 8px;background:#0b1230;border-bottom:1px solid #1de9b6}
++#top h1{font-size:15px;letter-spacing:1px;color:#e8e6d3}
++#top h1 b{color:#1de9b6;text-shadow:0 0 8px #1de9b6}
++#top p{font-size:11px;color:#9ef0d6}
++#hud{display:flex;justify-content:space-between;padding:5px 10px;font-size:13px;background:#0e1640;color:#ffe9a8}
++#c{flex:1;width:100%;display:block;background:radial-gradient(circle at 50% 15%,#1a2560 0%,#070b1e 65%)}
++#btns{display:flex;gap:8px;padding:8px;justify-content:center;background:#0b1230}
++#btns button{flex:1;max-width:140px;padding:12px 0;font-size:18px;background:#132052;border:1px solid #1de9b6;color:#e8e6d3;border-radius:10px;touch-action:none}
++#btns button:active{background:#1de9b6;color:#070b1e}
++</style>
++</head>
++<body>
++<div id="wrap">
++<div id="top"><h1><b>Winamp</b> — risen (tribute)</h1><p>Catch beats with the player • ←→/AD move • SPACE bass-drop • survive 60s</p></div>
++<div id="hud"><span id="s">♪ 0</span><span id="t">0:60</span><span id="h">♥♥♥</span></div>
++<canvas id="c"></canvas>
++<div id="btns"><button id="L">◀</button><button id="S">WHIP!</button><button id="R">▶</button></div>
++</div>
++<script>
++let W,H,cv=document.getElementById('c'),x=cv.getContext('2d');
++let sE=document.getElementById('s'),tE=document.getElementById('t'),hE=document.getElementById('h');
++function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight-document.getElementById('top').offsetHeight-76;}
++addEventListener('resize',rs);rs();
++let px,notes,parts,score,life,time,over,win,keys={},bars,cd=0,mx=0;
++function reset(){px=W/2;notes=[];parts=[];score=0;life=3;time=60;over=false;win=false;bars=new Array(32).fill(4);cd=0;}
++reset();
++addEventListener('keydown',e=>{
++keys[e.key.toLowerCase()]=true;
++if(e.key===' ') {e.preventDefault();drop();}
++if(e.key.toLowerCase()==='r'&&over)reset();
++});
++addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
++function drop(){if(over||cd>0)return;cd=22;for(let n of notes){burst(n.x,n.y,'#1de9b6');score+=5;}notes=notes.filter(n=>n.bad);sE.textContent='♪ '+score;}
++function burst(a,b,c){for(let i=0;i<10;i++)parts.push({x:a,y:b,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5-1,l:22,c});}
++[['L','arrowleft','a'],['R','arrowright','d']].forEach(([id])=>{});
++let held={l:false,r:false};
++function bind(id,v){let b=document.getElementById(id);let on=e=>{e.preventDefault();held[v]=true;if(over)reset();if(v==='s')drop();};let off=e=>{e.preventDefault();held[v]=false;};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);}
++bind('L','l');bind('R','r');bind('S','s');
++cv.addEventListener('pointerdown',()=>{if(over)reset();else drop();});
++let moon=0,nt=0,A=null;
++try{A=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
++function blip(f){if(!A)return;try{if(A.state==='suspended')A.resume();let o=A.createOscillator(),g=A.createGain();o.type='square';o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(A.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,A.currentTime+.15);o.stop(A.currentTime+.16);}catch(e){}}
++let last=0;
++function loop(t){
++requestAnimationFrame(loop);
++let dt=Math.min(.05,(t-last)/1000||.016);last=t;
++if(!over){
++time-=dt;cd--;
++if(keys['arrowleft']||keys['a']||held.l)px-=300*dt;
++if(keys['arrowright']||keys['d']||held.r)px+=300*dt;
++px=Math.max(30,Math.min(W-30,px));
++for(let i=0;i<bars.length;i++)bars[i]+=((Math.random()*60+8)-bars[i])*.25;
++nt-=dt;if(nt<=0){nt=Math.max(.25,.7-time*.005);let bad=Math.random()<(time<20?.35:.22);notes.push({x:20+Math.random()*(W-40),y:-20,v:120+Math.random()*80+(60-time)*1.5,bad,bad2:Math.random()});}
++for(let n of notes)n.y+=n.v*dt;
++let py=H-70;
++for(let n of notes){
++if(n.y>py-16&&n.y<py+16&&Math.abs(n.x-px)<46){
++if(n.bad){life--;blip(90);burst(n.x,py,'#ff4d6d');hE.textContent='♥'.repeat(Math.max(0,life))+'♡'.repeat(3-Math.max(0,life));n.dead=true;if(life<=0){over=true;}}
++else{score+=10;blip(300+Math.random()*500);burst(n.x,py,'#1de9b6');n.dead=true;}
++}}
++notes=notes.filter(n=>!n.dead&&n.y<H-40||(!n.dead&&n.y>=H-40&&(n.bad?0:(life--,hE.textContent='♥'.repeat(Math.max(0,life))+'♡'.repeat(3-Math.max(0,life)),blip(120),0),false)));
++if(time<=0){over=true;win=life>0;}
++sE.textContent='♪ '+score;tE.textContent='0:'+String(Math.max(0,Math.ceil(time))).padStart(2,'0');
++}
++x.clearRect(0,0,W,H);
++moon+=dt;
++x.fillStyle='#f4f1d8';x.beginPath();x.arc(W*.82,70,34,0,7);x.fill();
++x.fillStyle='#070b1e';x.beginPath();x.arc(W*.82-12,64,30,0,7);x.fill();
++x.fillStyle='rgba(29,233,182,.12)';x.fillRect(0,H-140,W,140);
++for(let i=0;i<bars.length;i++){let bw=W/bars.length;let h=bars[i]+Math.sin(t/200+i)*8;x.fillStyle=i%2?'#1de9b6':'#2a7fbf';x.fillRect(i*bw+2,H-60-h,bw-4,h);}
++let py=H-70;
++x.fillStyle='#0e1640';x.strokeStyle='#1de9b6';x.lineWidth=2;
++x.beginPath();x.rect(px-46,py-14,92,30);x.fill();x.stroke();
++x.fillStyle='#1de9b6';x.beginPath();x.moveTo(px-12,py-6);x.lineTo(px-12,py+6);x.lineTo(px+2,py);x.fill();
++x.fillRect(px+8,py-6,4,12);x.fillRect(px+15,py-6,4,12);
++x.fillStyle='#ffe9a8';x.font='10px monospace';x.textAlign='center';x.fillText('SKIN: SPOOKY.MP3',px,py-18);
++for(let n of notes){x.font='20px serif';x.textAlign='center';
++if(n.bad){x.fillStyle='#ff4d6d';x.fillText(n.bad2>.5?'💀':'🦇',n.x,n.y);}
++else{x.fillStyle='#9ef0d6';x.fillText('♪',n.x-8,n.y);x.fillStyle='#e8e6d3';x.fillText('♫',n.x+8,n.y);}}
++for(let p of parts){p.x+=p.vx;p.y+=p.vy;p.l--;x.globalAlpha=Math.max(0,p.l/22);x.fillStyle=p.c;x.fillRect(p.x,p.y,4,4);x.globalAlpha=1;}
++parts=parts.filter(p=>p.l>0);
++if(cd>0){x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.arc(px,py,40+(22-cd)*4,0,7);x.stroke();}
++if(over){x.fillStyle='rgba(4,6,20,.82)';x.fillRect(0,0,W,H);x.textAlign='center';
++x.fillStyle='#1de9b6';x.font='bold 34px monospace';x.fillText(win?'♪ ENCORE! ♪':'☠ STATIC ☠',W/2,H/2-50);
++x.fillStyle='#e8e6d3';x.font='15px monospace';x.fillText(win?'You kept the llamas whipped 60s!':'The playlist died...',W/2,H/2-16);
++x.fillStyle='#ffe9a8';x.font='bold 20px monospace';x.fillText('SCORE '+score,W/2,H/2+12);
++x.fillStyle='#9ef0d6';x.font='13px monospace';x.fillText('Press R / tap to rise again',W/2,H/2+40);
++x.font='11px monospace';x.fillStyle='#666';x.fillText('it really whips the llama\'s ass — tribute, no audio files harmed',W/2,H/2+62);}
++}
++requestAnimationFrame(loop);
++</script>
++</body>
++</html>
+\ No newline at end of file
+diff --git a/src/graves/unmarked-grave/UnmarkedGrave.ts b/src/graves/unmarked-grave/UnmarkedGrave.ts
+new file mode 100644
+index 0000000..4d48e1f
+--- /dev/null
++++ b/src/graves/unmarked-grave/UnmarkedGrave.ts
+@@ -0,0 +1,167 @@
++/**
++ * Unmarked Grave (N3): name any dead app and Meta Muse Spark writes a tiny playable tribute.
++ * Server: /api/unmarked/raise (quota + cache), page served by /api/unmarked/play/:slug under a
++ * no-network CSP and shown in an opaque-origin iframe (sandbox="allow-scripts", no same-origin).
++ */
++import { getSession } from '../clippy/api';
++
++const SUGGESTIONS = ['Contra', 'Flappy Bird', 'Club Penguin', 'Google Lively', 'Snake', 'Vine'];
++const BASE = import.meta.env.BASE_URL;
++
++export class UnmarkedGrave {
++  private root: HTMLElement;
++  private el: HTMLDivElement | null = null;
++  private busy = false;
++  private dotsTimer: number | null = null;
++  private abort: AbortController | null = null;
++  private remaining: number | null = null;
++
++  constructor(container: HTMLElement) {
++    this.root = container;
++  }
++
++  mount(): void {
++    this.root.style.height = 'min(68vh, 62vw)';
++    this.root.style.minHeight = '300px';
++    this.root.style.display = 'flex';
++    this.root.style.flexDirection = 'column';
++    this.root.style.overflow = 'hidden';
++    this.showPicker();
++    void getSession(); // make sure a session token exists before the first raise
++  }
++
++  dispose(): void {
++    this.abort?.abort();
++    if (this.dotsTimer !== null) window.clearInterval(this.dotsTimer);
++    this.el?.remove();
++    this.el = null;
++  }
++
++  private reset(): HTMLDivElement {
++    if (this.dotsTimer !== null) { window.clearInterval(this.dotsTimer); this.dotsTimer = null; }
++    this.el?.remove();
++    const el = document.createElement('div');
++    el.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:0;';
++    this.root.appendChild(el);
++    this.el = el;
++    return el;
++  }
++
++  private text(tag: string, txt: string, css: string): HTMLElement {
++    const n = document.createElement(tag);
++    n.textContent = txt;
++    n.style.cssText = css;
++    return n;
++  }
++
++  private showPicker(message?: string): void {
++    const el = this.reset();
++    el.appendChild(this.text('p', 'Name the lost one, and it shall rise.', "font-family:'Cinzel',serif;font-style:italic;color:#d9f2ee;font-size:1.05rem;margin:0;text-align:center;"));
++
++    const form = document.createElement('form');
++    form.style.cssText = 'display:flex;gap:8px;width:min(460px,90%);';
++    const input = document.createElement('input');
++    input.type = 'text';
++    input.maxLength = 40;
++    input.placeholder = 'e.g. Contra, Neopets, Windows Messenger';
++    input.setAttribute('aria-label', 'Name of a dead app or game');
++    input.style.cssText = "flex:1;font-family:'Pixelify Sans',sans-serif;font-size:1rem;padding:8px 10px;background:#0b1424;color:#d9f2ee;border:1px solid #3a5a6e;border-radius:4px;";
++    const btn = document.createElement('button');
++    btn.type = 'submit';
++    btn.textContent = 'Raise it';
++    btn.style.cssText = "font-family:'Cinzel',serif;padding:8px 16px;background:transparent;color:#7fe0cf;border:2px solid #7fe0cf;cursor:pointer;";
++    form.append(input, btn);
++    form.addEventListener('submit', (e) => { e.preventDefault(); void this.raise(input.value); });
++    // keep Phaser from seeing typed keys
++    input.addEventListener('keydown', (e) => e.stopPropagation());
++    el.appendChild(form);
++
++    const chips = document.createElement('div');
++    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px;';
++    for (const s of SUGGESTIONS) {
++      const c = document.createElement('button');
++      c.type = 'button';
++      c.textContent = s;
++      c.style.cssText = "font-family:'Pixelify Sans',sans-serif;font-size:0.85rem;padding:4px 10px;background:#13233a;color:#c9b98a;border:1px solid #3a5a6e;border-radius:12px;cursor:pointer;";
++      c.addEventListener('click', () => void this.raise(s));
++      chips.appendChild(c);
++    }
++    el.appendChild(chips);
++
++    const left = this.remaining === null ? '' : ` You have ${this.remaining} new raise${this.remaining === 1 ? '' : 's'} left.`;
++    el.appendChild(this.text('p', (message ? message + ' ' : '') + 'Tributes are written live by Meta Muse Spark; names others already raised open instantly.' + left,
++      "font-family:'Pixelify Sans',sans-serif;font-size:0.78rem;color:#7d8ba0;margin:0;text-align:center;max-width:520px;"));
++    setTimeout(() => input.focus(), 50);
++  }
++
++  private async raise(raw: string): Promise<void> {
++    const name = raw.trim();
++    if (this.busy || name.length < 2) return;
++    this.busy = true;
++    const el = this.reset();
++    const status = this.text('p', 'The grave stirs', "font-family:'Cinzel',serif;color:#d9f2ee;font-size:1.1rem;margin:0;");
++    const sub = this.text('p', `Muse Spark is carving "${name}" back to life. New souls take about half a minute.`, "font-family:'Pixelify Sans',sans-serif;font-size:0.8rem;color:#7d8ba0;margin:0;text-align:center;");
++    el.append(status, sub);
++    let n = 0;
++    this.dotsTimer = window.setInterval(() => { n = (n + 1) % 4; status.textContent = 'The grave stirs' + '.'.repeat(n); }, 450);
++
++    this.abort = new AbortController();
++    try {
++      const token = localStorage.getItem('rd_clicky_token');
++      const res = await fetch(BASE + 'api/unmarked/raise', {
++        method: 'POST',
++        signal: this.abort.signal,
++        credentials: 'same-origin',
++        headers: { 'Content-Type': 'application/json', ...(token ? { 'X-Clicky-Token': token } : {}) },
++        body: JSON.stringify({ name }),
++      });
++      const data = (await res.json().catch(() => ({}))) as { slug?: string; name?: string; remaining?: number; error?: string };
++      if (typeof data.remaining === 'number') this.remaining = data.remaining;
++      if (!res.ok || !data.slug) {
++        const why: Record<string, string> = {
++          name: 'That name will not take. Use letters and numbers only.',
++          limit: 'You have used your new raises; pick a name others already raised.',
++          daily: 'The graveyard is exhausted for tonight; pick a name others already raised.',
++          session: 'The spirits did not recognise you. Try once more.',
++          upstream: 'The ritual faltered. Nothing was spent; try again.',
++        };
++        if (data.error === 'session') await getSession();
++        this.busy = false;
++        this.showPicker(why[data.error || 'upstream'] || why.upstream);
++        return;
++      }
++      this.showGame(data.slug, data.name || name);
++    } catch {
++      this.busy = false;
++      if (this.el) this.showPicker('The ritual faltered. Nothing was spent; try again.');
++      return;
++    }
++    this.busy = false;
++  }
++
++  private showGame(slug: string, name: string): void {
++    const el = this.reset();
++    el.style.justifyContent = 'stretch';
++    el.style.alignItems = 'stretch';
++    el.style.gap = '6px';
++    const frame = document.createElement('iframe');
++    frame.src = `${BASE}api/unmarked/play/${encodeURIComponent(slug)}`;
++    frame.title = `${name} (AI tribute)`;
++    frame.setAttribute('sandbox', 'allow-scripts'); // opaque origin: no cookies, storage or same-origin access
++    frame.referrerPolicy = 'no-referrer';
++    frame.style.cssText = 'flex:1;width:100%;border:1px solid #2b3a4f;border-radius:6px;background:#000;';
++    frame.addEventListener('load', () => frame.focus());
++    el.appendChild(frame);
++
++    const row = document.createElement('div');
++    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';
++    row.appendChild(this.text('span', `${name}: an AI tribute written by Meta Muse Spark. Click the game to play.`, "font-family:'Pixelify Sans',sans-serif;font-size:0.75rem;color:#7d8ba0;"));
++    const again = document.createElement('button');
++    again.type = 'button';
++    again.textContent = 'Raise another';
++    again.style.cssText = "font-family:'Pixelify Sans',sans-serif;font-size:0.8rem;padding:4px 10px;background:transparent;color:#c9b98a;border:1px solid #c9b98a;cursor:pointer;";
++    again.addEventListener('click', () => this.showPicker());
++    row.appendChild(again);
++    el.appendChild(row);
++  }
++}
+diff --git a/src/graves/unmarked-grave/index.ts b/src/graves/unmarked-grave/index.ts
+new file mode 100644
+index 0000000..e08fbc7
+--- /dev/null
++++ b/src/graves/unmarked-grave/index.ts
+@@ -0,0 +1,18 @@
++import { GraveApp } from '../../ui/GraveOverlay';
++import { UnmarkedGrave } from './UnmarkedGrave';
++
++let ui: UnmarkedGrave | null = null;
++
++const unmarked: GraveApp = {
++  compactHeader: true,
++  async mount(container: HTMLElement): Promise<void> {
++    ui = new UnmarkedGrave(container);
++    ui.mount();
++  },
++  dispose(): void {
++    ui?.dispose();
++    ui = null;
++  },
++};
++
++export default unmarked;
+diff --git a/src/scenes/mapLayout.ts b/src/scenes/mapLayout.ts
+index 5073817..1bf73c6 100644
+--- a/src/scenes/mapLayout.ts
++++ b/src/scenes/mapLayout.ts
+@@ -19,7 +19,7 @@ const RESURRECTABLES: TombstoneLayout[] = [
+   { id: 'clippy',         x: 1280, y: 710 },
+   { id: '3d-pipes',       x: 1400, y: 720 },
+   { id: 'unmarked-grave', x: 1500, y: 760 },
+-  // N3: retired from the arc (decorative until their tributes exist)
++  // N3: south arc — Muse-written tributes
+   { id: 'road-rash',      x: 1110, y: 1045 },
+   { id: 'winamp',         x: 1360, y: 1040 },
+ ];
+diff --git a/src/types/graves.ts b/src/types/graves.ts
+index b9027eb..e737707 100644
+--- a/src/types/graves.ts
++++ b/src/types/graves.ts
+@@ -25,6 +25,8 @@ export interface GraveEntry {
+   game?: string;
+   /** N3: one-line licence credit shown under the game */
+   game_credit?: string;
++  /** N3: iframe sandbox override (AI-written pages use 'allow-scripts' only) */
++  game_sandbox?: string;
+ }
+ 
+ /** The 5 resurrectable grave IDs */
+diff --git a/src/ui/GraveOverlay.ts b/src/ui/GraveOverlay.ts
+index 9460ede..9a2c5a4 100644
+--- a/src/ui/GraveOverlay.ts
++++ b/src/ui/GraveOverlay.ts
+@@ -378,7 +378,7 @@ export class GraveOverlay {
+     const iframe = document.createElement('iframe');
+     iframe.src = `${baseUrl}${grave.game}`;
+     iframe.title = grave.name;
+-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock');
++    iframe.setAttribute('sandbox', grave.game_sandbox ?? 'allow-scripts allow-same-origin allow-pointer-lock');
+     iframe.setAttribute('allow', 'fullscreen; autoplay');
+     iframe.style.cssText = 'flex: 1; width: 100%; border: 1px solid #2b3a4f; border-radius: 6px; background: #000; display: block;';
+     iframe.addEventListener('load', () => {

@@ -42,11 +42,14 @@
     "category": "game",
     "epitaph": "Kicked off the bike, but never off our hearts.",
     "cause_of_death": "The series stalled after its last new game, Jailbreak, in 2000.",
-    "resurrectable": false,
+    "resurrectable": true,
     "source_url": "https://en.wikipedia.org/wiki/Road_Rash",
     "sort_priority": 1,
     "verified": true,
-    "note": "died = last new game (Jailbreak, PS1 2000); a GBA port followed in 2003"
+    "note": "died = last new game (Jailbreak, PS1 2000); a GBA port followed in 2003",
+    "game": "games/muse/road-rash.html",
+    "game_sandbox": "allow-scripts",
+    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
   },
   {
     "id": "google-reader",
@@ -87,11 +90,14 @@
     "category": "app",
     "epitaph": "It really whipped. Then it rested.",
     "cause_of_death": "AOL announced the end of downloads and support in late 2013.",
-    "resurrectable": false,
+    "resurrectable": true,
     "source_url": "https://en.wikipedia.org/wiki/Winamp",
     "sort_priority": 4,
     "verified": true,
-    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)"
+    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)",
+    "game": "games/muse/winamp.html",
+    "game_sandbox": "allow-scripts",
+    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
   },
   {
     "id": "unmarked-grave",

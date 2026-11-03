@@ -97,3 +97,5 @@ Road Rash, Google Reader, Clippy, Winamp and other product names referenced in R
 | Star Cadet (3D Pinball Space Cadet remake) | Rich Dubbs | MIT | https://github.com/richdubbs/star-cadet — vendored in `public/games/space-cadet` (includes three.js 0.160.0, MIT) |
 | Pipes (3D Pipes screensaver remake) | 1j01 | MIT | https://github.com/1j01/pipes — vendored in `public/games/pipes` |
 | medal_spacecadet.png, medal_pipes.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |
+| public/games/muse/ (Road Rash and Winamp tributes) | Meta Muse Spark (muse-spark-1.3-contributor) | CC0 1.0 (project original) | AI-generated playable tributes written for Raise Dead; original shapes-only art |
+| Unmarked Grave games (public/games/unmarked/) | Meta Muse Spark (muse-spark-1.3-contributor) | CC0 1.0 (project original) | AI-generated on-demand playable tributes for any dead app; original shapes-only art; cached in D1; served sandboxed |

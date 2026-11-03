@@ -19,7 +19,7 @@ const RESURRECTABLES: TombstoneLayout[] = [
   { id: 'clippy',         x: 1280, y: 710 },
   { id: '3d-pipes',       x: 1400, y: 720 },
   { id: 'unmarked-grave', x: 1500, y: 760 },
-  // N3: retired from the arc (decorative until their tributes exist)
+  // N3: south arc — Muse-written tributes
   { id: 'road-rash',      x: 1110, y: 1045 },
   { id: 'winamp',         x: 1360, y: 1040 },
 ];

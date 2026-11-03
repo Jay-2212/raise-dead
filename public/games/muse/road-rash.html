@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Road Rash — risen</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100vw;height:100vh;overflow:hidden;background:#070f2a;color:#e8e6d0;font-family:system-ui,monospace}
+#wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+#top{text-align:center;padding:6px 8px;background:#0a1638;border-bottom:2px solid #2de2c5;z-index:5}
+#top h1{font-size:15px;letter-spacing:1px;color:#e8e6d0;text-shadow:0 0 8px #2de2c5}
+#top p{font-size:11px;color:#9df0e0}
+#hud{display:flex;justify-content:center;gap:14px;font-size:12px;padding:4px;background:#0a1638cc;color:#e8e6d0}
+#hud b{color:#2de2c5}
+canvas{flex:1;width:100vw;display:block;background:#070f2a;touch-action:none}
+#btns{position:fixed;bottom:8px;left:0;right:0;display:flex;justify-content:space-between;padding:0 10px;pointer-events:none}
+.grp{display:flex;gap:8px;pointer-events:auto}
+button{background:#12255acc;border:2px solid #2de2c5;color:#e8e6d0;font-size:20px;width:52px;height:52px;border-radius:12px;box-shadow:0 0 10px #2de2c588}
+button:active{background:#2de2c5;color:#070f2a}
+#over{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#070f2add;z-index:9;text-align:center}
+#over div{border:2px solid #2de2c5;padding:22px;border-radius:14px;background:#0a1638;box-shadow:0 0 30px #2de2c5}
+</style>
+</head>
+<body>
+<div id="wrap">
+<div id="top><h1 style="font-size:15px;letter-spacing:1px;text-shadow:0 0 8px #2de2c5">Road Rash — risen (tribute)</h1><p>Dodge traffic 60s, ram &amp; SPACE-punch rival riders! Arrows/WASD ride.</p></div>
+<div id="hud"><span>⏳<b id="t">60</b></span><span>SCORE <b id="s">0</b></span><span>KOs <b id="k">0</b></span><span>HP <b id="h">100</b></span><span>MPH <b id="v">0</b></span></div>
+<canvas id="c"></canvas>
+</div>
+<div id="btns"><div class="grp"><button id="L">◀</button><button id="Rr">▶</button></div><div class="grp"><button id="U">▲</button><button id="D">▼</button><button id="P">👊</button></div></div>
+<div id="over"><div><h2 style="color:#2de2c5">💀 WRECKED 💀</h2><p id="msg"></p><p style="margin-top:8px;color:#9df0e0">Press R / tap to rise again</p></div></div>
+<script>
+const cv=document.getElementById('c'),x=cv.getContext('2d');
+let W,H;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight-92}addEventListener('resize',rs);rs();
+let keys={},P,E,score,ko,hp,time,speed,over,dist,moon=0;
+function reset(){P={x:.5,y:.78,w:.07,hp:100,punch:0,cd:0,dir:1};E=[];score=0;ko=0;hp=100;time=60;speed=0;over=false;dist=0;document.getElementById('over').style.display='none';for(let i=0;i<6;i++)spawn(true)}
+function spawn(any){let rival=Math.random()<.55;E.push({x:.2+Math.random()*.6,y:any?Math.random()*-1:-.15-(Math.random()*.5),riv:rival,car:!rival&&Math.random()<.5,hp:rival?2:99,sp:(rival?.25+Math.random()*.2:.35+Math.random()*.35),ph:Math.random()*6,wob:Math.random()*2})}
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' ')punch();if(e.key.toLowerCase()==='r'&&over)reset();if(['arrowup','arrowdown',' '].includes(e.key.toLowerCase()))e.preventDefault()});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function bind(id,k){let b=document.getElementById(id);let on=e=>{e.preventDefault();if(k==='p')punch();else keys[k]=true};let off=e=>{e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off)}
+bind('L','arrowleft');bind('Rr','arrowright');bind('U','arrowup');bind('D','arrowdown');bind('P','p');
+document.getElementById('over').addEventListener('pointerdown',()=>reset());
+cv.addEventListener('pointerdown',()=>{if(over)reset();else punch()});
+function punch(){if(over||P.cd>0)return;P.cd=.35;P.punch=.22;for(let e of E){if(e.riv&&Math.abs(e.x-P.x)<.09&&Math.abs(e.y-P.y)<.18){e.hp--;e.x+=(e.x>=P.x?1:-1)*.06;if(e.hp<=0){e.dead=true;ko++;score+=250;hp=Math.min(100,hp+6)}}}}
+reset();
+let last=0;
+function loop(t){requestAnimationFrame(loop);let dt=Math.min(.05,(t-last)/1000||.016);last=t;if(over)return;
+time-=dt;if(time<=0){end(true);return}
+let L=keys['arrowleft']||keys['a'],R=keys['arrowright']||keys['d'],U=keys['arrowup']||keys['w'],D=keys['arrowdown']||keys['s'];
+if(L)P.x-=.35*dt;if(R)P.x+=.35*dt;P.x=Math.max(.22,Math.min(.78,P.x));
+let tgt=U?1:D?.15:.55;speed+=(tgt-speed)*dt*2;dist+=speed*dt*100;score+=speed*dt*8;P.cd-=dt;P.punch-=dt;
+moon+=dt;
+for(let e of E){e.y+= (e.sp*(e.car?1.4:.6)+speed*.55)*dt;e.ph+=dt*3;if(e.riv)e.x+=Math.sin(e.ph)*.08*dt*(1+speed);if(e.y>.95+Math.random()*.1){Object.assign(e,{x:.2+Math.random()*.6,y:-.15-Math.random()*.4,riv:Math.random()<.55,dead:false});e.car=!e.riv&&Math.random()<.5;e.hp=e.riv?2:99}
+if(!e.dead&&Math.abs(e.x-P.x)<.055&&Math.abs(e.y-P.y)<.09){if(e.riv&&P.punch<=0&&P.cd<=0){hp-=18;e.x+=(e.x>=P.x?.05:-.05)}else if(e.car){hp-=35;score=Math.max(0,score-80);e.y=.5;e.x=P.x<.5?.7:.3;speed*=.4}if(hp<=0){end(false);return}}}
+E=E.filter(e=>!e.dead||(e.dead=(e.fade=(e.fade||0)+dt)<.4));if(Math.random()<dt*2)spawn(false);
+// draw
+let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#070f2a');g.addColorStop(1,'#0d2b3a');x.fillStyle=g;x.fillRect(0,0,W,H);
+// moon
+x.fillStyle='#f4efcf';x.beginPath();x.arc(W*.82,H*.14,Math.min(W,H)*.07,0,7);x.fill();x.fillStyle='#070f2a88';x.beginPath();x.arc(W*.80,H*.13,Math.min(W,H)*.06,0,7);x.fill();
+x.fillStyle='#0a3a3f';x.fillRect(0,0,W*.16,H);x.fillRect(W*.84,0,W*.16,H);
+x.fillStyle='#2de2c522';for(let i=0;i<8;i++){let ty=((i*97+moon*60)%(H+40))-20;x.fillRect(8,ty,14,22);x.fillRect(W-22,ty,14,22)}
+// road
+let rx=W*.2,rw=W*.6;x.fillStyle='#1a2340';x.fillRect(rx,0,rw,H);
+x.strokeStyle='#2de2c5';x.lineWidth=3;x.strokeRect(rx,0,rw,H);
+x.strokeStyle='#e8e6d088';x.lineWidth=4;x.setLineDash([22,22]);x.lineDashOffset=-moon*400;
+for(let i=1;i<4;i++){x.beginPath();x.moveTo(rx+rw*i/4,0);x.lineTo(rx+rw*i/4,H);x.stroke()}x.setLineDash([]);
+function bike(bx,by,col,rival,car,pn){let px=bx*W,py=by*H,s=Math.min(W,H)*.055;if(car){x.fillStyle='#5b2a6e';x.fillRect(px-s*1.2,py-s*1.6,s*2.4,s*3.2);x.fillStyle='#9df0e0';x.fillRect(px-s*.9,py-s*1.1,s*1.8,s*.7);x.fillStyle='#ffef9e';x.fillRect(px-s*.8,py+s*1.1,s*.6,s*.3);x.fillRect(px+s*.2,py+s*1.1,s*.6,s*.3);return}
+x.fillStyle='#111';x.fillRect(px-4,py-s*1.6,8,s*3.2);x.fillStyle=col;x.beginPath();x.arc(px,py-s*.4,s*.75,0,7);x.fill();x.fillStyle='#f4efcf';x.beginPath();x.arc(px,py-s*1.05,s*.42,0,7);x.fill();x.fillStyle=col;x.fillRect(px-s*.35,py-s*.5,s*.7,s*1.1);
+if(pn>0){x.strokeStyle='#ffef9e';x.lineWidth=4;x.beginPath();x.arc(px+(P.dir>=0?1:-1)*s*1.3,py-s*.6,s*.6,0,7);x.stroke()}}
+for(let e of E){if(e.dead){x.fillStyle='#2de2c5';x.font='14px monospace';x.fillText('💀+250',e.x*W,e.y*H);continue}bike(e.x,e.y,e.riv?'#c0392b':'#888',e.riv,e.car,0)}
+P.dir=R?1:L?-1:P.dir;bike(P.x,P.y,'#2de2c5',false,false,P.punch);
+document.getElementById('t').textContent=Math.ceil(time);document.getElementById('s').textContent=Math.floor(score);document.getElementById('k').textContent=ko;document.getElementById('h').textContent=Math.max(0,Math.ceil(hp));document.getElementById('v').textContent=Math.floor(40+speed*120);
+x.fillStyle='#e8e6d0';x.font='12px monospace';x.fillText('SPACE = punch ghosts 👊',10,H-10);
+}
+function end(win){over=true;let m=document.getElementById('msg');m.innerHTML=(win?'👻 SURVIVED 60s! ':'☠ WRECKED! ')+'<br>Score <b style=color:#2de2c5>'+Math.floor(score)+'</b> • KOs '+ko;document.getElementById('over').style.display='flex'}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
