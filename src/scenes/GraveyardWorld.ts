@@ -842,6 +842,8 @@ export class GraveyardWorld extends Phaser.Scene {
   private setupInput(): void {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.installTapLatch();
+    // keys work straight away, without a first click on the canvas
+    const cv = this.game.canvas; if (cv) { if (!cv.hasAttribute('tabindex')) cv.setAttribute('tabindex', '0'); cv.focus({ preventScroll: true }); }
     this.wasd = {
       up:    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
       down:  this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
