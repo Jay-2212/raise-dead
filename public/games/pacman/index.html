@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+<title>Pac-Man (HTML5 remake)</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:monospace;color:#aaa}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+canvas{width:min(100vw,150vh);height:auto;max-height:100vh;aspect-ratio:3/2;image-rendering:pixelated}
+#cr{position:fixed;left:6px;bottom:4px;font-size:11px}</style></head>
+<body><div id="wrap"><canvas id="canvas" width="960" height="640" tabindex="0"></canvas></div>
+<div id="cr">HTML5 Pac-Man remake by mumuy (MIT) · arrows / WASD / swipe · Enter or Space start &amp; pause</div>
+<script>
+// Raise Dead additions: WASD -> arrows, swipe/tap on touch, sound blips (original WebAudio).
+(function(){
+ var map={87:38,65:37,83:40,68:39};
+ function fire(code){var e=new KeyboardEvent('keydown',{bubbles:true});Object.defineProperty(e,'keyCode',{get:function(){return code}});Object.defineProperty(e,'which',{get:function(){return code}});document.dispatchEvent(e);}
+ document.addEventListener('keydown',function(e){if(map[e.keyCode]&&!e.__rd){e.preventDefault();e.stopImmediatePropagation();fire(map[e.keyCode]);}},true);
+ var sx=0,sy=0,st=0;
+ document.addEventListener('touchstart',function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();},{passive:true});
+ document.addEventListener('touchend',function(e){var t=e.changedTouches[0];var dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)<20&&Math.abs(dy)<20){fire(13);return;}if(Math.abs(dx)>Math.abs(dy))fire(dx>0?39:37);else fire(dy>0?40:38);},{passive:true});
+ window.addEventListener('load',function(){document.getElementById('canvas').focus();});
+})();
+</script>
+<script src="static/script/game.js"></script><script src="static/script/index.js"></script></body></html>

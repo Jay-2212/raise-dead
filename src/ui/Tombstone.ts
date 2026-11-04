@@ -18,6 +18,10 @@ const MEDALLION_KEYS: Record<string, string> = {
   'space-cadet':    'medal_spacecadet',
   '3d-pipes':       'medal_pipes',
   'bouncing-logo':  'medal_bounce',
+  'doom':           'medal_doom',
+  'pac-man':        'medal_pacman',
+  'skifree':        'medal_skifree',
+  'eliza':          'medal_eliza',
 };
 
 /** Sprite keys per deco type (cycled by sort_priority) */

@@ -173,6 +173,10 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   // Portraits / medals
   load.image('medal_roadrash', 'assets/images/portraits/medal_roadrash.png');
   load.image('medal_reader', 'assets/images/portraits/medal_reader.png');
+  load.image('medal_doom', 'assets/images/portraits/medal_doom.png');
+  load.image('medal_pacman', 'assets/images/portraits/medal_pacman.png');
+  load.image('medal_skifree', 'assets/images/portraits/medal_skifree.png');
+  load.image('medal_eliza', 'assets/images/portraits/medal_eliza.png');
   load.image('medal_clicky', 'assets/images/portraits/medal_clicky.png');
   load.image('medal_winamp', 'assets/images/portraits/medal_winamp.png');
   load.image('medal_unmarked', 'assets/images/portraits/medal_unmarked.png');
@@ -321,6 +325,10 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
 
   // A7: Witch fly-by audio
   load.audio('witch_cackle', ['assets/audio/sfx/witch_cackle.ogg', 'assets/audio/sfx/witch_cackle.mp3']);
+  // N4: CC0 thunder (rubberduck, WuxiaScrub) + horde scream (Vinrax, artisticdude) — see CREDITS
+  load.audio('thunder_crack', ['assets/audio/sfx/thunder_crack.ogg', 'assets/audio/sfx/thunder_crack.mp3']);
+  load.audio('thunder_rumble', ['assets/audio/sfx/thunder_rumble.ogg', 'assets/audio/sfx/thunder_rumble.mp3']);
+  load.audio('horde_scream', ['assets/audio/sfx/horde_scream.ogg', 'assets/audio/sfx/horde_scream.mp3']);
   load.audio('witch_cackle_2', ['assets/audio/sfx/witch_cackle_2.ogg', 'assets/audio/sfx/witch_cackle_2.mp3']);
 
   // B: Easter egg audio

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Bouncing Logo — risen</title>
+<title>The Bouncing Cube — risen</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,sans-serif;color:#d9f2ee;user-select:none}
   canvas{display:block;width:100vw;height:100vh}
@@ -20,18 +20,18 @@
 <div id="cheer">CORNER!!!</div>
 <script>
 (() => {
-  // Original tribute to the idle "bouncing logo" screensaver. Our own RIP logo; no third-party marks.
+  // Original tribute to the idle "bouncing logo" screensaver. N4: now a square Spooky Cube so its corners meet the screen's corners exactly. No third-party marks.
   const c = document.getElementById('c'), g = c.getContext('2d');
   const elE = document.getElementById('edges'), elC = document.getElementById('corners'), elS = document.getElementById('spd'), cheer = document.getElementById('cheer');
   const COLORS = ['#7fe0cf', '#f08a24', '#c58cff', '#ff6b8b', '#ffe066', '#7cc4ff', '#9dff7a'];
   let W = 0, H = 0, dpr = 1;
-  const logo = { w: 150, h: 72, x: 40, y: 30, vx: 1, vy: 1, color: 0 };
+  const logo = { w: 120, h: 120, x: 40, y: 30, vx: 1, vy: 1, color: 0 };
   let speed = 1, fast = false, edges = 0, corners = 0, sound = true, ac = null, confetti = [];
   function resize() {
     dpr = Math.min(2, window.devicePixelRatio || 1);
     W = window.innerWidth; H = window.innerHeight;
     c.width = W * dpr; c.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    logo.w = Math.max(90, Math.min(170, W * 0.22)); logo.h = logo.w * 0.48;
+    logo.w = Math.max(80, Math.min(150, Math.min(W, H) * 0.24)); logo.h = logo.w; // N4: a CUBE — square box, so its corners meet the screen's corners exactly
     logo.x = Math.min(logo.x, W - logo.w); logo.y = Math.min(logo.y, H - logo.h);
   }
   window.addEventListener('resize', resize); resize();
@@ -45,18 +45,46 @@
       v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.stop(ac.currentTime + d);
     } catch (e) {}
   }
+  function shade(hex, k) {
+    const n = parseInt(hex.slice(1), 16); let r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
+    r = Math.round(r * k); gg = Math.round(gg * k); b = Math.round(b * k);
+    return `rgb(${Math.min(255, r)},${Math.min(255, gg)},${Math.min(255, b)})`;
+  }
+  let flick = 0;
   function drawLogo() {
-    const { x, y, w, h } = logo, col = COLORS[logo.color];
+    // N4: Spooky Cube. Everything is drawn inside the square (x, y, w, w) so the box edges ARE the cube's edges.
+    const { x, y, w } = logo, col = COLORS[logo.color], d = w * 0.22, f = w - d;
+    flick += 0.15;
     g.save();
-    g.shadowColor = col; g.shadowBlur = 18;
-    g.fillStyle = col;
-    // disc under the word, like the classic logo
-    g.beginPath(); g.ellipse(x + w / 2, y + h * 0.82, w * 0.46, h * 0.14, 0, 0, Math.PI * 2); g.fill();
-    g.font = `900 ${Math.round(h * 0.62)}px Georgia, serif`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.fillText('R.I.P', x + w / 2, y + h * 0.6);
-    g.fillStyle = '#000'; g.shadowBlur = 0;
-    g.font = `700 ${Math.round(h * 0.16)}px system-ui, sans-serif`;
-    g.fillText('SCREENSAVER', x + w / 2, y + h * 0.87);
+    g.shadowColor = col; g.shadowBlur = 16;
+    // top face
+    g.fillStyle = shade(col, 1.15);
+    g.beginPath(); g.moveTo(x, y + d); g.lineTo(x + d, y); g.lineTo(x + w, y); g.lineTo(x + f, y + d); g.closePath(); g.fill();
+    // right face
+    g.fillStyle = shade(col, 0.6);
+    g.beginPath(); g.moveTo(x + f, y + d); g.lineTo(x + w, y); g.lineTo(x + w, y + f); g.lineTo(x + f, y + w); g.closePath(); g.fill();
+    // front face
+    g.shadowBlur = 0;
+    g.fillStyle = col; g.fillRect(x, y + d, f, f);
+    // edges
+    g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2;
+    g.strokeRect(x + 1, y + d + 1, f - 2, f - 2);
+    g.beginPath(); g.moveTo(x + 1, y + d); g.lineTo(x + d, y + 1); g.lineTo(x + w - 1, y + 1); g.lineTo(x + w - 1, y + f); g.lineTo(x + f, y + w - 1); g.moveTo(x + f, y + d); g.lineTo(x + w - 1, y + 1); g.stroke();
+    // carved jack-o'-lantern face on the front, glowing from inside
+    const cx = x + f / 2, cy = y + d + f / 2, u = f / 10;
+    const glow = 0.75 + Math.sin(flick) * 0.12 + Math.random() * 0.08;
+    g.fillStyle = `rgba(255,${Math.round(200 * glow)},60,${0.95})`;
+    g.shadowColor = '#ffb030'; g.shadowBlur = 10 * glow;
+    g.beginPath(); g.moveTo(cx - 3.4 * u, cy - 0.6 * u); g.lineTo(cx - 2.2 * u, cy - 2.8 * u); g.lineTo(cx - 1.0 * u, cy - 0.6 * u); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx + 1.0 * u, cy - 0.6 * u); g.lineTo(cx + 2.2 * u, cy - 2.8 * u); g.lineTo(cx + 3.4 * u, cy - 0.6 * u); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx - 0.6 * u, cy + 0.6 * u); g.lineTo(cx, cy - 0.4 * u); g.lineTo(cx + 0.6 * u, cy + 0.6 * u); g.closePath(); g.fill();
+    g.beginPath();
+    g.moveTo(cx - 3.6 * u, cy + 1.4 * u);
+    const teeth = [[-2.7, 2.4], [-1.8, 1.7], [-0.9, 2.6], [0, 1.7], [0.9, 2.6], [1.8, 1.7], [2.7, 2.4]];
+    for (const [tx, ty] of teeth) g.lineTo(cx + tx * u, cy + ty * u);
+    g.lineTo(cx + 3.6 * u, cy + 1.4 * u);
+    g.quadraticCurveTo(cx, cy + 4.6 * u, cx - 3.6 * u, cy + 1.4 * u);
+    g.fill();
     g.restore();
   }
   function hitCorner() {

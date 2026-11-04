@@ -10,6 +10,7 @@
  *   'eggHint'       (hint: string | null)                            when the nearby prompt changes
  */
 import Phaser from 'phaser';
+import { LightningStrike } from './LightningStrike';
 import { EGG_DEFINITIONS, EggDefinition, getEggById } from './eggDefinitions';
 
 const STORAGE_KEY = 'rd_eggs_found';
@@ -123,6 +124,8 @@ export class EasterEggManager {
       if (egg.triggerType !== 'area') continue;
       if (this.foundIds.has(egg.id) || this.busy.has(egg.id)) continue;
       if ((this.areaCooldownUntil.get(egg.id) ?? 0) > now) continue;
+      // N4/B2: one ambient event at a time — the cat waits while a witch, wave or ritual is on
+      if ((this.world as unknown as { isAmbientBusy?: () => boolean }).isAmbientBusy?.()) continue;
       if (Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y) < egg.radius) {
         this.areaCooldownUntil.set(egg.id, now + AREA_COOLDOWN_MS);
         this.trigger(egg.id);
@@ -150,6 +153,19 @@ export class EasterEggManager {
 
     // nearby prompt
     this.emitHint(this.computeHint(wiz));
+  }
+
+  /** N4/B1: distance to the nearest F-egg the wizard is inside the radius of (Infinity if none). */
+  nearestEggDistance(): number {
+    const wiz = this.world.wizard;
+    if (!wiz) return Infinity;
+    const egg = this.nearestInteractable(wiz);
+    return egg ? Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y) : Infinity;
+  }
+
+  /** N4/B2: true while the black-cat omen sequence is playing. */
+  isOmenRunning(): boolean {
+    return this.busy.has('black_cat');
   }
 
   private nearestInteractable(wiz: Phaser.Physics.Arcade.Sprite): EggDefinition | null {
@@ -264,20 +280,13 @@ export class EasterEggManager {
         w.tweens.add({ targets: [cat, shadow], alpha: 0, duration: 300, onComplete: () => { cat.destroy(); shadow.destroy(); } });
       } });
 
-    // the omen: something bad is about to happen
-    w.time.delayedCall(1700, () => {
-      const cam = w.cameras.main;
-      const flash = w.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xdfe8ff)
-        .setScrollFactor(0).setDepth(9999).setAlpha(0);
-      w.tweens.add({ targets: flash, alpha: { from: 0.55, to: 0 }, duration: 120, yoyo: false,
-        onComplete: () => {
-          w.tweens.add({ targets: flash, alpha: { from: 0.35, to: 0 }, duration: 260, delay: 90, onComplete: () => flash.destroy() });
-        } });
-      cam.shake(350, 0.004);
-      w.sound.play('ground_rumble', { volume: 0.5 });
-      w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
-      w.time.delayedCall(700, () => w.summonWitch?.());
-      w.time.delayedCall(1200, done);
+    // the omen: something bad is about to happen — N4/L1: lightning lands right beside the wizard
+    w.time.delayedCall(1500, () => {
+      new LightningStrike(w).play(() => {
+        w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
+        w.time.delayedCall(500, () => w.summonWitch?.());
+        w.time.delayedCall(900, done);
+      });
     });
   }
 

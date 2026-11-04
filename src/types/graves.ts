@@ -27,6 +27,8 @@ export interface GraveEntry {
   game_credit?: string;
   /** N3: iframe sandbox override (AI-written pages use 'allow-scripts' only) */
   game_sandbox?: string;
+  /** N4: open the game edge-to-edge (Doom) */
+  game_fullscreen?: boolean;
 }
 
 /** The 5 resurrectable grave IDs */

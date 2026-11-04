@@ -62,10 +62,12 @@ export class GraveOverlay {
     // Panel styled with frame_panel.png as border-image
     const panel = document.createElement('div');
     const baseUrl = import.meta.env.BASE_URL;
+    // N4: big games (Doom) take the whole screen
+    const fullBleed = !!(grave as { game_fullscreen?: boolean }).game_fullscreen;
     panel.style.cssText = `
       position: relative;
-      width: min(92vw, 960px);
-      height: min(86vh, 600px);
+      width: ${fullBleed ? '100vw' : 'min(92vw, 960px)'};
+      height: ${fullBleed ? '100vh' : 'min(86vh, 600px)'};
       background: none;
       border-image: url('${baseUrl}assets/images/ui/frame_panel.png') 60 64 60 64 fill;
       border-style: solid;

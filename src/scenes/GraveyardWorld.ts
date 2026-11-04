@@ -16,6 +16,7 @@ import { ZombieWave } from '../easter/ZombieWave'; // N3
 const WORLD_W = 2400;
 const WORLD_H = 1800;
 const WALK_SPEED = 90; // art px/s
+const SPRINT_MULT = 1.65; // N4: Shift sprint
 const PROX_DIST = 40;  // art px proximity threshold
 
 // A3: Seeded RNG (mulberry32 for reproducible decal placement)
@@ -63,6 +64,11 @@ export class GraveyardWorld extends Phaser.Scene {
 
   // HUD (proximate hint lives in UIScene)
   private activeGrave: GraveEntry | null = null;
+  /** N4: ambient-event spacing + lightning flinch + sprint */
+  private lastAmbientEndAt = -100000;
+  private flinchUntil = 0;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
+  private sprinting = false;
   /** N6: click-to-move target (mouse players) and whether to interact on arrival. */
   private moveTarget: { x: number; y: number; interact: boolean } | null = null;
   private moveStuckMs = 0;
@@ -131,12 +137,14 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // A7: Initialize witch fly-by
     this.witch = new WitchFlyBy(this, {
-      isSuppressed: () => this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isActive('CreditsScene'),
+      isSuppressed: () => this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isActive('CreditsScene')
+        || !!this.zombieWave?.active || !!this.eggManager?.isOmenRunning(),
       isCrowActive: () => this.crow !== null,
     });
 
     // B: Initialize easter egg manager
     this.zombieWave = new ZombieWave(this); // N3
+    try { if (localStorage.getItem('rd_slayer')) this.applySlayerGlow(); } catch { /* ignore */ }
     this.eggManager = new EasterEggManager(this, this.treeColliders);
 
     // Launch UIScene on top
@@ -150,7 +158,11 @@ export class GraveyardWorld extends Phaser.Scene {
       this.input.keyboard?.resetKeys();
       // P0-3: Re-enable proximity checks for plaque/hint by resetting lastProxGraveId
       this.lastProxGraveId = null;
+      // N4/B1: forget the grave we just raised, otherwise F elsewhere re-raises it
+      this.activeGrave = null;
+      this.scene.get('UIScene')?.events.emit('proximityChanged', null);
       this.scene.resume('UIScene');
+      this.lastAmbientEndAt = this.time.now;
     });
 
     // P2-19: On iOS, resume audio loops when app/tab regains focus
@@ -804,6 +816,7 @@ export class GraveyardWorld extends Phaser.Scene {
       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this.shiftKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT); // N4: sprint
 
     // P0-5: Joystick now lives in UIScene; F key listener here handles keyboard input
     // B: F key event listener — unified interact handler
@@ -814,8 +827,10 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // N6: click-to-move for mouse players. Click a tombstone or secret to walk there and use it.
     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
-      if (this.ritualActive || p.wasTouch || (over && over.length > 0)) return;
-      if (this.zombieWave?.active) { this.interact(); return; }
+      if (this.ritualActive) return;
+      // N4/Z3: during the horde any click / right-click / tap blasts the zombie under the pointer
+      if (this.zombieWave?.active && !(over && over.length > 0)) { this.zombieWave.castAt(p.worldX, p.worldY); return; }
+      if (p.wasTouch || (over && over.length > 0)) return;
       const wx = p.worldX;
       const wy = p.worldY;
       let best: { x: number; y: number } | null = null;
@@ -836,6 +851,8 @@ export class GraveyardWorld extends Phaser.Scene {
       this.moveStuckMs = 0;
       this.moveBestDist = undefined;
     });
+
+    this.input.mouse?.disableContextMenu(); // N4: right-click casts during the horde
 
     // M key mute toggle
     this.mKey.on('down', () => {
@@ -864,6 +881,37 @@ export class GraveyardWorld extends Phaser.Scene {
     this.witch.forceSpawn();
   }
 
+  /** N4/B2: true while any ambient event (witch, omen, zombie wave, ritual) is on screen. */
+  public isAmbientBusy(): boolean {
+    return this.ritualActive || this.witch?.isActive || !!this.zombieWave?.active
+      || this.time.now - this.lastAmbientEndAt < 8000;
+  }
+
+  /** N4/Z: helpers the horde uses. */
+  public getFacing(): 'down' | 'up' | 'left' | 'right' { return this.facing; }
+  public duckWorldMusic(v: number, ms: number): void { this.audio?.duckMusic(v, ms); }
+  public restoreWorldMusic(ms: number): void { this.audio?.restoreMusic(0.35, ms); }
+  private slayerGlow: Phaser.GameObjects.Image | null = null;
+  /** N4/Z5: reward for clearing the horde — a green light follows the wizard for good. */
+  public applySlayerGlow(): void {
+    if (this.wizardLight) { this.wizardLight.setColor(0x5dff9a); this.wizardLight.intensity = 0.95; }
+    if (!this.slayerGlow && this.textures.exists('glow_moon')) {
+      this.slayerGlow = this.add.image(this.wizard.x - 6, this.wizard.y - 28, 'glow_moon')
+        .setBlendMode(Phaser.BlendModes.ADD).setTint(0x5dff9a).setAlpha(0.45).setScale(0.35);
+    }
+  }
+
+  /** N4/L1: the wizard jumps when lightning lands next to him. */
+  public flinch(): void {
+    this.flinchUntil = this.time.now + 220;
+    this.wizard.setVelocity(0, 0);
+    this.tweens.add({ targets: this.wizard, y: this.wizard.y - 6, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
+    const t = this.add.text(this.wizard.x, this.wizard.y - 78, '!', {
+      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '22px', color: '#ffe066', stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(99999);
+    this.tweens.add({ targets: t, y: t.y - 16, alpha: 0, duration: 700, onComplete: () => t.destroy() });
+  }
+
   // ─── B: Unified interact handler (F key priority: grave > egg) ─────────────
 
   public interact(): void {
@@ -872,9 +920,20 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // N3: during a zombie wave F casts spells
     if (this.zombieWave?.active) {
-      this.zombieWave.cast();
+      this.zombieWave.castCone();
       return;
     }
+
+    // N4/B1: re-check what we're actually standing at; the nearer of grave / secret wins
+    this.checkProximity();
+    let graveDist = Infinity;
+    if (this.activeGrave) {
+      const ts = this.tombstones.find((t) => t.grave.id === this.activeGrave!.id);
+      graveDist = ts ? Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, ts.x, ts.y) : Infinity;
+      if (graveDist > PROX_DIST + 4) { this.activeGrave = null; graveDist = Infinity; }
+    }
+    const eggDist = this.eggManager?.nearestEggDistance() ?? Infinity;
+    if (eggDist < graveDist && this.eggManager?.tryInteract()) return;
 
     // Priority 1: Try to raise a resurrectable grave if active
     if (this.activeGrave && this.activeGrave.resurrectable) {
@@ -937,6 +996,7 @@ export class GraveyardWorld extends Phaser.Scene {
     // Update wizard light position
     this.wizardLight.x = this.wizard.x;
     this.wizardLight.y = this.wizard.y;
+    if (this.slayerGlow) this.slayerGlow.setPosition(this.wizard.x - 6, this.wizard.y - 28).setDepth(this.wizard.y + 1);
 
     // Update shadow
     this.shadow.x = this.wizard.x;
@@ -956,7 +1016,13 @@ export class GraveyardWorld extends Phaser.Scene {
   private moveWizard(delta: number): void {
     if (this.ritualActive) return;
 
-    const speed = WALK_SPEED;
+    if (this.time.now < this.flinchUntil) { this.wizard.setVelocity(0, 0); return; }
+    // N4/M4: Shift (or full joystick tilt) = sprint
+    let sprint = !!this.shiftKey?.isDown;
+    const joy = (this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } })?.joystick;
+    if (joy?.active) { const f = joy.getForce(); if (Math.hypot(f.forceX, f.forceY) > 0.95) sprint = true; }
+    this.sprinting = sprint;
+    const speed = WALK_SPEED * (sprint ? SPRINT_MULT : 1);
     let dx = 0;
     let dy = 0;
 
@@ -1060,7 +1126,7 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // Footsteps
     const surface = this.isOnPath(this.wizard.x, this.wizard.y) ? 'gravel' : 'grass';
-    this.audio.updateFootsteps(delta, moving, surface);
+    this.audio.updateFootsteps(this.sprinting ? delta * 1.6 : delta, moving, surface);
   }
 
   private isOnPath(x: number, y: number): boolean {

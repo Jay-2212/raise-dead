@@ -103,3 +103,16 @@ Road Rash, Google Reader, Clippy, Winamp and other product names referenced in R
 | Zombie noises and moans | ianzazz | CC0 1.0 | https://opengameart.org/content/zombie-noises-and-moans — zombie_die, zombie_hit, zombie_rise to `assets/audio/sfx/` |
 | Zombie sprites, zombie hand, medal_bounce.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated images for Raise Dead zombie-hand grave and Bouncing Logo screensaver |
 | The Bouncing Logo (public/games/bounce) | Raise Dead team | MIT (project original) | Original code for Raise Dead |
+
+## Night 4 additions
+
+| Asset | Author | License | Source |
+|---|---|---|---|
+| DOOM engine (websockets-doom.{js,wasm}) | Chocolate Doom / Cloudflare Doom WASM | GPL-2.0 | https://github.com/cloudflare/doom-wasm — prebuilt WebAssembly build via npm @nicejsisverycool/tizendoom |
+| Freedoom Phase 1 v0.13.0 | Freedoom project contributors | BSD-3-Clause | https://freedoom.github.io — `public/games/doom/freedoom1.wad.part0/1` (split for hosting; `FREEDOOM-COPYING.txt` included) |
+| Pac-Man HTML5 remake | mumuy (Haole Zheng) | MIT | https://github.com/mumuy/pacman — `public/games/pacman` (LICENSE included; Press Start 2P font, SIL OFL) |
+| SkiFree.js | Dan Hough | MIT | https://github.com/basicallydan/skifree.js — `public/games/skifree` (LICENSE.md included); sprites by Wing Wang Wao (Spriters Resource) after Chris Pirih's SkiFree (1991) |
+| Thunder crack SFX | rubberduck | CC0 1.0 | https://opengameart.org/content/100-cc0-sfx-2 — `assets/audio/sfx/thunder_crack` |
+| Thunder rumble SFX | WuxiaScrub | CC0 1.0 | https://opengameart.org/content/rain-long-thunder — `assets/audio/sfx/thunder_rumble` (cut 21–30 s) |
+| Horde scream SFX (mixed) | Vinrax + artisticdude | CC0 1.0 | https://opengameart.org/content/horror-scream1 + https://opengameart.org/content/zombies-sound-pack — `assets/audio/sfx/horde_scream` |
+| Medals (medal_doom, medal_pacman, medal_skifree, medal_eliza) | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |

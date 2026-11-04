@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DOOM (1993 engine) · Freedoom</title>
+<style>
+ html,body{margin:0;height:100%;background:#000;color:#d9f2ee;font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+ #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+ canvas#canvas{display:block;width:100vw;height:75vw;max-height:100vh;max-width:133.34vh;image-rendering:pixelated;background:#000;outline:none}
+ #ui{position:fixed;left:8px;bottom:8px;display:flex;gap:8px;align-items:center;font-size:12px;z-index:5}
+ #ui button{background:rgba(11,16,32,.85);color:#c9b98a;border:1px solid #c9b98a;border-radius:6px;padding:5px 10px;font:inherit;cursor:pointer}
+ #help{opacity:.85;background:rgba(0,0,0,.6);padding:5px 8px;border-radius:6px}
+ #load{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:15px;background:#000;z-index:4}
+ #bar{width:min(320px,70vw);height:8px;border:1px solid #c9b98a;border-radius:4px;overflow:hidden}#bar>i{display:block;height:100%;width:0;background:#c43b2b}
+ #start{display:none;background:#c43b2b;color:#fff;border:0;border-radius:6px;padding:10px 22px;font:inherit;font-size:16px;cursor:pointer}
+</style></head><body>
+<div id="wrap"><canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas></div>
+<div id="load"><div>Raising DOOM (1993 engine) with Freedoom levels…</div><div id="bar"><i></i></div><div id="pct">0%</div><button id="start">Click to play</button></div>
+<div id="ui"><button id="fs">⛶ Full screen</button><span id="help">WASD move · mouse/←→ turn · Space fire · E open doors · Shift run · Esc menu</span></div>
+<script>
+(function(){
+ const parts=['freedoom1.wad.part0','freedoom1.wad.part1'];const TOTAL=28795076;
+ const bar=document.querySelector('#bar>i'),pct=document.getElementById('pct'),start=document.getElementById('start');
+ let got=0;
+ async function fetchPart(u){const r=await fetch(u);if(!r.ok)throw new Error(u+' '+r.status);const rd=r.body.getReader();const chunks=[];for(;;){const{done,value}=await rd.read();if(done)break;chunks.push(value);got+=value.length;const p=Math.min(100,Math.round(got/TOTAL*100));bar.style.width=p+'%';pct.textContent=p+'%';}return chunks;}
+ window.__wadPromise=(async()=>{const all=[];for(const p of parts){all.push(...await fetchPart(p));}const out=new Uint8Array(got);let o=0;for(const c of all){out.set(c,o);o+=c.length;}return out;})();
+ window.__wadPromise.then(()=>{pct.textContent='Ready';start.style.display='block';}).catch(e=>{pct.textContent='Could not load: '+e.message;});
+ start.addEventListener('click',()=>{document.getElementById('load').style.display='none';const cv=document.getElementById('canvas');cv.focus();boot();});
+ document.getElementById('fs').addEventListener('click',()=>{const el=document.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen).call(el);document.getElementById('canvas').focus();});
+ function boot(){
+  window.Module={noInitialRun:true,
+   preRun:[async()=>{}],
+   onRuntimeInitialized:async()=>{const wad=await window.__wadPromise;Module.FS.writeFile('/freedoom1.wad',wad);
+     const cfg=await (await fetch('default.cfg')).text();Module.FS.writeFile('/default.cfg',cfg);
+     (window.callMain||Module.callMain)(['-iwad','/freedoom1.wad','-window','-nogui','-config','/default.cfg','-nomusic']);},
+   canvas:document.getElementById('canvas'),print:()=>{},printErr:t=>console.warn(t),setStatus:()=>{}};
+  const s=document.createElement('script');s.src='websockets-doom.js';document.body.appendChild(s);
+ }
+})();
+</script></body></html>

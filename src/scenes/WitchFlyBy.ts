@@ -42,8 +42,8 @@ export class WitchFlyBy {
   constructor(scene: Phaser.Scene, opts: WitchFlyByOptions) {
     this.scene = scene;
     this.opts = opts;
-    // First fly-by: 12–20 s
-    this.interval = Phaser.Math.Between(12000, 20000);
+    // N4/B2: first fly-by 45–120 s, so it never collides with the opening minutes
+    this.interval = Phaser.Math.Between(45000, 120000);
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ export class WitchFlyBy {
     this.timer += delta;
     if (this.timer >= this.interval) {
       this.timer = 0;
-      this.interval = Phaser.Math.Between(35000, 75000);
+      this.interval = Phaser.Math.Between(45000, 120000);
 
       if (this.opts.isSuppressed() || this.opts.isCrowActive()) {
         // Defer: try again after a short random window
@@ -78,11 +78,11 @@ export class WitchFlyBy {
     this.spawnWitch();
   }
 
-  /** N3: black-cat omen — restart the fly-by even if one is in progress. */
+  /** N3/N4: black-cat omen summons the witch. If one is already flying, she IS the omen (never kill her mid-flight). */
   forceSpawn(): void {
-    if (this.active) this.cleanup();
     this.timer = 0;
-    this.interval = Phaser.Math.Between(35000, 75000);
+    this.interval = Phaser.Math.Between(45000, 120000);
+    if (this.active) return;
     this.spawnWitch();
   }
 
