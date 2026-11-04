@@ -64,7 +64,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     const up = await fetch('https://api.meta.ai/v1/chat/completions', {
       method: 'POST', signal: ac.signal,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.MODEL_API_KEY}` },
-      body: JSON.stringify({ model: env.MUSE_MODEL || 'muse-spark-1.3-contributor', reasoning_effort: 'minimal', max_tokens: 120, messages }),
+      body: JSON.stringify({ model: env.MUSE_MODEL || 'muse-spark-1.3-contributor', reasoning_effort: env.MUSE_EFFORT || 'minimal', max_tokens: 800, messages }),
     });
     if (!up.ok) throw new Error('upstream ' + up.status);
     const data = (await up.json()) as { choices?: { message?: { content?: string } }[] };
@@ -72,8 +72,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     out = out.replace(/^ELIZA:\s*/i, '').slice(0, 240);
     if (!out) throw new Error('empty');
     return reply({ reply: out });
-  } catch {
-    return reply({ error: 'upstream' }, 502);
+  } catch (e) {
+    return reply({ error: 'upstream', why: String((e as Error)?.message || e).slice(0, 60) }, 502);
   } finally {
     clearTimeout(timer);
   }
