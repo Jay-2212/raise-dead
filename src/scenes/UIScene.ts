@@ -153,6 +153,9 @@ export class UIScene extends Phaser.Scene {
         raised: loadRaised(),
         eggs: EGG_DEFINITIONS.map((e) => ({ id: e.id, title: e.title, x: e.x, y: e.y, found: !!w?.eggManager?.isFound(e.id) })),
       };
+    }, (x, y) => {
+      const w = this.scene.get('GraveyardWorld') as unknown as { travelTo?: (x: number, y: number) => void };
+      w?.travelTo?.(x, y);
     });
     const kb = this.input.keyboard!;
     kb.addCapture('TAB');

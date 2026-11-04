@@ -74,14 +74,33 @@ export class GraveyardWorld extends Phaser.Scene {
   private sprinting = false;
   /** N6: click-to-move target (mouse players) and whether to interact on arrival. */
   private moveTarget: { x: number; y: number; interact: boolean } | null = null;
+  private tapAt = -1e9;
   private tapLatch = { left: 0, right: 0, up: 0, down: 0, sprint: 0 };
+  /** Map fast-travel: the wizard appears in front of the chosen grave (not during a ritual or the horde). */
+  public travelTo(x: number, y: number): void {
+    if (this.ritualActive || this.zombieWave?.active) return;
+    this.moveTarget = null;
+    this.wizard.setVelocity(0, 0);
+    this.wizard.setPosition(x, y);
+    this.cameras.main.flash(250, 120, 255, 230);
+    this.checkProximity();
+  }
   private installTapLatch(): void {
     const map: Record<string, 'left' | 'right' | 'up' | 'down'> = {
       ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     };
     this.input.keyboard?.on('keydown', (ev: KeyboardEvent) => {
       const dir = map[ev.code];
-      if (dir) { this.tapLatch[dir] = this.time.now + 220; if (ev.shiftKey) this.tapLatch.sprint = this.time.now + 220; }
+      if (!dir || this.ritualActive || this.mapOpen || !this.wizard) return;
+      if (ev.shiftKey) this.tapLatch.sprint = this.time.now + 400;
+      // a tap is also a short walk order, so it takes a step even when the press is shorter than a frame
+      const step = ev.shiftKey ? 90 : 56;
+      const base = this.moveTarget && !this.moveTarget.interact && this.time.now - this.tapAt < 600 ? this.moveTarget : { x: this.wizard.x, y: this.wizard.y };
+      const vx = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+      const vy = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
+      this.moveTarget = { x: base.x + vx * step, y: base.y + vy * step, interact: false };
+      this.tapAt = this.time.now;
+      this.moveStuckMs = 0; this.moveBestDist = undefined;
     });
   }
   private moveStuckMs = 0;
@@ -1054,12 +1073,10 @@ export class GraveyardWorld extends Phaser.Scene {
     let dy = 0;
 
     // Keyboard (a quick tap still takes a step: on slow machines a press can begin and end between two frames)
-    const now = this.time.now;
-    const L = this.tapLatch;
-    if (this.cursors.left.isDown  || this.wasd.left.isDown  || now < L.left)  dx -= 1;
-    if (this.cursors.right.isDown || this.wasd.right.isDown || now < L.right) dx += 1;
-    if (this.cursors.up.isDown    || this.wasd.up.isDown    || now < L.up)    dy -= 1;
-    if (this.cursors.down.isDown  || this.wasd.down.isDown  || now < L.down)  dy += 1;
+    if (this.cursors.left.isDown  || this.wasd.left.isDown )  dx -= 1;
+    if (this.cursors.right.isDown || this.wasd.right.isDown) dx += 1;
+    if (this.cursors.up.isDown    || this.wasd.up.isDown   )    dy -= 1;
+    if (this.cursors.down.isDown  || this.wasd.down.isDown )  dy += 1;
 
     // P0-5: Joystick now lives in UIScene; get normalized force from there
     const uiScene = this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } };
@@ -1069,6 +1086,8 @@ export class GraveyardWorld extends Phaser.Scene {
       if (Math.abs(force.forceY) > 0.1) dy = force.forceY;
     }
 
+    // a fresh tap's step wins over the key's own one-frame isDown; a real hold takes over after 300 ms
+    if (this.moveTarget && !this.moveTarget.interact && this.time.now - this.tapAt < 300 && !uiScene?.joystick?.active) { dx = 0; dy = 0; }
     // N6: keyboard/joystick cancels click-to-move; otherwise steer toward the clicked spot
     if (dx !== 0 || dy !== 0) {
       this.moveTarget = null;

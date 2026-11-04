@@ -51,9 +51,11 @@ export class WorldMap {
   static readonly MW = 180;
   static readonly MH = 135;
 
-  constructor(scene: Phaser.Scene, getData: () => MapData) {
+  private onTravel?: (x: number, y: number) => void;
+  constructor(scene: Phaser.Scene, getData: () => MapData, onTravel?: (x: number, y: number) => void) {
     this.scene = scene;
     this.getData = getData;
+    this.onTravel = onTravel;
     const { width } = scene.scale;
     const x = width - WorldMap.MW - 12;
     const y = 66;
@@ -156,6 +158,18 @@ export class WorldMap {
         fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: raised ? '#bfeef2' : '#c9b98a',
       }).setOrigin(0.5, 0);
       c.add(t);
+      if (this.onTravel) {
+        // click a grave on the map to walk the wizard straight to it
+        const hit = s.add.zone(px, py + 4, Math.max(44, t.width + 8), 30).setInteractive({ useHandCursor: true });
+        hit.on('pointerover', () => t.setColor('#ffffff'));
+        hit.on('pointerout', () => t.setColor(raised ? '#bfeef2' : '#c9b98a'));
+        hit.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
+          ev.stopPropagation();
+          this.onTravel?.(gr.x, gr.y + 44);
+          this.closeFull();
+        });
+        c.add(hit);
+      }
     }
 
     // regions + secrets
@@ -191,7 +205,7 @@ export class WorldMap {
     const found = foundIds.size;
     const eggTotal = d.eggs.length;
     const title = s.add.text(width / 2, oy - 40, 'Map of the Graveyard', { fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#d9f2ee' }).setOrigin(0.5);
-    const cap = s.add.text(width / 2, oy + PH + 16, `Graves raised ${raisedCount}/${total}  ·  Secrets ${found}/${eggTotal}  ·  ? = not raised yet / secret still hidden  ·  Esc / J / click to close`, {
+    const cap = s.add.text(width / 2, oy + PH + 16, `Graves raised ${raisedCount}/${total}  ·  Secrets ${found}/${eggTotal}  ·  ? = not raised yet / secret still hidden  ·  click a grave to go there  ·  Esc / J to close`, {
       fontFamily: "'Pixelify Sans', sans-serif", fontSize: '13px', color: '#c9b98a',
     }).setOrigin(0.5, 0);
     c.add([title, cap]);
