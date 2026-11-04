@@ -125,6 +125,7 @@ export class UnmarkedGrave {
           daily: 'The graveyard is exhausted for tonight; pick a name others already raised.',
           session: 'The spirits did not recognise you. Try once more.',
           upstream: 'The ritual faltered. Nothing was spent; try again.',
+          moderated: 'The tombstone stays cold. That name is too dark, too living, or not lost software. Nothing was spent.',
         };
         if (data.error === 'session') await getSession();
         this.busy = false;
@@ -153,6 +154,14 @@ export class UnmarkedGrave {
     frame.style.cssText = 'flex:1;width:100%;border:1px solid #2b3a4f;border-radius:6px;background:#000;';
     frame.addEventListener('load', () => frame.focus());
     el.appendChild(frame);
+    // N4/U4: the served page reports a crash in its first seconds; offer another raise instead of a dead screen
+    const onMsg = (ev: MessageEvent) => {
+      if (ev.source !== frame.contentWindow || !ev.data || ev.data.type !== 'rd-error') return;
+      window.removeEventListener('message', onMsg);
+      const warn = this.text('p', 'This soul came back broken. Pick another name, or try again later.', "font-family:'Pixelify Sans',sans-serif;font-size:0.8rem;color:#e8b04a;margin:0;");
+      el.insertBefore(warn, frame);
+    };
+    window.addEventListener('message', onMsg);
 
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';

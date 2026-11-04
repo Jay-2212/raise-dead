@@ -262,6 +262,8 @@ export function createAudio(opts = {}) {
     let dur = -1;
     try {
       dur = D.soundDuration(key);
+      // Raise Dead: the original WAVs are not redistributable, so play an original synthesized sound instead
+      if (enabled && !paused) { const spec0 = hasOwn(D.SOUND_KEYS, key) ? D.SOUND_KEYS[key] : null; if (!(spec0 && spec0.file && buffers.get(spec0.file)) && typeof globalThis.__rdSynth === 'function') globalThis.__rdSynth(key); }
       if (!enabled || paused || !mixer || !ctx) return dur;
       if (ctx.state && ctx.state !== 'running') return dur;
       const spec = hasOwn(D.SOUND_KEYS, key) ? D.SOUND_KEYS[key] : null;

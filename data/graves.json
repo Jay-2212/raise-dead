@@ -112,10 +112,10 @@
     "source_url": "https://en.wikipedia.org/wiki/Winamp",
     "sort_priority": 4,
     "verified": true,
-    "note": "Brand later sold and revived; 2013 = AOL's shutdown announcement (Dec 20, 2013)",
-    "game": "games/muse/winamp.html",
-    "game_sandbox": "allow-scripts",
-    "game_credit": "A tribute written by Meta Muse Spark for Raise Dead (AI-generated, original art)."
+    "note": "Rhythm tribute (original code). Beatmap generated from the track with librosa onset detection.",
+    "game": "games/rhythm/index.html",
+    "game_sandbox": "allow-scripts allow-same-origin",
+    "game_credit": "Winamp: Danse Macabre, a four-lane rhythm game built for Raise Dead. Music: \"Danse Macabre\" by Kevin MacLeod (incompetech.com), CC BY 4.0. D F J K or tap; never hit a skeleton."
   },
   {
     "id": "unmarked-grave",
@@ -711,5 +711,23 @@
     "game": "games/skifree/index.html",
     "game_sandbox": "allow-scripts allow-same-origin",
     "game_credit": "SkiFree.js by Dan Hough (MIT), a faithful remake of Chris Pirih's 1991 SkiFree. Mouse or WASD, F boost, T trick."
+  },
+  {
+    "id": "eliza",
+    "name": "ELIZA",
+    "maker": "Joseph Weizenbaum, MIT",
+    "born": 1966,
+    "died": null,
+    "category": "app",
+    "epitaph": "Tell me more about your feelings.",
+    "cause_of_death": "Outgrown by her own descendants; her DOCTOR script went quiet on old mainframes.",
+    "resurrectable": true,
+    "source_url": "https://en.wikipedia.org/wiki/ELIZA",
+    "sort_priority": 2,
+    "verified": true,
+    "note": "Rebuilt ELIZA engine (keyword/decomposition/reassembly after the DOCTOR script) running in the browser; Muse Spark only fills in when her rules run dry.",
+    "game": "games/eliza/index.html",
+    "game_sandbox": "allow-scripts allow-same-origin",
+    "game_credit": "ELIZA (1966) by Joseph Weizenbaum, rebuilt for Raise Dead. Her own rules answer first; Meta Muse Spark fills in when they run dry."
   }
 ]

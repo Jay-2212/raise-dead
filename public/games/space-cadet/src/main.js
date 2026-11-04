@@ -113,6 +113,8 @@ export function createApp(env) {
   const raf = env.raf || ((cb) => requestAnimationFrame(cb));
   const store = env.store || createStore();
   let options = store.getOptions();
+  // Raise Dead: always open on the classic fixed camera (the orbit view confused players)
+  if (options.camera !== 'original' || options.cinematic) options = store.setOptions({ camera: 'original', cinematic: false });
   if (q.get('camera')) options = store.setOptions({ camera: /** @type {any} */ (q.get('camera')) });
   if (q.has('cinematic')) options = store.setOptions({ cinematic: q.get('cinematic') !== '0' });
   if (q.has('nosound')) options = store.setOptions({ sounds: false, soundConsent: 'denied' });

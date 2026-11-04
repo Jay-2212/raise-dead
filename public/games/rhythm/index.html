@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Winamp — Danse Macabre</title>
+<style>
+ html,body{margin:0;height:100%;background:#05070d;overflow:hidden;font-family:"Tahoma","Verdana",sans-serif;color:#d9f2ee;user-select:none;-webkit-user-select:none;touch-action:none}
+ #bar{position:fixed;left:0;right:0;top:0;height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;background:linear-gradient(#2b3346,#151a26);border-bottom:1px solid #3d4760;font-size:12px;z-index:3}
+ #bar b{color:#3fff6b;font-family:"Courier New",monospace;letter-spacing:1px}
+ #lcd{flex:1;overflow:hidden;white-space:nowrap;background:#000;color:#3fff6b;font-family:"Courier New",monospace;padding:3px 8px;border:1px inset #333;border-radius:2px}
+ #lcd span{display:inline-block;padding-left:100%;animation:sc 14s linear infinite}@keyframes sc{to{transform:translateX(-100%)}}
+ canvas{position:fixed;left:0;top:30px;width:100vw;height:calc(100vh - 30px);display:block}
+ #ov{position:fixed;inset:30px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(5,7,13,.78);z-index:2;text-align:center;padding:16px}
+ #ov h1{margin:0;font:700 28px "Georgia",serif;color:#f3d58c;text-shadow:0 0 14px rgba(243,213,140,.4)}
+ #ov p{margin:0;font-size:14px;color:#b9c6d8;max-width:520px;line-height:1.5}
+ #ov button{background:#3fff6b;color:#03130a;border:0;border-radius:4px;padding:10px 26px;font:700 16px Tahoma,sans-serif;cursor:pointer;box-shadow:0 0 18px rgba(63,255,107,.35)}
+ kbd{background:#1b2232;border:1px solid #3d4760;border-radius:3px;padding:1px 6px;font-family:monospace;color:#d9f2ee}
+</style></head><body>
+<div id="bar"><b>WINAMP</b><div id="lcd"><span>&#9654; Danse Macabre — Kevin MacLeod (after Camille Saint-Saëns) · incompetech.com · CC BY 4.0 · it really whips the skeleton's bones · </span></div><span id="hud">0</span></div>
+<canvas id="c"></canvas>
+<div id="ov"><h1>Danse Macabre</h1>
+ <p>Notes fall down four lanes. Hit them on the line with <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> (or arrow keys, or tap the lanes).<br>Never hit a <b style="color:#ff8a8a">skeleton</b> — three bones and you're done.</p>
+ <button id="go">&#9654; Play</button><p id="sub" style="font-size:12px;color:#7d8ba0"></p></div>
+<script>
+(function(){
+'use strict';
+var cv=document.getElementById('c'),g=cv.getContext('2d'),ov=document.getElementById('ov'),go=document.getElementById('go'),hud=document.getElementById('hud'),sub=document.getElementById('sub');
+var W=0,H=0,dpr=1;function rs(){dpr=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight-30;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);}addEventListener('resize',rs);rs();
+var COL=['#3fff6b','#59d7ff','#f3d58c','#c58cff'],KEYS={KeyD:0,KeyF:1,KeyJ:2,KeyK:3,ArrowLeft:0,ArrowDown:1,ArrowUp:2,ArrowRight:3};
+var chart=null,ac=null,buf=null,src=null,an=null,fd=null,t0=0,playing=false,ended=false;
+var LEAD=1.6,PERFECT=0.06,GOOD=0.12,MISS=0.16;
+var notes=[],skel=[],score=0,combo=0,best=0,lives=3,hits=0,perfects=0,misses=0,flashes=[],laneGlow=[0,0,0,0],pops=[];
+var bestScore=0;
+function fetchBuf(){return Promise.all([fetch('chart.json').then(function(r){return r.json()}),
+  fetch(new Audio().canPlayType('audio/ogg')?'danse_macabre.ogg':'danse_macabre.mp3').then(function(r){return r.arrayBuffer()})]);}
+var ready=fetchBuf().then(function(a){chart=a[0];return a[1];});
+sub.textContent='Loading the music…';ready.then(function(){sub.textContent='';});
+function now(){return ac?ac.currentTime-t0:0}
+function start(){
+  if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();
+  ac.resume();sub.textContent='Loading the music…';
+  ready.then(function(ab){return buf?buf:ac.decodeAudioData(ab.slice?ab.slice(0):ab).then(function(b){buf=b;return b;});}).then(function(){
+    sub.textContent='';ov.style.display='none';
+    notes=chart.notes.map(function(n){return{t:n[0]+LEAD,l:n[1],done:false}});
+    skel=chart.skeletons.map(function(n){return{t:n[0]+LEAD,l:n[1],done:false}});
+    score=0;combo=0;best=0;lives=3;hits=0;perfects=0;misses=0;pops=[];ended=false;
+    src=ac.createBufferSource();src.buffer=buf;an=ac.createAnalyser();an.fftSize=128;fd=new Uint8Array(an.frequencyBinCount);
+    var gain=ac.createGain();gain.gain.value=.9;src.connect(an);an.connect(gain);gain.connect(ac.destination);
+    t0=ac.currentTime+0.05;src.start(t0+LEAD);playing=true;
+    src.onended=function(){if(playing)finish(true);};
+  });
+}
+function finish(won){playing=false;ended=true;try{src&&src.stop()}catch(e){}
+  bestScore=Math.max(bestScore,score);
+  var acc=hits+misses?Math.round(hits/(hits+misses)*100):0;
+  ov.style.display='flex';ov.querySelector('h1').textContent=won?'The dead danced!':'Three bones broken…';
+  ov.querySelector('p').innerHTML='Score <b>'+score+'</b> · best combo '+best+' · accuracy '+acc+'% · perfect '+perfects+'<br>Best tonight: '+bestScore;
+  go.textContent='▶ Dance again';}
+go.addEventListener('click',start);
+function blip(f,d,type,v){if(!ac)return;var o=ac.createOscillator(),gg=ac.createGain();o.type=type||'square';o.frequency.value=f;gg.gain.value=v||.04;o.connect(gg);gg.connect(ac.destination);o.start();gg.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.stop(ac.currentTime+d);}
+function press(l){
+  if(!playing){if(ov.style.display!=='none')start();return;}
+  laneGlow[l]=1;var t=now();
+  // skeleton on the line? that's a broken bone
+  for(var i=0;i<skel.length;i++){var s=skel[i];if(!s.done&&s.l===l&&Math.abs(s.t-t)<GOOD){s.done=true;lives--;combo=0;pops.push({l:l,txt:'CRACK!',c:'#ff6b6b',a:1});blip(90,.25,'sawtooth',.08);flashes.push({a:.5});if(lives<=0){finish(false);}return;}}
+  var bestN=null,bd=9;for(var j=0;j<notes.length;j++){var n=notes[j];if(n.done||n.l!==l)continue;var d=Math.abs(n.t-t);if(d<bd){bd=d;bestN=n;}if(n.t-t>MISS)break;}
+  if(bestN&&bd<=GOOD){bestN.done=true;hits++;combo++;best=Math.max(best,combo);var p=bd<=PERFECT;if(p)perfects++;score+=(p?300:100)*(1+Math.floor(combo/20));pops.push({l:l,txt:p?'PERFECT':'GOOD',c:p?'#3fff6b':'#59d7ff',a:1});}
+}
+addEventListener('keydown',function(e){if(e.repeat)return;if(e.code in KEYS){e.preventDefault();press(KEYS[e.code]);}else if(e.code==='Space'||e.code==='Enter'){e.preventDefault();if(!playing)start();}});
+cv.addEventListener('pointerdown',function(e){var r=cv.getBoundingClientRect();var lw=laneW(),lx0=(W-lw*4)/2;var l=Math.floor((e.clientX-r.left-lx0)/lw);if(l>=0&&l<4)press(l);else if(!playing)start();});
+function laneW(){return Math.min(110,W*0.2)}
+function drawSkull(x,y,s,c){g.save();g.translate(x,y);g.fillStyle=c;g.beginPath();g.arc(0,-s*.1,s*.42,Math.PI,0);g.lineTo(s*.32,s*.25);g.lineTo(-s*.32,s*.25);g.closePath();g.fill();
+  g.fillStyle='#0b0f19';g.beginPath();g.arc(-s*.16,-s*.08,s*.1,0,7);g.arc(s*.16,-s*.08,s*.1,0,7);g.fill();g.fillRect(-s*.03,s*.04,s*.06,s*.08);
+  g.fillStyle=c;for(var k=-2;k<=2;k++)g.fillRect(k*s*.1-s*.03,s*.25,s*.06,s*.1);g.restore();}
+function loop(){
+  requestAnimationFrame(loop);
+  var t=now(),lw=laneW(),lx0=(W-lw*4)/2,hitY=H-90,speed=(hitY-20)/LEAD;
+  g.fillStyle='#05070d';g.fillRect(0,0,W,H);
+  // visualiser bars behind the lanes
+  if(an&&playing){an.getByteFrequencyData(fd);var bw=W/fd.length;for(var b=0;b<fd.length;b++){var v=fd[b]/255;g.fillStyle='rgba(63,255,107,'+(0.06+v*0.18)+')';g.fillRect(b*bw,H-v*H*0.8,bw-1,v*H*0.8);}}
+  // moon + gravestones skyline
+  g.fillStyle='rgba(243,213,140,.12)';g.beginPath();g.arc(W*0.85,60,36,0,7);g.fill();
+  for(var L=0;L<4;L++){var x=lx0+L*lw;g.fillStyle=L%2?'rgba(30,40,60,.55)':'rgba(22,30,46,.55)';g.fillRect(x,0,lw,H);
+    laneGlow[L]*=0.88;if(laneGlow[L]>0.02){g.fillStyle=COL[L];g.globalAlpha=laneGlow[L]*0.25;g.fillRect(x,0,lw,H);g.globalAlpha=1;}
+    g.strokeStyle=COL[L];g.lineWidth=3;g.beginPath();g.arc(x+lw/2,hitY,lw*0.32,0,7);g.stroke();
+    g.fillStyle='rgba(217,242,238,.5)';g.font='bold 13px Tahoma';g.textAlign='center';g.fillText(['D','F','J','K'][L],x+lw/2,hitY+lw*0.32+18);}
+  g.fillStyle='rgba(217,242,238,.25)';g.fillRect(lx0,hitY-1,lw*4,2);
+  if(playing){
+    for(var i=0;i<notes.length;i++){var n=notes[i];if(n.done)continue;var dy=(n.t-t)*speed;if(dy>H)break;
+      if(t-n.t>MISS){n.done=true;misses++;combo=0;pops.push({l:n.l,txt:'miss',c:'#7d8ba0',a:1});continue;}
+      var y=hitY-dy,x=lx0+n.l*lw+lw/2;g.fillStyle=COL[n.l];g.shadowColor=COL[n.l];g.shadowBlur=12;g.beginPath();g.arc(x,y,lw*0.26,0,7);g.fill();g.shadowBlur=0;
+      g.fillStyle='rgba(5,7,13,.55)';g.beginPath();g.arc(x,y,lw*0.12,0,7);g.fill();}
+    for(var k=0;k<skel.length;k++){var s=skel[k];if(s.done)continue;var dy2=(s.t-t)*speed;if(dy2>H)break;if(t-s.t>MISS){s.done=true;continue;}
+      drawSkull(lx0+s.l*lw+lw/2,hitY-dy2,lw*0.62,'#f1ece0');}
+  }
+  for(var p=pops.length-1;p>=0;p--){var q=pops[p];q.a-=0.025;if(q.a<=0){pops.splice(p,1);continue;}g.globalAlpha=q.a;g.fillStyle=q.c;g.font='bold 16px Tahoma';g.textAlign='center';g.fillText(q.txt,lx0+q.l*lw+lw/2,hitY-lw*0.45-(1-q.a)*30);g.globalAlpha=1;}
+  for(var f=flashes.length-1;f>=0;f--){var fl=flashes[f];fl.a-=0.04;if(fl.a<=0){flashes.splice(f,1);continue;}g.fillStyle='rgba(255,60,60,'+fl.a+')';g.fillRect(0,0,W,H);}
+  hud.textContent='♥'.repeat(Math.max(0,lives))+'  '+score+'  x'+combo;
+  if(playing&&chart&&t>chart.length+LEAD+1)finish(true);
+}
+loop();
+})();
+</script></body></html>

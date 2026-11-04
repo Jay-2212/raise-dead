@@ -36,7 +36,6 @@ const STAGGER_MS = 380;
 const CONE_RANGE = 140;
 const CONE_DEG = 28;
 const CAST_COOLDOWN = 230;
-const CLICK_RADIUS = 28;
 const CRIT_RADIUS = 10;
 const SOULS = 3;
 const IFRAMES_MS = 1000;
@@ -69,7 +68,8 @@ export class ZombieWave {
   }
 
   /** Start the horde (no-op if one is running). onDone fires only after a full clear. */
-  start(onDone?: () => void): void {
+  private onAbandon: (() => void) | null = null;
+  start(onDone?: () => void, onAbandon?: () => void): void {
     if (this.active) return;
     const w = this.world;
     this.active = true;
@@ -78,6 +78,7 @@ export class ZombieWave {
     this.casts = 0;
     this.kills = 0;
     this.onDone = onDone ?? null;
+    this.onAbandon = onAbandon ?? null;
     this.startedAt = w.time.now;
 
     w.cameras.main.shake(600, 0.006);
@@ -155,6 +156,9 @@ export class ZombieWave {
     if (now < this.iframesUntil) wiz.setAlpha(Math.floor(now / 80) % 2 ? 0.45 : 1);
     else if (wiz.alpha !== 1) wiz.setAlpha(1);
 
+    // walked away after a defeat: the horde sinks back into the ground
+    if (this.failed && Phaser.Math.Distance.Between(wiz.x, wiz.y, 1400, 1580) > 520) { this.abandon(); return; }
+
     if (!this.failed) {
       for (const z of this.zombies) {
         if (!z.alive || z.rising) continue;
@@ -203,10 +207,12 @@ export class ZombieWave {
     const wiz = w.wizard;
     const now = w.time.now;
     const bounds = w.physics.world.bounds;
+    if (now < this.iframesUntil) return;
+    // knockback through the physics body (tweening x/y desyncs the sprite from its Arcade body)
     const tx = Phaser.Math.Clamp(wiz.x + nx * 34, bounds.x + 20, bounds.right - 20);
     const ty = Phaser.Math.Clamp(wiz.y + ny * 34, bounds.y + 40, bounds.bottom - 10);
-    w.tweens.add({ targets: wiz, x: tx, y: ty, duration: 140, ease: 'Quad.easeOut' });
-    if (now < this.iframesUntil) return;
+    (wiz.body as Phaser.Physics.Arcade.Body).reset(tx, ty);
+    wiz.setVelocity(0, 0);
     this.iframesUntil = now + IFRAMES_MS;
     this.souls--;
     w.sound.play('zombie_hit', { volume: 0.7 });
@@ -233,21 +239,43 @@ export class ZombieWave {
     this.clearBanners();
     this.failed = false;
     this.souls = SOULS;
+    this.kills = 0;
     this.iframesUntil = w.time.now + 1500;
     if (w.cache.audio.exists('choir_aah')) w.sound.play('choir_aah', { volume: 0.3 });
     this.beginWave(0);
   }
 
   private onSpace(ev: KeyboardEvent): void {
-    if (ev.repeat) return;
+    if (ev.repeat || this.failed || this.ending) return;
     this.castCone();
+  }
+
+  get isFailed(): boolean { return this.failed; }
+
+  /** True when a living zombie's body is under the world point (sprite bounds, origin bottom-centre). */
+  hasTargetAt(wx: number, wy: number): boolean {
+    return !!this.zombieAt(wx, wy);
+  }
+
+  private zombieAt(wx: number, wy: number): Zombie | null {
+    let best: Zombie | null = null;
+    let bestD = Infinity;
+    for (const z of this.zombies) {
+      if (!z.alive) continue;
+      const hw = Math.max(14, z.sprite.displayWidth * 0.6);
+      const h = Math.max(30, z.sprite.displayHeight);
+      if (wx < z.sprite.x - hw || wx > z.sprite.x + hw || wy < z.sprite.y - h - 6 || wy > z.sprite.y + 6) continue;
+      const d = Phaser.Math.Distance.Between(wx, wy, z.sprite.x, z.sprite.y - h / 2);
+      if (d < bestD) { bestD = d; best = z; }
+    }
+    return best;
   }
 
   // ─── casting ──────────────────────────────────────────────────────────────
   /** F / Space / F button: fire a short cone the way the wizard faces (no map-wide auto-aim). */
   castCone(): void {
-    if (!this.active) return;
-    if (this.failed) { this.retry(); return; }
+    if (!this.active || this.ending) return;
+    if (this.failed) { this.retry(); return; } // only F / the F button rises again
     if (!this.ready()) return;
     const wiz = this.world.wizard;
     const f = this.world.getFacing?.() ?? 'down';
@@ -269,17 +297,10 @@ export class ZombieWave {
 
   /** Click / right-click / tap in the world during the horde: blast the zombie under the pointer. */
   castAt(wx: number, wy: number): void {
-    if (!this.active) return;
-    if (this.failed) { this.retry(); return; }
+    if (!this.active || this.failed || this.ending) return;
+    const target = this.zombieAt(wx, wy);
+    if (!target) return;
     if (!this.ready()) return;
-    let target: Zombie | null = null;
-    let best = CLICK_RADIUS;
-    for (const z of this.zombies) {
-      if (!z.alive) continue;
-      const d = Phaser.Math.Distance.Between(wx, wy, z.sprite.x, z.sprite.y - 22);
-      if (d < best) { best = d; target = z; }
-    }
-    if (!target) { this.fizzle(wx, wy); return; }
     const crit = Phaser.Math.Distance.Between(wx, wy, target.sprite.x, target.sprite.y - 36) < CRIT_RADIUS;
     this.fireAt(target, wx, wy, crit ? 2 : 1);
   }
@@ -404,6 +425,29 @@ export class ZombieWave {
     w.tweens.add({ targets: t, y: t.y - 22, alpha: 0, duration: 1300, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
   }
 
+  /** Quietly reset the horde (player left after losing). The secret stays found; touch the hand to try again. */
+  private abandon(): void {
+    const w = this.world;
+    for (const z of this.zombies) { z.sprite.destroy(); z.shadow.destroy(); }
+    this.zombies = [];
+    for (const t of this.timers) t.remove(false);
+    this.timers = [];
+    this.clearBanners();
+    w.input.keyboard?.off('keydown-SPACE', this.onSpace, this);
+    if (this.music) { const m = this.music; m.stop(); m.destroy(); this.music = null; }
+    w.restoreWorldMusic?.(1200);
+    this.vignetteTween?.stop();
+    this.vignette?.destroy(); this.vignette = null;
+    this.hud?.destroy(); this.hud = null;
+    this.failed = false;
+    this.active = false;
+    w.wizard.setAlpha(1);
+    this.onDone = null;
+    const ab = this.onAbandon;
+    this.onAbandon = null;
+    ab?.();
+  }
+
   private end(): void {
     const w = this.world;
     this.ending = true;
@@ -425,9 +469,9 @@ export class ZombieWave {
     try { localStorage.setItem('rd_slayer', '1'); } catch { /* private mode */ }
     w.applySlayerGlow?.();
     this.banner('The graveyard rests.', `24 souls laid to rest in ${mmss}${first ? ' · Zombie Slayer: your light burns green' : ''}`, 3400);
+    this.active = false; // F works on graves again right away; the banner just plays out
     w.time.delayedCall(3600, () => {
       this.zombies = [];
-      this.active = false;
       w.wizard.setAlpha(1);
       const cb = this.onDone;
       this.onDone = null;

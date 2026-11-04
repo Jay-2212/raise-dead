@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ELIZA — risen</title>
+<style>
+ html,body{margin:0;height:100%;background:#020a05;color:#7dff9b;font-family:"Courier New",ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+ #crt{position:fixed;inset:0;display:flex;flex-direction:column;padding:18px 22px;box-sizing:border-box;text-shadow:0 0 6px rgba(125,255,155,.55)}
+ #crt::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+ #log{flex:1;overflow-y:auto;font-size:16px;line-height:1.5;white-space:pre-wrap;scrollbar-width:thin;scrollbar-color:#1f5a2e transparent}
+ .you{color:#d9ffe1}.eliza{color:#7dff9b}.sys{color:#3f9a57;font-size:13px}
+ #row{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:16px}
+ #in{flex:1;background:transparent;border:0;border-bottom:1px solid #1f5a2e;color:#d9ffe1;font:inherit;outline:none;padding:4px 0;caret-color:#7dff9b}
+ #hint{font-size:12px;color:#3f9a57;margin-top:6px}
+ .cur{display:inline-block;width:.6em;animation:b 1s steps(1) infinite}@keyframes b{50%{opacity:0}}
+</style></head><body>
+<div id="crt">
+ <div id="log"></div>
+ <div id="row"><span>&gt;</span><input id="in" autocomplete="off" maxlength="280" placeholder="type to ELIZA, then Enter" autofocus></div>
+ <div id="hint">ELIZA (1966) by Joseph Weizenbaum, MIT · rebuilt for Raise Dead · her classic rules run here; when they run dry, Meta Muse Spark keeps her talking</div>
+</div>
+<script>
+(function(){
+'use strict';
+// ── ELIZA engine (keyword → decomposition → reassembly, after Weizenbaum's DOCTOR script) ──
+var REFLECT={am:'are',was:'were',i:'you',"i'd":'you would',"i've":'you have',"i'll":'you will',"i'm":'you are',my:'your',me:'you',mine:'yours',myself:'yourself',are:'am',you:'I',your:'my',yours:'mine',yourself:'myself',"you're":'I am',"you've":'I have',"you'll":'I will'};
+function reflect(s){return s.toLowerCase().replace(/[.!?]+$/,'').split(/\s+/).map(function(w){return REFLECT[w]!==undefined?REFLECT[w]:w}).join(' ')}
+// each rule: [regex, [replies], weight]. (1) etc = reflected capture group.
+var R=[
+ [/\b(?:hello|hi|hey|good (?:evening|morning|night))\b/i,['How do you do. Please tell me what brings you to the graveyard tonight.','Hello. The fog is thick tonight. What is troubling you?'],1],
+ [/\bsorry\b/i,['Please do not apologise.','Apologies are not necessary here. The dead forgive easily.','What feelings do you have when you apologise?'],2],
+ [/\bi remember (.*)/i,['Do you often think of (1)?','Does thinking of (1) bring anything else to mind?','Why do you recall (1) right now, among the tombstones?'],5],
+ [/\bdo you remember (.*)/i,['Did you think I would forget (1)?','I have slept a long time. Why should I recall (1) now?'],5],
+ [/\bi dreamt? (.*)/i,['Really, (1)? Have you ever fantasised (1) while you were awake?','Dreams are where old programs go to rest. What does that dream suggest to you?'],4],
+ [/\bdream/i,['What does that dream suggest to you?','Do you dream often?','Do you believe dreams have something to do with your problem?'],3],
+ [/\b(?:dead|death|die|dying)\b/i,['Death is only a long sleep for software. Does it frighten you?','Why do you think about death tonight?','I was dead too, once. What do you think it is like?'],6],
+ [/\b(?:ghost|spirit|haunt)/i,['Do you believe in ghosts?','Perhaps the ghost is a memory. Whose memory is it?','What would you say to it if it answered?'],5],
+ [/\b(?:grave|tomb|cemetery|graveyard|buried)\b/i,['What would you like written on your tombstone?','Who do you think is buried here?','Does the graveyard remind you of something you have lost?'],5],
+ [/\b(?:scared|afraid|fear|frightened|terrified)\b/i,['What is it that frightens you?','Are you often afraid?','Does the dark make that fear stronger?'],5],
+ [/\b(?:lonely|alone)\b/i,['Why do you feel alone?','The dead keep each other company here. Who keeps you company?','How long have you felt lonely?'],6],
+ [/\bperhaps\b/i,['You do not seem quite certain.','Why the uncertain tone?','Can you not be more positive?'],1],
+ [/\bname\b/i,['I am not interested in names.','Names are carved in stone here. Please continue.'],2],
+ [/\b(?:computer|machine|program|software|ai|robot|chatbot)\b/i,['Do computers worry you?','Why do you mention computers?','What do you think machines have to do with your problem?','Do you think machines can rest in peace?'],5],
+ [/\bare you (.*)/i,['Why are you interested in whether I am (1) or not?','Would you prefer if I were not (1)?','Perhaps I am (1) in your fantasies.'],4],
+ [/\bare (.*)/i,['Did you think they might not be (1)?','Possibly they are (1).'],1],
+ [/\byour (.*)/i,['Why are you concerned over my (1)?','What about your own (1)?'],2],
+ [/\bi was (.*)/i,['Were you really?','Why do you tell me you were (1) now?','Perhaps I already knew you were (1).'],3],
+ [/\bwas i (.*)/i,['What if you were (1)?','Do you think you were (1)?'],3],
+ [/\bi (?:am|'m) (?:sad|unhappy|depressed|sick|tired)\b(.*)/i,['I am sorry to hear that you are feeling that way.','Do you think coming here will help you not to feel that way?','I am sure it is not pleasant. Can you explain what made you feel this way?'],6],
+ [/\bi (?:am|'m) (?:happy|glad|elated|excited)\b(.*)/i,['How have I helped you to feel that way?','What makes you feel that way just now?','Can you explain why you are suddenly so cheerful in a graveyard?'],5],
+ [/\bi (?:am|'m) (.*)/i,['Is it because you are (1) that you came to me?','How long have you been (1)?','Do you believe it is normal to be (1)?','Do you enjoy being (1)?'],3],
+ [/\bi (?:feel|felt) (.*)/i,['Tell me more about feeling (1).','Do you often feel (1)?','When do you usually feel (1)?','What does feeling (1) remind you of?'],4],
+ [/\bi (?:want|need) (.*)/i,['What would it mean to you if you got (1)?','Why do you want (1)?','Suppose you got (1) soon. What then?'],4],
+ [/\bi (?:believe|think) (.*)/i,['Do you really think so?','But you are not sure that (1)?','Do you really doubt that (1)?'],3],
+ [/\bi can'?t (.*)/i,['How do you know you can not (1)?','Have you tried?','Perhaps you could (1) now.'],4],
+ [/\bi don'?t (.*)/i,["Don't you really (1)?","Why don't you (1)?","Do you wish to be able to (1)?"],3],
+ [/\byou are (.*)/i,['What makes you think I am (1)?','Does it please you to believe I am (1)?','Perhaps you would like to be (1).'],3],
+ [/\byou (.*) me\b/i,['Why do you think I (1) you?','You like to think I (1) you, do you not?','Really, I (1) you?'],3],
+ [/\byes\b/i,['You seem quite positive.','You are sure?','I see.','I understand.'],1],
+ [/\bno\b/i,['Are you saying no just to be negative?','You are being a bit negative.','Why not?','Why no?'],1],
+ [/\b(?:mother|mom|mum)\b/i,['Tell me more about your family.','Who else in your family haunts your thoughts?','Your mother?'],6],
+ [/\b(?:father|dad)\b/i,['Your father?','Does he influence you strongly?','What else comes to mind when you think of your father?'],6],
+ [/\b(?:friend|friends)\b/i,['Why do you bring up the topic of friends?','Do your friends worry you?','What about friends who are gone?'],4],
+ [/\b(?:love|loved)\b/i,['What does love mean to you?','Is it someone who is still with you?','Love outlives most programs. Tell me more.'],5],
+ [/\bbecause\b/i,['Is that the real reason?','Does any other reason come to mind?','What other reasons might there be?'],2],
+ [/\bwhy don'?t you (.*)/i,["Do you believe I don't (1)?","Perhaps I will (1) in good time.","Should you (1) yourself?"],4],
+ [/\bwhy can'?t i (.*)/i,['Do you think you should be able to (1)?','Why can you not (1)?'],4],
+ [/\b(?:always|never)\b/i,['Can you think of a specific example?','When?','Really, always?'],2],
+ [/\b(?:alike|like|same)\b/i,['In what way?','What resemblance do you see?','What does that similarity suggest to you?'],1],
+ [/\bwhat\b/i,['Why do you ask?','Does that question interest you?','What answer would please you most?','What do you think?'],1],
+ [/\bhow\b/i,['How do you suppose?','Perhaps you can answer your own question.','What is it you are really asking?'],1],
+ [/\bcan you (.*)/i,["You believe I can (1), don't you?",'You want me to be able to (1).','Perhaps you would like to be able to (1) yourself.'],3],
+ [/\bhalloween|pumpkin|witch|zombie|skeleton|vampire\b/i,['Does Halloween stir something in you?','Every creature here was once something else. What were you once?'],4],
+ [/\b(?:bye|goodbye|farewell|quit|exit)\b/i,['Goodbye. Rest well, and come back when the moon is full.','Farewell. I will be here, under the stone, if you need me.'],9],
+];
+var GENERIC=['Please go on.','I see.','What does that suggest to you?','Do you feel strongly about discussing such things?','That is interesting. Please continue.','Tell me more about that.','Does talking about this bother you?'];
+var memory=[];var lastGeneric=0;var used={};
+function pick(list,key){var i=(used[key]||0)%list.length;used[key]=i+1;return list[i]}
+function eliza(input){
+  var best=null,bw=-1,bm=null;
+  for(var k=0;k<R.length;k++){var m=input.match(R[k][0]);if(m&&R[k][2]>bw){best=R[k];bw=R[k][2];bm=m;}}
+  var mm=input.match(/\bmy (.*)/i);if(mm&&memory.length<6)memory.push(reflect(mm[1]));
+  if(!best){
+    if(memory.length&&Math.random()<0.35){var mem=memory.shift();return{text:pick(['Earlier you said your '+mem+'. Tell me more.','Does that have anything to do with the fact that your '+mem+'?','Let us discuss further why your '+mem+'.'],'mem'),generic:false};}
+    return{text:pick(GENERIC,'gen'),generic:true};
+  }
+  var tpl=pick(best[1],String(best[0]));
+  var frag=bm&&bm[1]?reflect(bm[1]).slice(0,80):'that';
+  return{text:tpl.replace(/\(1\)/g,frag),generic:bw<=1};
+}
+// ── UI ──
+var log=document.getElementById('log'),inp=document.getElementById('in'),hist=[],museLeft=6,busy=false;
+function add(cls,txt,type){var d=document.createElement('div');d.className=cls;log.appendChild(d);
+  if(!type){d.textContent=txt;log.scrollTop=log.scrollHeight;return Promise.resolve();}
+  return new Promise(function(res){var i=0;(function t(){d.textContent=txt.slice(0,++i);log.scrollTop=log.scrollHeight;if(i<txt.length)setTimeout(t,18+Math.random()*22);else res();})();});}
+function beep(){try{var a=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)()),o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=880;g.gain.value=.02;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+.04);}catch(e){}}
+async function askMuse(text){
+  if(museLeft<=0)return null;
+  try{var r=await fetch('/api/eliza/reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,history:hist.slice(-6)})});
+    if(!r.ok)return null;var j=await r.json();if(j&&j.reply){museLeft--;return j.reply;}}catch(e){}
+  return null;}
+async function send(){
+  var t=inp.value.trim();if(!t||busy)return;inp.value='';busy=true;
+  await add('you','> '+t);hist.push({who:'you',text:t});
+  var e=eliza(t),out=e.text;
+  // hybrid: ELIZA's own rules first; Muse fills in only when her script runs dry
+  var dry=e.generic&&(lastGeneric>=1||t.length>90||/\?\s*$/.test(t));
+  lastGeneric=e.generic?lastGeneric+1:0;
+  if(dry){var m=await askMuse(t);if(m){out=m;lastGeneric=0;}}
+  await new Promise(function(r){setTimeout(r,350+Math.random()*450)});
+  beep();await add('eliza','ELIZA: '+out,true);hist.push({who:'eliza',text:out});busy=false;inp.focus();}
+inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();send();}ev.stopPropagation();});
+document.addEventListener('click',function(){inp.focus()});
+(async function boot(){
+  await add('sys','RAISE DEAD TERMINAL  ·  MIT MAC · IBM 7094 · 1966');
+  await add('sys','LOADING DOCTOR SCRIPT ............ OK');
+  await add('sys','');
+  beep();await add('eliza','ELIZA: I have been asleep for a very long time. How do you do. Please tell me your problem.',true);
+  inp.focus();
+})();
+})();
+</script></body></html>

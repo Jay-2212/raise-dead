@@ -41,6 +41,7 @@ export class LightningStrike {
 
   private strikeOnce(after: () => void): void {
     const w = this.w;
+    if ((w as unknown as { ritualActive?: boolean }).ritualActive || !w.scene.isActive()) { this.cancelled = true; after(); return; }
     const hit = this.pickImpact();
     if (!hit) { after(); return; }
     const cam = w.cameras.main;

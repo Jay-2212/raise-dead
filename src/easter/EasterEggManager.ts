@@ -21,7 +21,7 @@ const WELL_WINDOW_MS = 4000;      // three F presses inside this window
 type World = Phaser.Scene & {
   wizard: Phaser.Physics.Arcade.Sprite;
   summonWitch?: () => void;
-  startZombieWave?: (onDone: () => void) => void;
+  startZombieWave?: (onDone: () => void, onAbandon?: () => void) => void;
 };
 
 export class EasterEggManager {
@@ -163,6 +163,12 @@ export class EasterEggManager {
     return egg ? Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y) : Infinity;
   }
 
+  private omenCancel: (() => void) | null = null;
+  /** N4: stop a running black-cat omen (a ritual or the horde is starting). */
+  cancelAmbient(): void {
+    this.omenCancel?.();
+  }
+
   /** N4/B2: true while the black-cat omen sequence is playing. */
   isOmenRunning(): boolean {
     return this.busy.has('black_cat');
@@ -281,12 +287,20 @@ export class EasterEggManager {
       } });
 
     // the omen: something bad is about to happen — N4/L1: lightning lands right beside the wizard
+    let finished = false;
+    const finish = () => { if (finished) return; finished = true; this.omenCancel = null; done(); };
+    const strike = new LightningStrike(w);
+    this.omenCancel = () => { strike.cancel(); finish(); };
     w.time.delayedCall(1500, () => {
-      new LightningStrike(w).play(() => {
-        w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
-        w.time.delayedCall(500, () => w.summonWitch?.());
-        w.time.delayedCall(900, done);
-      });
+      if (finished) return;
+      try {
+        strike.play(() => {
+          if (finished) return;
+          try { w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 }); } catch { /* ignore */ }
+          w.time.delayedCall(500, () => { if (!finished) w.summonWitch?.(); });
+          w.time.delayedCall(900, finish);
+        });
+      } catch { finish(); }
     });
   }
 
@@ -300,7 +314,7 @@ export class EasterEggManager {
       this.loreAt = { x: w.wizard.x, y: w.wizard.y };
       w.scene.get('UIScene')?.events.emit('showLoreCard', egg.title, egg.text, 'zombie_hand');
       done();
-    });
+    }, done);
   }
 
   private doJackPumpkin(done: () => void): void {

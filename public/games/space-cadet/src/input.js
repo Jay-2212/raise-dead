@@ -43,7 +43,7 @@ export const CHEAT_BUFFER_LENGTH = 11;
 /** KeyboardEvent.code -> application command (ARCHITECTURE 11.1).  Gameplay bindings take precedence. */
 export const APP_KEYS = Object.freeze({
   F1: 'help', F2: 'newGame', F3: 'pause', F4: 'fullscreen', F5: 'sounds', F6: 'music', F8: 'controls',
-  Enter: 'launchBall', NumpadEnter: 'launchBall', KeyV: 'camera', KeyC: 'cinematic',
+  Enter: 'launchBall', NumpadEnter: 'launchBall', // Raise Dead: V / C camera toggles removed
 });
 
 /** Debug keys (only while debug is on): KeyboardEvent.code -> InputEvent key. */

@@ -1,0 +1,1195 @@
+diff --git a/public/games/bounce/index.html b/public/games/bounce/index.html
+index 555c179..2adcf11 100644
+--- a/public/games/bounce/index.html
++++ b/public/games/bounce/index.html
+@@ -3,7 +3,7 @@
+ <head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+-<title>The Bouncing Logo — risen</title>
++<title>The Bouncing Cube — risen</title>
+ <style>
+   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,sans-serif;color:#d9f2ee;user-select:none}
+   canvas{display:block;width:100vw;height:100vh}
+@@ -20,18 +20,18 @@
+ <div id="cheer">CORNER!!!</div>
+ <script>
+ (() => {
+-  // Original tribute to the idle "bouncing logo" screensaver. Our own RIP logo; no third-party marks.
++  // Original tribute to the idle "bouncing logo" screensaver. N4: now a square Spooky Cube so its corners meet the screen's corners exactly. No third-party marks.
+   const c = document.getElementById('c'), g = c.getContext('2d');
+   const elE = document.getElementById('edges'), elC = document.getElementById('corners'), elS = document.getElementById('spd'), cheer = document.getElementById('cheer');
+   const COLORS = ['#7fe0cf', '#f08a24', '#c58cff', '#ff6b8b', '#ffe066', '#7cc4ff', '#9dff7a'];
+   let W = 0, H = 0, dpr = 1;
+-  const logo = { w: 150, h: 72, x: 40, y: 30, vx: 1, vy: 1, color: 0 };
++  const logo = { w: 120, h: 120, x: 40, y: 30, vx: 1, vy: 1, color: 0 };
+   let speed = 1, fast = false, edges = 0, corners = 0, sound = true, ac = null, confetti = [];
+   function resize() {
+     dpr = Math.min(2, window.devicePixelRatio || 1);
+     W = window.innerWidth; H = window.innerHeight;
+     c.width = W * dpr; c.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+-    logo.w = Math.max(90, Math.min(170, W * 0.22)); logo.h = logo.w * 0.48;
++    logo.w = Math.max(80, Math.min(150, Math.min(W, H) * 0.24)); logo.h = logo.w; // N4: a CUBE — square box, so its corners meet the screen's corners exactly
+     logo.x = Math.min(logo.x, W - logo.w); logo.y = Math.min(logo.y, H - logo.h);
+   }
+   window.addEventListener('resize', resize); resize();
+@@ -45,18 +45,46 @@
+       v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.stop(ac.currentTime + d);
+     } catch (e) {}
+   }
++  function shade(hex, k) {
++    const n = parseInt(hex.slice(1), 16); let r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
++    r = Math.round(r * k); gg = Math.round(gg * k); b = Math.round(b * k);
++    return `rgb(${Math.min(255, r)},${Math.min(255, gg)},${Math.min(255, b)})`;
++  }
++  let flick = 0;
+   function drawLogo() {
+-    const { x, y, w, h } = logo, col = COLORS[logo.color];
++    // N4: Spooky Cube. Everything is drawn inside the square (x, y, w, w) so the box edges ARE the cube's edges.
++    const { x, y, w } = logo, col = COLORS[logo.color], d = w * 0.22, f = w - d;
++    flick += 0.15;
+     g.save();
+-    g.shadowColor = col; g.shadowBlur = 18;
+-    g.fillStyle = col;
+-    // disc under the word, like the classic logo
+-    g.beginPath(); g.ellipse(x + w / 2, y + h * 0.82, w * 0.46, h * 0.14, 0, 0, Math.PI * 2); g.fill();
+-    g.font = `900 ${Math.round(h * 0.62)}px Georgia, serif`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+-    g.fillText('R.I.P', x + w / 2, y + h * 0.6);
+-    g.fillStyle = '#000'; g.shadowBlur = 0;
+-    g.font = `700 ${Math.round(h * 0.16)}px system-ui, sans-serif`;
+-    g.fillText('SCREENSAVER', x + w / 2, y + h * 0.87);
++    g.shadowColor = col; g.shadowBlur = 16;
++    // top face
++    g.fillStyle = shade(col, 1.15);
++    g.beginPath(); g.moveTo(x, y + d); g.lineTo(x + d, y); g.lineTo(x + w, y); g.lineTo(x + f, y + d); g.closePath(); g.fill();
++    // right face
++    g.fillStyle = shade(col, 0.6);
++    g.beginPath(); g.moveTo(x + f, y + d); g.lineTo(x + w, y); g.lineTo(x + w, y + f); g.lineTo(x + f, y + w); g.closePath(); g.fill();
++    // front face
++    g.shadowBlur = 0;
++    g.fillStyle = col; g.fillRect(x, y + d, f, f);
++    // edges
++    g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2;
++    g.strokeRect(x + 1, y + d + 1, f - 2, f - 2);
++    g.beginPath(); g.moveTo(x + 1, y + d); g.lineTo(x + d, y + 1); g.lineTo(x + w - 1, y + 1); g.lineTo(x + w - 1, y + f); g.lineTo(x + f, y + w - 1); g.moveTo(x + f, y + d); g.lineTo(x + w - 1, y + 1); g.stroke();
++    // carved jack-o'-lantern face on the front, glowing from inside
++    const cx = x + f / 2, cy = y + d + f / 2, u = f / 10;
++    const glow = 0.75 + Math.sin(flick) * 0.12 + Math.random() * 0.08;
++    g.fillStyle = `rgba(255,${Math.round(200 * glow)},60,${0.95})`;
++    g.shadowColor = '#ffb030'; g.shadowBlur = 10 * glow;
++    g.beginPath(); g.moveTo(cx - 3.4 * u, cy - 0.6 * u); g.lineTo(cx - 2.2 * u, cy - 2.8 * u); g.lineTo(cx - 1.0 * u, cy - 0.6 * u); g.closePath(); g.fill();
++    g.beginPath(); g.moveTo(cx + 1.0 * u, cy - 0.6 * u); g.lineTo(cx + 2.2 * u, cy - 2.8 * u); g.lineTo(cx + 3.4 * u, cy - 0.6 * u); g.closePath(); g.fill();
++    g.beginPath(); g.moveTo(cx - 0.6 * u, cy + 0.6 * u); g.lineTo(cx, cy - 0.4 * u); g.lineTo(cx + 0.6 * u, cy + 0.6 * u); g.closePath(); g.fill();
++    g.beginPath();
++    g.moveTo(cx - 3.6 * u, cy + 1.4 * u);
++    const teeth = [[-2.7, 2.4], [-1.8, 1.7], [-0.9, 2.6], [0, 1.7], [0.9, 2.6], [1.8, 1.7], [2.7, 2.4]];
++    for (const [tx, ty] of teeth) g.lineTo(cx + tx * u, cy + ty * u);
++    g.lineTo(cx + 3.6 * u, cy + 1.4 * u);
++    g.quadraticCurveTo(cx, cy + 4.6 * u, cx - 3.6 * u, cy + 1.4 * u);
++    g.fill();
+     g.restore();
+   }
+   function hitCorner() {
+diff --git a/public/games/doom/index.html b/public/games/doom/index.html
+new file mode 100644
+index 0000000..07bb797
+--- /dev/null
++++ b/public/games/doom/index.html
+@@ -0,0 +1,38 @@
++<!doctype html>
++<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
++<title>DOOM (1993 engine) · Freedoom</title>
++<style>
++ html,body{margin:0;height:100%;background:#000;color:#d9f2ee;font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
++ #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
++ canvas#canvas{display:block;width:100vw;height:75vw;max-height:100vh;max-width:133.34vh;image-rendering:pixelated;background:#000;outline:none}
++ #ui{position:fixed;left:8px;bottom:8px;display:flex;gap:8px;align-items:center;font-size:12px;z-index:5}
++ #ui button{background:rgba(11,16,32,.85);color:#c9b98a;border:1px solid #c9b98a;border-radius:6px;padding:5px 10px;font:inherit;cursor:pointer}
++ #help{opacity:.85;background:rgba(0,0,0,.6);padding:5px 8px;border-radius:6px}
++ #load{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:15px;background:#000;z-index:4}
++ #bar{width:min(320px,70vw);height:8px;border:1px solid #c9b98a;border-radius:4px;overflow:hidden}#bar>i{display:block;height:100%;width:0;background:#c43b2b}
++ #start{display:none;background:#c43b2b;color:#fff;border:0;border-radius:6px;padding:10px 22px;font:inherit;font-size:16px;cursor:pointer}
++</style></head><body>
++<div id="wrap"><canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas></div>
++<div id="load"><div>Raising DOOM (1993 engine) with Freedoom levels…</div><div id="bar"><i></i></div><div id="pct">0%</div><button id="start">Click to play</button></div>
++<div id="ui"><button id="fs">⛶ Full screen</button><span id="help">WASD move · mouse/←→ turn · Space fire · E open doors · Shift run · Esc menu</span></div>
++<script>
++(function(){
++ const parts=['freedoom1.wad.part0','freedoom1.wad.part1'];const TOTAL=28795076;
++ const bar=document.querySelector('#bar>i'),pct=document.getElementById('pct'),start=document.getElementById('start');
++ let got=0;
++ async function fetchPart(u){const r=await fetch(u);if(!r.ok)throw new Error(u+' '+r.status);const rd=r.body.getReader();const chunks=[];for(;;){const{done,value}=await rd.read();if(done)break;chunks.push(value);got+=value.length;const p=Math.min(100,Math.round(got/TOTAL*100));bar.style.width=p+'%';pct.textContent=p+'%';}return chunks;}
++ window.__wadPromise=(async()=>{const all=[];for(const p of parts){all.push(...await fetchPart(p));}const out=new Uint8Array(got);let o=0;for(const c of all){out.set(c,o);o+=c.length;}return out;})();
++ window.__wadPromise.then(()=>{pct.textContent='Ready';start.style.display='block';}).catch(e=>{pct.textContent='Could not load: '+e.message;});
++ start.addEventListener('click',()=>{document.getElementById('load').style.display='none';const cv=document.getElementById('canvas');cv.focus();boot();});
++ document.getElementById('fs').addEventListener('click',()=>{const el=document.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen).call(el);document.getElementById('canvas').focus();});
++ function boot(){
++  window.Module={noInitialRun:true,
++   preRun:[async()=>{}],
++   onRuntimeInitialized:async()=>{const wad=await window.__wadPromise;Module.FS.writeFile('/freedoom1.wad',wad);
++     const cfg=await (await fetch('default.cfg')).text();Module.FS.writeFile('/default.cfg',cfg);
++     (window.callMain||Module.callMain)(['-iwad','/freedoom1.wad','-window','-nogui','-config','/default.cfg','-nomusic']);},
++   canvas:document.getElementById('canvas'),print:()=>{},printErr:t=>console.warn(t),setStatus:()=>{}};
++  const s=document.createElement('script');s.src='websockets-doom.js';document.body.appendChild(s);
++ }
++})();
++</script></body></html>
+diff --git a/public/games/pacman/index.html b/public/games/pacman/index.html
+new file mode 100644
+index 0000000..f97b752
+--- /dev/null
++++ b/public/games/pacman/index.html
+@@ -0,0 +1,21 @@
++<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
++<title>Pac-Man (HTML5 remake)</title>
++<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:monospace;color:#aaa}
++#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
++canvas{width:min(100vw,150vh);height:auto;max-height:100vh;aspect-ratio:3/2;image-rendering:pixelated}
++#cr{position:fixed;left:6px;bottom:4px;font-size:11px}</style></head>
++<body><div id="wrap"><canvas id="canvas" width="960" height="640" tabindex="0"></canvas></div>
++<div id="cr">HTML5 Pac-Man remake by mumuy (MIT) · arrows / WASD / swipe · Enter or Space start &amp; pause</div>
++<script>
++// Raise Dead additions: WASD -> arrows, swipe/tap on touch, sound blips (original WebAudio).
++(function(){
++ var map={87:38,65:37,83:40,68:39};
++ function fire(code){var e=new KeyboardEvent('keydown',{bubbles:true});Object.defineProperty(e,'keyCode',{get:function(){return code}});Object.defineProperty(e,'which',{get:function(){return code}});document.dispatchEvent(e);}
++ document.addEventListener('keydown',function(e){if(map[e.keyCode]&&!e.__rd){e.preventDefault();e.stopImmediatePropagation();fire(map[e.keyCode]);}},true);
++ var sx=0,sy=0,st=0;
++ document.addEventListener('touchstart',function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();},{passive:true});
++ document.addEventListener('touchend',function(e){var t=e.changedTouches[0];var dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)<20&&Math.abs(dy)<20){fire(13);return;}if(Math.abs(dx)>Math.abs(dy))fire(dx>0?39:37);else fire(dy>0?40:38);},{passive:true});
++ window.addEventListener('load',function(){document.getElementById('canvas').focus();});
++})();
++</script>
++<script src="static/script/game.js"></script><script src="static/script/index.js"></script></body></html>
+diff --git a/public/games/skifree/index.html b/public/games/skifree/index.html
+new file mode 100644
+index 0000000..47725a2
+--- /dev/null
++++ b/public/games/skifree/index.html
+@@ -0,0 +1,5 @@
++<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
++<title>SkiFree.js</title><link rel="stylesheet" href="css/normalize.css"><link rel="stylesheet" href="css/main.css"><link rel="stylesheet" href="css/skifree.css">
++<style>html,body{overflow:hidden;background:#fff}#cr{position:fixed;left:6px;bottom:4px;font:11px monospace;color:#555}</style></head>
++<body><canvas id="skifree-canvas" tabindex="0"></canvas><div id="cr">SkiFree.js by Dan Hough (MIT), after Chris Pirih's SkiFree (1991) · mouse or WASD · F boost · T trick · Space restart</div>
++<script src="dist/skifree.js"></script></body></html>
+diff --git a/src/easter/EasterEggManager.ts b/src/easter/EasterEggManager.ts
+index 567cca4..19a8a2d 100644
+--- a/src/easter/EasterEggManager.ts
++++ b/src/easter/EasterEggManager.ts
+@@ -10,6 +10,7 @@
+  *   'eggHint'       (hint: string | null)                            when the nearby prompt changes
+  */
+ import Phaser from 'phaser';
++import { LightningStrike } from './LightningStrike';
+ import { EGG_DEFINITIONS, EggDefinition, getEggById } from './eggDefinitions';
+ 
+ const STORAGE_KEY = 'rd_eggs_found';
+@@ -123,6 +124,8 @@ export class EasterEggManager {
+       if (egg.triggerType !== 'area') continue;
+       if (this.foundIds.has(egg.id) || this.busy.has(egg.id)) continue;
+       if ((this.areaCooldownUntil.get(egg.id) ?? 0) > now) continue;
++      // N4/B2: one ambient event at a time — the cat waits while a witch, wave or ritual is on
++      if ((this.world as unknown as { isAmbientBusy?: () => boolean }).isAmbientBusy?.()) continue;
+       if (Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y) < egg.radius) {
+         this.areaCooldownUntil.set(egg.id, now + AREA_COOLDOWN_MS);
+         this.trigger(egg.id);
+@@ -152,6 +155,19 @@ export class EasterEggManager {
+     this.emitHint(this.computeHint(wiz));
+   }
+ 
++  /** N4/B1: distance to the nearest F-egg the wizard is inside the radius of (Infinity if none). */
++  nearestEggDistance(): number {
++    const wiz = this.world.wizard;
++    if (!wiz) return Infinity;
++    const egg = this.nearestInteractable(wiz);
++    return egg ? Phaser.Math.Distance.Between(wiz.x, wiz.y, egg.x, egg.y) : Infinity;
++  }
++
++  /** N4/B2: true while the black-cat omen sequence is playing. */
++  isOmenRunning(): boolean {
++    return this.busy.has('black_cat');
++  }
++
+   private nearestInteractable(wiz: Phaser.Physics.Arcade.Sprite): EggDefinition | null {
+     let best: EggDefinition | null = null;
+     let bestD = Infinity;
+@@ -264,20 +280,13 @@ export class EasterEggManager {
+         w.tweens.add({ targets: [cat, shadow], alpha: 0, duration: 300, onComplete: () => { cat.destroy(); shadow.destroy(); } });
+       } });
+ 
+-    // the omen: something bad is about to happen
+-    w.time.delayedCall(1700, () => {
+-      const cam = w.cameras.main;
+-      const flash = w.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xdfe8ff)
+-        .setScrollFactor(0).setDepth(9999).setAlpha(0);
+-      w.tweens.add({ targets: flash, alpha: { from: 0.55, to: 0 }, duration: 120, yoyo: false,
+-        onComplete: () => {
+-          w.tweens.add({ targets: flash, alpha: { from: 0.35, to: 0 }, duration: 260, delay: 90, onComplete: () => flash.destroy() });
+-        } });
+-      cam.shake(350, 0.004);
+-      w.sound.play('ground_rumble', { volume: 0.5 });
+-      w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
+-      w.time.delayedCall(700, () => w.summonWitch?.());
+-      w.time.delayedCall(1200, done);
++    // the omen: something bad is about to happen — N4/L1: lightning lands right beside the wizard
++    w.time.delayedCall(1500, () => {
++      new LightningStrike(w).play(() => {
++        w.sound.play('crow_caw_02', { volume: 0.6, delay: 0.25 });
++        w.time.delayedCall(500, () => w.summonWitch?.());
++        w.time.delayedCall(900, done);
++      });
+     });
+   }
+ 
+diff --git a/src/easter/LightningStrike.ts b/src/easter/LightningStrike.ts
+new file mode 100644
+index 0000000..919f91a
+--- /dev/null
++++ b/src/easter/LightningStrike.ts
+@@ -0,0 +1,121 @@
++/**
++ * LightningStrike — N4/L1: one or two bolts land 60–110 px beside the wizard (never on him).
++ * Pre-flash, jagged bolt with branches, sparks, camera shake, scorch mark that fades over 25 s,
++ * thunder crack + rumble (CC0), wizard flinch.
++ */
++import Phaser from 'phaser';
++
++type World = Phaser.Scene & { wizard: Phaser.Physics.Arcade.Sprite; flinch?: () => void };
++
++const BOUNDS = { minX: 24, maxX: 2376, minY: 24, maxY: 1776 };
++
++export class LightningStrike {
++  private cancelled = false;
++  constructor(private w: World) {}
++
++  cancel(): void { this.cancelled = true; }
++
++  play(onDone: () => void): void {
++    const count = Math.random() < 0.5 ? 1 : 2;
++    let i = 0;
++    const next = () => {
++      if (this.cancelled) { onDone(); return; }
++      if (i >= count) { onDone(); return; }
++      i++;
++      this.strikeOnce(() => this.w.time.delayedCall(i < count ? 760 : 200, next));
++    };
++    next();
++  }
++
++  private pickImpact(): { x: number; y: number } | null {
++    const wiz = this.w.wizard;
++    for (let tries = 0; tries < 8; tries++) {
++      const a = Math.random() * Math.PI * 2;
++      const d = Phaser.Math.Between(60, 110);
++      const x = Phaser.Math.Clamp(wiz.x + Math.cos(a) * d, BOUNDS.minX, BOUNDS.maxX);
++      const y = Phaser.Math.Clamp(wiz.y + Math.sin(a) * d * 0.7, BOUNDS.minY, BOUNDS.maxY);
++      if (Phaser.Math.Distance.Between(x, y, wiz.x, wiz.y) >= 56) return { x, y };
++    }
++    return null;
++  }
++
++  private strikeOnce(after: () => void): void {
++    const w = this.w;
++    const hit = this.pickImpact();
++    if (!hit) { after(); return; }
++    const cam = w.cameras.main;
++
++    // 1) pre-flash: the whole sky goes white for a beat
++    const flash = w.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xffffff)
++      .setScrollFactor(0).setDepth(12000).setAlpha(0);
++    w.tweens.add({ targets: flash, alpha: 0.85, duration: 60, yoyo: true, hold: 40,
++      onComplete: () => { w.tweens.add({ targets: flash, alpha: { from: 0.4, to: 0 }, duration: 160, onComplete: () => flash.destroy() }); } });
++
++    w.time.delayedCall(140, () => {
++      if (this.cancelled) { after(); return; }
++      // 2) bolt
++      const g = w.add.graphics().setDepth(hit.y + 2000).setBlendMode(Phaser.BlendModes.ADD);
++      const topX = hit.x + Phaser.Math.Between(-20, 20);
++      const topY = hit.y - Phaser.Math.Between(180, 260);
++      const pts: Phaser.Math.Vector2[] = [];
++      const SEG = 7;
++      for (let k = 0; k <= SEG; k++) {
++        const t = k / SEG;
++        const jitter = k === 0 || k === SEG ? 0 : Phaser.Math.Between(-16, 16);
++        pts.push(new Phaser.Math.Vector2(Phaser.Math.Linear(topX, hit.x, t) + jitter, Phaser.Math.Linear(topY, hit.y, t)));
++      }
++      const drawBolt = (width: number, color: number, alpha: number) => {
++        g.lineStyle(width, color, alpha);
++        g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
++        for (let k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
++        g.strokePath();
++        // 3 short branches
++        for (let b = 0; b < 3; b++) {
++          const from = pts[Phaser.Math.Between(1, SEG - 2)];
++          const len = Phaser.Math.Between(30, 50);
++          const ang = Phaser.Math.DegToRad(Phaser.Math.Between(20, 70) * (Math.random() < 0.5 ? -1 : 1) + 90);
++          g.beginPath(); g.moveTo(from.x, from.y);
++          g.lineTo(from.x + Math.cos(ang) * len * 0.5 + Phaser.Math.Between(-6, 6), from.y + Math.sin(ang) * len * 0.5);
++          g.lineTo(from.x + Math.cos(ang) * len, from.y + Math.sin(ang) * len);
++          g.strokePath();
++        }
++      };
++      drawBolt(9, 0x7fa8ff, 0.4);
++      drawBolt(3, 0xf2f6ff, 1);
++      w.tweens.add({ targets: g, alpha: 0, duration: 120, delay: 160, onComplete: () => g.destroy() });
++
++      // 3) impact glow + sparks
++      if (w.textures.exists('glow_moon')) {
++        const glow = w.add.image(hit.x, hit.y, 'glow_moon').setTint(0xbcd4ff).setBlendMode(Phaser.BlendModes.ADD)
++          .setScale(0.9).setAlpha(0.9).setDepth(hit.y + 1);
++        w.tweens.add({ targets: glow, alpha: 0, scale: 1.4, duration: 500, onComplete: () => glow.destroy() });
++      }
++      const sparkKey = w.textures.exists('firefly_dot') ? 'firefly_dot' : null;
++      for (let s = 0; s < 10; s++) {
++        const sp = sparkKey
++          ? w.add.image(hit.x, hit.y - 2, sparkKey).setTint(s % 2 ? 0xfff2a8 : 0xbfe0ff).setBlendMode(Phaser.BlendModes.ADD)
++          : w.add.circle(hit.x, hit.y - 2, 1.5, 0xfff2a8);
++        sp.setDepth(hit.y + 3);
++        const ang = Math.random() * Math.PI * 2;
++        const dist = Phaser.Math.Between(14, 40);
++        w.tweens.add({ targets: sp, x: hit.x + Math.cos(ang) * dist, y: hit.y - 2 + Math.sin(ang) * dist * 0.6 - 8,
++          alpha: 0, duration: Phaser.Math.Between(300, 600), ease: 'Quad.easeOut', onComplete: () => sp.destroy() });
++      }
++
++      // 4) scorch mark that slowly fades
++      const scorch = w.add.ellipse(hit.x, hit.y, 26, 9, 0x140e0a, 0.7).setDepth(hit.y - 3);
++      const ring = w.add.ellipse(hit.x, hit.y, 34, 12).setStrokeStyle(1, 0x3a2a1c, 0.6).setDepth(hit.y - 3);
++      w.tweens.add({ targets: [scorch, ring], alpha: 0, duration: 25000, delay: 2000, onComplete: () => { scorch.destroy(); ring.destroy(); } });
++
++      // 5) shake, sound, flinch
++      cam.shake(240, 0.006);
++      const vol = (w.sound as unknown as { mute?: boolean }).mute ? 0 : 1;
++      if (w.cache.audio.exists('thunder_crack')) w.sound.play('thunder_crack', { volume: 0.75 * vol, detune: Phaser.Math.Between(-150, 100) });
++      else w.sound.play('stone_crack_crumble', { volume: 0.4 * vol });
++      if (w.cache.audio.exists('thunder_rumble')) w.sound.play('thunder_rumble', { volume: 0.55 * vol, delay: 0.25 });
++      else w.sound.play('ground_rumble', { volume: 0.6 * vol, delay: 0.08 });
++      w.flinch?.();
++      after();
++    });
++  }
++}
+diff --git a/src/easter/ZombieWave.ts b/src/easter/ZombieWave.ts
+index 46d1cc5..26c3a67 100644
+--- a/src/easter/ZombieWave.ts
++++ b/src/easter/ZombieWave.ts
+@@ -1,11 +1,22 @@
+ /**
+- * ZombieWave.ts (N3) — touch the zombie hand and the dead rise: 12 zombies shamble in at mixed
+- * speeds and the wizard blasts them with spells (F / Space / tap F). Cozy: zombies only knock the
+- * wizard back, nobody dies but the dead. Owned by GraveyardWorld; timers use world.time.
++ * ZombieWave.ts (N3 → N4 "Horde") — touch the zombie hand and the horde rises.
++ * N4 (Jay's notes + council plan): no map-wide auto-aim. Click (left or right) on a zombie to blast it;
++ * F / Space fire a short cone the way the wizard faces. Horde scream, red pulse, music ducks.
++ * Three spawn points, three waves (6 / 8 / 10). Three souls (hearts): a zombie touching you costs one,
++ * with 1 s of invulnerability. Lose all three → "The dead overwhelm you" → F / click to try again.
++ * Clear it → time shown, "Zombie Slayer" reward: the wizard's light turns green for good.
++ * Owned by GraveyardWorld; timers use world.time.
+  */
+ import Phaser from 'phaser';
+ 
+-type World = Phaser.Scene & { wizard: Phaser.Physics.Arcade.Sprite };
++type Facing = 'down' | 'up' | 'left' | 'right';
++type World = Phaser.Scene & {
++  wizard: Phaser.Physics.Arcade.Sprite;
++  getFacing?: () => Facing;
++  duckWorldMusic?: (v: number, ms: number) => void;
++  restoreWorldMusic?: (ms: number) => void;
++  applySlayerGlow?: () => void;
++};
+ 
+ interface Zombie {
+   sprite: Phaser.GameObjects.Image;
+@@ -18,88 +29,105 @@ interface Zombie {
+   phase: number;
+ }
+ 
+-const TOTAL = 12;
+-const RANGE = 340;          // spells reach this far
+-const CAST_COOLDOWN = 230;  // ms between casts
++const WAVE_COUNTS = [6, 8, 10];
++const WAVE_SPEEDS: Array<[number, number]> = [[28, 42], [40, 58], [56, 78]];
++const SPAWN_POINTS = [{ x: 1180, y: 1560 }, { x: 1280, y: 1460 }, { x: 1620, y: 1540 }];
++const STAGGER_MS = 380;
++const CONE_RANGE = 140;
++const CONE_DEG = 28;
++const CAST_COOLDOWN = 230;
++const CLICK_RADIUS = 28;
++const CRIT_RADIUS = 10;
++const SOULS = 3;
++const IFRAMES_MS = 1000;
+ const SPELL_WORDS = ['Lux Ignis!', 'Requiesce!', 'Fulgur!', 'Abite, mortui!', 'Somnus aeternus!', 'Redite ad terram!'];
+ 
+ export class ZombieWave {
+   private world: World;
+   private zombies: Zombie[] = [];
+-  private spawned = 0;
++  private waveIndex = 0;
++  private spawnedThisWave = 0;
+   private castReadyAt = 0;
+   private casts = 0;
+   private groanAt = 0;
+   private music: Phaser.Sound.BaseSound | null = null;
+   private onDone: (() => void) | null = null;
+   private ending = false;
++  private startedAt = 0;
++  private souls = SOULS;
++  private iframesUntil = 0;
++  private failed = false;
++  private hud: Phaser.GameObjects.Text | null = null;
++  private vignette: Phaser.GameObjects.Rectangle | null = null;
++  private vignetteTween: Phaser.Tweens.Tween | null = null;
++  private timers: Phaser.Time.TimerEvent[] = [];
++  private kills = 0;
+   active = false;
+ 
+   constructor(world: World) {
+     this.world = world;
+   }
+ 
+-  /** Start a wave (no-op if one is running). onDone fires after the last zombie falls. */
++  /** Start the horde (no-op if one is running). onDone fires only after a full clear. */
+   start(onDone?: () => void): void {
+     if (this.active) return;
+     const w = this.world;
+     this.active = true;
+     this.ending = false;
+-    this.spawned = 0;
++    this.failed = false;
+     this.casts = 0;
++    this.kills = 0;
+     this.onDone = onDone ?? null;
++    this.startedAt = w.time.now;
+ 
+     w.cameras.main.shake(600, 0.006);
+-    w.sound.play('ground_rumble', { volume: 0.6 });
+-    w.sound.play('zombie_rise', { volume: 0.7, delay: 0.3 });
++    if (w.cache.audio.exists('horde_scream')) w.sound.play('horde_scream', { volume: 0.85 });
++    else { w.sound.play('zombie_rise', { volume: 0.85 }); w.sound.play('wolf_howl', { volume: 0.3 }); }
++    w.sound.play('ground_rumble', { volume: 0.6, delay: 0.2 });
++    w.duckWorldMusic?.(0.04, 400);
+     if (w.cache.audio.exists('chant_drone_loop')) {
+-      this.music = w.sound.add('chant_drone_loop', { loop: true, volume: 0, rate: 1.2 });
++      this.music = w.sound.add('chant_drone_loop', { loop: true, volume: 0, rate: 1.25 });
+       this.music.play();
+-      w.tweens.add({ targets: this.music, volume: 0.35, duration: 1200 });
++      w.tweens.add({ targets: this.music, volume: 0.4, duration: 1200 });
+     }
+ 
++    // red pulse over the whole view
++    const cam = w.cameras.main;
++    this.vignette = w.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x8a0f1e)
++      .setScrollFactor(0).setDepth(9000).setAlpha(0);
++    this.vignetteTween = w.tweens.add({ targets: this.vignette, alpha: { from: 0.04, to: 0.26 }, duration: 280, yoyo: true, repeat: 2,
++      onComplete: () => { if (this.vignette) this.vignetteTween = w.tweens.add({ targets: this.vignette, alpha: { from: 0.08, to: 0.15 }, duration: 1400, yoyo: true, repeat: -1 }); } });
++
+     const touch = w.sys.game.device.input.touch;
+-    this.banner('THE DEAD RISE!', touch ? 'Tap F to cast spells' : 'Press F or Space to cast spells', 2600);
++    this.banner('THE HORDE RISES', touch ? 'Tap a zombie to blast it · F fires ahead' : 'Click a zombie to blast it · F / Space fire ahead', 2800);
+ 
+-    // Space also casts while the wave runs
++    this.souls = SOULS;
++    this.makeHud();
++    w.input.keyboard?.off('keydown-SPACE', this.onSpace, this);
+     w.input.keyboard?.on('keydown-SPACE', this.onSpace, this);
+-
+-    for (let i = 0; i < TOTAL; i++) {
+-      w.time.delayedCall(900 + i * 520 + Phaser.Math.Between(0, 250), () => this.spawnOne(i));
+-    }
+-  }
+-
+-  private onSpace(ev: KeyboardEvent): void {
+-    if (ev.repeat) return;
+-    this.cast();
++    this.beginWave(0);
+   }
+ 
+-  private banner(title: string, sub: string, ms: number): void {
+-    const w = this.world;
+-    const cam = w.cameras.main;
+-    const t = w.add.text(cam.width / 2, cam.height * 0.3, title, {
+-      fontFamily: "'Cinzel', serif", fontSize: '40px', color: '#b8ffcf', stroke: '#06140d', strokeThickness: 6,
+-    }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setAlpha(0).setScale(1.3);
+-    const s = w.add.text(cam.width / 2, cam.height * 0.3 + 40, sub, {
+-      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '18px', color: '#d9f2ee', stroke: '#06140d', strokeThickness: 4,
+-    }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setAlpha(0);
+-    w.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 400, ease: 'Back.easeOut' });
+-    w.tweens.add({ targets: s, alpha: 1, duration: 400, delay: 200 });
+-    w.time.delayedCall(ms, () => {
+-      w.tweens.add({ targets: [t, s], alpha: 0, duration: 500, onComplete: () => { t.destroy(); s.destroy(); } });
+-    });
++  // ─── waves ────────────────────────────────────────────────────────────────
++  private beginWave(i: number): void {
++    this.waveIndex = i;
++    this.spawnedThisWave = 0;
++    const count = WAVE_COUNTS[i];
++    if (i > 0) this.banner(`Wave ${i + 1} of ${WAVE_COUNTS.length}`, i === WAVE_COUNTS.length - 1 ? 'The last of them. Hold on!' : 'More of them...', 1600);
++    for (let k = 0; k < count; k++) {
++      this.timers.push(this.world.time.delayedCall(700 + k * STAGGER_MS + Phaser.Math.Between(0, 200), () => this.spawnOne(k)));
++    }
++    this.updateHud();
+   }
+ 
+-  private spawnOne(i: number): void {
+-    if (!this.active) return;
++  private spawnOne(k: number): void {
++    if (!this.active || this.failed) return;
+     const w = this.world;
+-    const wiz = w.wizard;
+-    const fast = i % 3 === 2;
+-    const angle = Math.random() * Math.PI * 2;
+-    const r = Phaser.Math.Between(300, 420);
+-    const bounds = w.physics.world.bounds;
+-    const x = Phaser.Math.Clamp(wiz.x + Math.cos(angle) * r, bounds.x + 30, bounds.right - 30);
+-    const y = Phaser.Math.Clamp(wiz.y + Math.sin(angle) * r * 0.75, bounds.y + 50, bounds.bottom - 20);
++    const p = SPAWN_POINTS[k % SPAWN_POINTS.length];
++    const x = p.x + Phaser.Math.Between(-36, 36);
++    const y = p.y + Phaser.Math.Between(-24, 24);
++    const [lo, hi] = WAVE_SPEEDS[this.waveIndex];
++    const fast = Math.random() < 0.3;
+ 
+     const sprite = w.add.image(x, y + 12, fast ? 'zombie_b' : 'zombie_a').setOrigin(0.5, 1).setDepth(y).setAlpha(0);
+     sprite.setScale(1, 0.2);
+@@ -108,9 +136,10 @@ export class ZombieWave {
+       const puff = w.add.image(x, y - 4, 'kenney_smoke_04').setScale(0.12).setAlpha(0.6).setTint(0x4a3a2a).setDepth(y + 1);
+       w.tweens.add({ targets: puff, scale: 0.22, alpha: 0, y: y - 16, duration: 700, onComplete: () => puff.destroy() });
+     }
+-    const z: Zombie = { sprite, shadow, hp: fast ? 1 : 2, speed: fast ? Phaser.Math.Between(68, 84) : Phaser.Math.Between(30, 44), alive: true, rising: true, hitCooldown: 0, phase: Math.random() * 6 };
++    const z: Zombie = { sprite, shadow, hp: 2, speed: Phaser.Math.Between(lo, hi) * (fast ? 1.25 : 1), alive: true, rising: true, hitCooldown: 0, phase: Math.random() * 6 };
+     this.zombies.push(z);
+-    this.spawned++;
++    this.spawnedThisWave++;
++    if (k % 3 === 0) w.sound.play('zombie_rise', { volume: 0.4, detune: Phaser.Math.Between(-200, 100) });
+     w.tweens.add({ targets: sprite, alpha: 1, scaleY: 1, y, duration: 650, ease: 'Back.easeOut', onComplete: () => { z.rising = false; } });
+     w.tweens.add({ targets: shadow, alpha: 0.5, duration: 650 });
+   }
+@@ -122,105 +151,186 @@ export class ZombieWave {
+     const dt = delta / 1000;
+     const now = w.time.now;
+ 
+-    for (const z of this.zombies) {
+-      if (!z.alive || z.rising) continue;
+-      const dx = wiz.x - z.sprite.x;
+-      const dy = wiz.y - z.sprite.y;
+-      const d = Math.hypot(dx, dy) || 1;
+-      z.phase += dt * (z.speed / 9);
+-      if (d > 16) {
+-        z.sprite.x += (dx / d) * z.speed * dt;
+-        z.sprite.y += (dy / d) * z.speed * dt;
+-      }
+-      z.sprite.setFlipX(dx < 0);
+-      z.sprite.setAngle(Math.sin(z.phase) * 6);
+-      z.sprite.setDepth(z.sprite.y);
+-      z.shadow.setPosition(z.sprite.x, z.sprite.y - 1).setDepth(z.sprite.y - 1);
+-
+-      z.hitCooldown -= delta;
+-      if (d < 18 && z.hitCooldown <= 0) {
+-        z.hitCooldown = 900;
+-        this.bump(dx / d, dy / d);
+-        z.sprite.x -= (dx / d) * 26;
+-        z.sprite.y -= (dy / d) * 26;
++    // i-frame blink
++    if (now < this.iframesUntil) wiz.setAlpha(Math.floor(now / 80) % 2 ? 0.45 : 1);
++    else if (wiz.alpha !== 1) wiz.setAlpha(1);
++
++    if (!this.failed) {
++      for (const z of this.zombies) {
++        if (!z.alive || z.rising) continue;
++        const dx = wiz.x - z.sprite.x;
++        const dy = wiz.y - z.sprite.y;
++        const d = Math.hypot(dx, dy) || 1;
++        z.phase += dt * (z.speed / 9);
++        if (d > 16) {
++          z.sprite.x += (dx / d) * z.speed * dt;
++          z.sprite.y += (dy / d) * z.speed * dt;
++        }
++        z.sprite.setFlipX(dx < 0);
++        z.sprite.setAngle(Math.sin(z.phase) * 6);
++        z.sprite.setDepth(z.sprite.y);
++        z.shadow.setPosition(z.sprite.x, z.sprite.y - 1).setDepth(z.sprite.y - 1);
++
++        z.hitCooldown -= delta;
++        if (d < 18 && z.hitCooldown <= 0) {
++          z.hitCooldown = 900;
++          this.bump(dx / d, dy / d);
++          z.sprite.x -= (dx / d) * 26;
++          z.sprite.y -= (dy / d) * 26;
++        }
+       }
+     }
+ 
+     if (now > this.groanAt) {
+-      this.groanAt = now + Phaser.Math.Between(1800, 3500);
++      this.groanAt = now + Phaser.Math.Between(1400, 3000);
+       const alive = this.zombies.filter((z) => z.alive).length;
+       if (alive > 0) w.sound.play(Phaser.Utils.Array.GetRandom(['zombie_groan_1', 'zombie_groan_2', 'zombie_groan_3']), { volume: 0.35, detune: Phaser.Math.Between(-200, 200) });
+     }
+ 
+-    if (!this.ending && this.spawned >= TOTAL && this.zombies.every((z) => !z.alive)) this.end();
++    if (!this.ending && !this.failed && this.spawnedThisWave >= WAVE_COUNTS[this.waveIndex] && this.zombies.every((z) => !z.alive)) {
++      if (this.waveIndex < WAVE_COUNTS.length - 1) {
++        this.zombies = [];
++        this.beginWave(this.waveIndex + 1);
++      } else {
++        this.end();
++      }
++    }
+   }
+ 
+-  /** A zombie reached the wizard: knock the wizard back with a red flash (no damage). */
++  /** A zombie reached the wizard: knockback, and a soul is lost unless invulnerable. */
+   private bump(nx: number, ny: number): void {
+     const w = this.world;
+     const wiz = w.wizard;
+-    w.sound.play('zombie_hit', { volume: 0.6 });
+-    w.cameras.main.flash(160, 120, 20, 20);
+-    w.cameras.main.shake(140, 0.004);
++    const now = w.time.now;
+     const bounds = w.physics.world.bounds;
+     const tx = Phaser.Math.Clamp(wiz.x + nx * 34, bounds.x + 20, bounds.right - 20);
+     const ty = Phaser.Math.Clamp(wiz.y + ny * 34, bounds.y + 40, bounds.bottom - 10);
+     w.tweens.add({ targets: wiz, x: tx, y: ty, duration: 140, ease: 'Quad.easeOut' });
++    if (now < this.iframesUntil) return;
++    this.iframesUntil = now + IFRAMES_MS;
++    this.souls--;
++    w.sound.play('zombie_hit', { volume: 0.7 });
++    w.cameras.main.flash(180, 140, 20, 20);
++    w.cameras.main.shake(160, 0.005);
++    this.updateHud();
++    if (this.souls <= 0) this.fail();
+   }
+ 
+-  /** F / Space / tap F while the wave runs. */
+-  cast(): void {
+-    if (!this.active) return;
++  private fail(): void {
+     const w = this.world;
+-    const now = w.time.now;
+-    if (now < this.castReadyAt) return;
+-    this.castReadyAt = now + CAST_COOLDOWN;
+-    const wiz = w.wizard;
+-    const sx = wiz.x;
+-    const sy = wiz.y - 30;
++    this.failed = true;
++    for (const t of this.timers) t.remove(false);
++    this.timers = [];
++    w.sound.play('rip_bell_toll', { volume: 0.5 });
++    this.banner('The dead overwhelm you...', w.sys.game.device.input.touch ? 'Tap F to rise and try again' : 'Press F or click to try again', 600000);
++  }
+ 
++  /** After a defeat: clear the field and start again from wave 1 (same horde, same timer). */
++  retry(): void {
++    const w = this.world;
++    for (const z of this.zombies) { z.sprite.destroy(); z.shadow.destroy(); }
++    this.zombies = [];
++    this.clearBanners();
++    this.failed = false;
++    this.souls = SOULS;
++    this.iframesUntil = w.time.now + 1500;
++    if (w.cache.audio.exists('choir_aah')) w.sound.play('choir_aah', { volume: 0.3 });
++    this.beginWave(0);
++  }
++
++  private onSpace(ev: KeyboardEvent): void {
++    if (ev.repeat) return;
++    this.castCone();
++  }
++
++  // ─── casting ──────────────────────────────────────────────────────────────
++  /** F / Space / F button: fire a short cone the way the wizard faces (no map-wide auto-aim). */
++  castCone(): void {
++    if (!this.active) return;
++    if (this.failed) { this.retry(); return; }
++    if (!this.ready()) return;
++    const wiz = this.world.wizard;
++    const f = this.world.getFacing?.() ?? 'down';
++    const dir = f === 'up' ? { x: 0, y: -1 } : f === 'left' ? { x: -1, y: 0 } : f === 'right' ? { x: 1, y: 0 } : { x: 0, y: 1 };
++    let target: Zombie | null = null;
++    let best = CONE_RANGE;
++    for (const z of this.zombies) {
++      if (!z.alive) continue;
++      const dx = z.sprite.x - wiz.x;
++      const dy = (z.sprite.y - 18) - (wiz.y - 20);
++      const d = Math.hypot(dx, dy);
++      if (d > best || d < 1) continue;
++      const ang = Phaser.Math.RadToDeg(Math.acos((dx * dir.x + dy * dir.y) / d));
++      if (ang <= CONE_DEG) { best = d; target = z; }
++    }
++    if (target) this.fireAt(target, target.sprite.x, target.sprite.y - 22, 1);
++    else this.fizzle(wiz.x + dir.x * 40, wiz.y - 30 + dir.y * 40);
++  }
++
++  /** Click / right-click / tap in the world during the horde: blast the zombie under the pointer. */
++  castAt(wx: number, wy: number): void {
++    if (!this.active) return;
++    if (this.failed) { this.retry(); return; }
++    if (!this.ready()) return;
+     let target: Zombie | null = null;
+-    let best = RANGE;
++    let best = CLICK_RADIUS;
+     for (const z of this.zombies) {
+       if (!z.alive) continue;
+-      const d = Phaser.Math.Distance.Between(wiz.x, wiz.y, z.sprite.x, z.sprite.y);
++      const d = Phaser.Math.Distance.Between(wx, wy, z.sprite.x, z.sprite.y - 22);
+       if (d < best) { best = d; target = z; }
+     }
++    if (!target) { this.fizzle(wx, wy); return; }
++    const crit = Phaser.Math.Distance.Between(wx, wy, target.sprite.x, target.sprite.y - 36) < CRIT_RADIUS;
++    this.fireAt(target, wx, wy, crit ? 2 : 1);
++  }
+ 
++  private ready(): boolean {
++    const now = this.world.time.now;
++    if (now < this.castReadyAt) return false;
++    this.castReadyAt = now + CAST_COOLDOWN;
+     this.casts++;
+-    w.sound.play('rune_sparkle_short', { volume: 0.5, detune: Phaser.Math.Between(-150, 150) });
++    this.world.sound.play('rune_sparkle_short', { volume: 0.5, detune: Phaser.Math.Between(-150, 150) });
+     if (this.casts % 3 === 1) this.say(Phaser.Utils.Array.GetRandom(SPELL_WORDS));
++    return true;
++  }
+ 
+-    const bolt = w.add.image(sx, sy, 'wisp').setBlendMode(Phaser.BlendModes.ADD).setTint(0x9ff7ff).setScale(0.6).setDepth(99999);
+-    if (!target) {
+-      // fizzle: a short spark in front of the wizard
+-      w.tweens.add({ targets: bolt, y: sy - 24, alpha: 0, scale: 0.2, duration: 300, onComplete: () => bolt.destroy() });
+-      return;
+-    }
+-    const t = target;
+-    const dur = Math.max(90, (best / 760) * 1000);
++  private fizzle(tx: number, ty: number): void {
++    const w = this.world;
++    const wiz = w.wizard;
++    const bolt = w.add.image(wiz.x, wiz.y - 30, 'wisp').setBlendMode(Phaser.BlendModes.ADD).setTint(0x9ff7ff).setScale(0.5).setDepth(99999);
++    w.tweens.add({ targets: bolt, x: tx, y: ty, alpha: 0.2, scale: 0.2, duration: 220, onComplete: () => { this.burst(tx, ty, 3); bolt.destroy(); } });
++  }
++
++  private fireAt(t: Zombie, tx: number, ty: number, dmg: number): void {
++    const w = this.world;
++    const wiz = w.wizard;
++    const sx = wiz.x;
++    const sy = wiz.y - 30;
++    const bolt = w.add.image(sx, sy, 'wisp').setBlendMode(Phaser.BlendModes.ADD).setTint(dmg > 1 ? 0xfff2a8 : 0x9ff7ff).setScale(dmg > 1 ? 0.8 : 0.6).setDepth(99999);
++    const dist = Phaser.Math.Distance.Between(sx, sy, tx, ty);
+     w.tweens.add({
+-      targets: bolt, x: t.sprite.x, y: t.sprite.y - 18, duration: dur, ease: 'Linear',
++      targets: bolt, x: tx, y: ty, duration: Math.max(80, (dist / 820) * 1000), ease: 'Linear',
+       onComplete: () => {
+         bolt.destroy();
+-        this.burst(t.sprite.x, t.sprite.y - 18);
++        this.burst(t.sprite.x, t.sprite.y - 18, dmg > 1 ? 10 : 6);
+         if (!t.alive) return;
+-        t.hp -= 1;
++        t.hp -= dmg;
+         t.sprite.setTintFill(0xffffff);
+-        w.time.delayedCall(70, () => t.sprite.clearTint());
++        w.time.delayedCall(70, () => t.sprite.active && t.sprite.clearTint());
+         const dx = t.sprite.x - wiz.x;
+         const dy = t.sprite.y - wiz.y;
+         const d = Math.hypot(dx, dy) || 1;
+         t.sprite.x += (dx / d) * 14;
+         t.sprite.y += (dy / d) * 14;
++        if (dmg > 1) this.say('Critical!');
+         if (t.hp <= 0) this.kill(t);
+       },
+     });
+   }
+ 
+-  private burst(x: number, y: number): void {
++  private burst(x: number, y: number, n = 6): void {
+     const w = this.world;
+-    for (let i = 0; i < 6; i++) {
++    for (let i = 0; i < n; i++) {
+       const p = w.add.image(x, y, 'firefly_dot').setBlendMode(Phaser.BlendModes.ADD).setTint(0xbffcff).setDepth(99999).setScale(1.2);
+       const a = Math.random() * Math.PI * 2;
+       w.tweens.add({ targets: p, x: x + Math.cos(a) * 18, y: y + Math.sin(a) * 18, alpha: 0, duration: 320, onComplete: () => p.destroy() });
+@@ -230,6 +340,8 @@ export class ZombieWave {
+   private kill(z: Zombie): void {
+     const w = this.world;
+     z.alive = false;
++    this.kills++;
++    this.updateHud();
+     w.sound.play('zombie_die', { volume: 0.55, detune: Phaser.Math.Between(-150, 150) });
+     w.tweens.add({ targets: z.sprite, alpha: 0, scaleY: 0.1, y: z.sprite.y + 8, angle: z.sprite.flipX ? -30 : 30, duration: 450, onComplete: () => z.sprite.destroy() });
+     w.tweens.add({ targets: z.shadow, alpha: 0, duration: 450, onComplete: () => z.shadow.destroy() });
+@@ -237,6 +349,52 @@ export class ZombieWave {
+     w.tweens.add({ targets: soul, y: soul.y - 50, alpha: 0, duration: 1100, ease: 'Sine.easeOut', onComplete: () => soul.destroy() });
+   }
+ 
++  // ─── HUD / text ───────────────────────────────────────────────────────────
++  private makeHud(): void {
++    const w = this.world;
++    const cam = w.cameras.main;
++    this.hud?.destroy();
++    // scrollFactor-0 text is still scaled by the world camera's zoom around the view centre
++    const z = cam.zoom || 1;
++    const screenY = 30;
++    this.hud = w.add.text(cam.width / 2, cam.height / 2 - (cam.height / 2 - screenY) / z, '', {
++      fontFamily: "'Pixelify Sans', sans-serif", fontSize: `${Math.round(18 / z)}px`, color: '#ffd9de', stroke: '#1a0608', strokeThickness: Math.max(2, Math.round(4 / z)),
++    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(10001);
++    this.updateHud();
++  }
++
++  private updateHud(): void {
++    if (!this.hud) return;
++    const hearts = '♥'.repeat(Math.max(0, this.souls)) + '♡'.repeat(Math.max(0, SOULS - this.souls));
++    const total = WAVE_COUNTS.reduce((a, b) => a + b, 0);
++    this.hud.setText(`${hearts}   Wave ${this.waveIndex + 1}/${WAVE_COUNTS.length}   Laid to rest ${this.kills}/${total}`);
++  }
++
++  private banners: Phaser.GameObjects.Text[] = [];
++  private clearBanners(): void {
++    for (const b of this.banners) b.destroy();
++    this.banners = [];
++  }
++
++  private banner(title: string, sub: string, ms: number): void {
++    const w = this.world;
++    const cam = w.cameras.main;
++    this.clearBanners();
++    const t = w.add.text(cam.width / 2, cam.height * 0.3, title, {
++      fontFamily: "'Cinzel', serif", fontSize: '40px', color: '#ffd0d6', stroke: '#14060a', strokeThickness: 6,
++    }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setAlpha(0).setScale(1.3);
++    const s = w.add.text(cam.width / 2, cam.height * 0.3 + 40, sub, {
++      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '18px', color: '#d9f2ee', stroke: '#06140d', strokeThickness: 4,
++    }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setAlpha(0);
++    this.banners.push(t, s);
++    w.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 400, ease: 'Back.easeOut' });
++    w.tweens.add({ targets: s, alpha: 1, duration: 400, delay: 200 });
++    w.time.delayedCall(ms, () => {
++      if (!t.active) return;
++      w.tweens.add({ targets: [t, s], alpha: 0, duration: 500, onComplete: () => { t.destroy(); s.destroy(); } });
++    });
++  }
++
+   private say(text: string): void {
+     const w = this.world;
+     const wiz = w.wizard;
+@@ -255,11 +413,22 @@ export class ZombieWave {
+       w.tweens.add({ targets: m, volume: 0, duration: 1500, onComplete: () => { m.stop(); m.destroy(); } });
+       this.music = null;
+     }
+-    w.sound.play('choir_aah', { volume: 0.35 });
+-    this.banner('The graveyard rests.', 'All twelve souls laid to rest', 2600);
+-    w.time.delayedCall(3200, () => {
++    w.restoreWorldMusic?.(1500);
++    this.vignetteTween?.stop();
++    if (this.vignette) { const v = this.vignette; w.tweens.add({ targets: v, alpha: 0, duration: 900, onComplete: () => v.destroy() }); this.vignette = null; }
++    this.hud?.destroy();
++    this.hud = null;
++    w.sound.play('choir_aah', { volume: 0.4 });
++    const secs = Math.round((w.time.now - this.startedAt) / 1000);
++    const mmss = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
++    const first = !localStorage.getItem('rd_slayer');
++    try { localStorage.setItem('rd_slayer', '1'); } catch { /* private mode */ }
++    w.applySlayerGlow?.();
++    this.banner('The graveyard rests.', `24 souls laid to rest in ${mmss}${first ? ' · Zombie Slayer: your light burns green' : ''}`, 3400);
++    w.time.delayedCall(3600, () => {
+       this.zombies = [];
+       this.active = false;
++      w.wizard.setAlpha(1);
+       const cb = this.onDone;
+       this.onDone = null;
+       cb?.();
+diff --git a/src/scenes/GraveyardWorld.ts b/src/scenes/GraveyardWorld.ts
+index 73950da..5021071 100644
+--- a/src/scenes/GraveyardWorld.ts
++++ b/src/scenes/GraveyardWorld.ts
+@@ -16,6 +16,7 @@ import { ZombieWave } from '../easter/ZombieWave'; // N3
+ const WORLD_W = 2400;
+ const WORLD_H = 1800;
+ const WALK_SPEED = 90; // art px/s
++const SPRINT_MULT = 1.65; // N4: Shift sprint
+ const PROX_DIST = 40;  // art px proximity threshold
+ 
+ // A3: Seeded RNG (mulberry32 for reproducible decal placement)
+@@ -63,6 +64,11 @@ export class GraveyardWorld extends Phaser.Scene {
+ 
+   // HUD (proximate hint lives in UIScene)
+   private activeGrave: GraveEntry | null = null;
++  /** N4: ambient-event spacing + lightning flinch + sprint */
++  private lastAmbientEndAt = -100000;
++  private flinchUntil = 0;
++  private shiftKey!: Phaser.Input.Keyboard.Key;
++  private sprinting = false;
+   /** N6: click-to-move target (mouse players) and whether to interact on arrival. */
+   private moveTarget: { x: number; y: number; interact: boolean } | null = null;
+   private moveStuckMs = 0;
+@@ -131,12 +137,14 @@ export class GraveyardWorld extends Phaser.Scene {
+ 
+     // A7: Initialize witch fly-by
+     this.witch = new WitchFlyBy(this, {
+-      isSuppressed: () => this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isActive('CreditsScene'),
++      isSuppressed: () => this.ritualActive || this.scene.isActive('ResurrectionRitual') || this.scene.isActive('CreditsScene')
++        || !!this.zombieWave?.active || !!this.eggManager?.isOmenRunning(),
+       isCrowActive: () => this.crow !== null,
+     });
+ 
+     // B: Initialize easter egg manager
+     this.zombieWave = new ZombieWave(this); // N3
++    try { if (localStorage.getItem('rd_slayer')) this.applySlayerGlow(); } catch { /* ignore */ }
+     this.eggManager = new EasterEggManager(this, this.treeColliders);
+ 
+     // Launch UIScene on top
+@@ -150,7 +158,11 @@ export class GraveyardWorld extends Phaser.Scene {
+       this.input.keyboard?.resetKeys();
+       // P0-3: Re-enable proximity checks for plaque/hint by resetting lastProxGraveId
+       this.lastProxGraveId = null;
++      // N4/B1: forget the grave we just raised, otherwise F elsewhere re-raises it
++      this.activeGrave = null;
++      this.scene.get('UIScene')?.events.emit('proximityChanged', null);
+       this.scene.resume('UIScene');
++      this.lastAmbientEndAt = this.time.now;
+     });
+ 
+     // P2-19: On iOS, resume audio loops when app/tab regains focus
+@@ -804,6 +816,7 @@ export class GraveyardWorld extends Phaser.Scene {
+       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+     };
+     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
++    this.shiftKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT); // N4: sprint
+ 
+     // P0-5: Joystick now lives in UIScene; F key listener here handles keyboard input
+     // B: F key event listener — unified interact handler
+@@ -814,8 +827,10 @@ export class GraveyardWorld extends Phaser.Scene {
+ 
+     // N6: click-to-move for mouse players. Click a tombstone or secret to walk there and use it.
+     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+-      if (this.ritualActive || p.wasTouch || (over && over.length > 0)) return;
+-      if (this.zombieWave?.active) { this.interact(); return; }
++      if (this.ritualActive) return;
++      // N4/Z3: during the horde any click / right-click / tap blasts the zombie under the pointer
++      if (this.zombieWave?.active && !(over && over.length > 0)) { this.zombieWave.castAt(p.worldX, p.worldY); return; }
++      if (p.wasTouch || (over && over.length > 0)) return;
+       const wx = p.worldX;
+       const wy = p.worldY;
+       let best: { x: number; y: number } | null = null;
+@@ -837,6 +852,8 @@ export class GraveyardWorld extends Phaser.Scene {
+       this.moveBestDist = undefined;
+     });
+ 
++    this.input.mouse?.disableContextMenu(); // N4: right-click casts during the horde
++
+     // M key mute toggle
+     this.mKey.on('down', () => {
+       this.audio.toggleMute();
+@@ -864,6 +881,37 @@ export class GraveyardWorld extends Phaser.Scene {
+     this.witch.forceSpawn();
+   }
+ 
++  /** N4/B2: true while any ambient event (witch, omen, zombie wave, ritual) is on screen. */
++  public isAmbientBusy(): boolean {
++    return this.ritualActive || this.witch?.isActive || !!this.zombieWave?.active
++      || this.time.now - this.lastAmbientEndAt < 8000;
++  }
++
++  /** N4/Z: helpers the horde uses. */
++  public getFacing(): 'down' | 'up' | 'left' | 'right' { return this.facing; }
++  public duckWorldMusic(v: number, ms: number): void { this.audio?.duckMusic(v, ms); }
++  public restoreWorldMusic(ms: number): void { this.audio?.restoreMusic(0.35, ms); }
++  private slayerGlow: Phaser.GameObjects.Image | null = null;
++  /** N4/Z5: reward for clearing the horde — a green light follows the wizard for good. */
++  public applySlayerGlow(): void {
++    if (this.wizardLight) { this.wizardLight.setColor(0x5dff9a); this.wizardLight.intensity = 0.95; }
++    if (!this.slayerGlow && this.textures.exists('glow_moon')) {
++      this.slayerGlow = this.add.image(this.wizard.x - 6, this.wizard.y - 28, 'glow_moon')
++        .setBlendMode(Phaser.BlendModes.ADD).setTint(0x5dff9a).setAlpha(0.45).setScale(0.35);
++    }
++  }
++
++  /** N4/L1: the wizard jumps when lightning lands next to him. */
++  public flinch(): void {
++    this.flinchUntil = this.time.now + 220;
++    this.wizard.setVelocity(0, 0);
++    this.tweens.add({ targets: this.wizard, y: this.wizard.y - 6, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
++    const t = this.add.text(this.wizard.x, this.wizard.y - 78, '!', {
++      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '22px', color: '#ffe066', stroke: '#000', strokeThickness: 4,
++    }).setOrigin(0.5).setDepth(99999);
++    this.tweens.add({ targets: t, y: t.y - 16, alpha: 0, duration: 700, onComplete: () => t.destroy() });
++  }
++
+   // ─── B: Unified interact handler (F key priority: grave > egg) ─────────────
+ 
+   public interact(): void {
+@@ -872,10 +920,21 @@ export class GraveyardWorld extends Phaser.Scene {
+ 
+     // N3: during a zombie wave F casts spells
+     if (this.zombieWave?.active) {
+-      this.zombieWave.cast();
++      this.zombieWave.castCone();
+       return;
+     }
+ 
++    // N4/B1: re-check what we're actually standing at; the nearer of grave / secret wins
++    this.checkProximity();
++    let graveDist = Infinity;
++    if (this.activeGrave) {
++      const ts = this.tombstones.find((t) => t.grave.id === this.activeGrave!.id);
++      graveDist = ts ? Phaser.Math.Distance.Between(this.wizard.x, this.wizard.y, ts.x, ts.y) : Infinity;
++      if (graveDist > PROX_DIST + 4) { this.activeGrave = null; graveDist = Infinity; }
++    }
++    const eggDist = this.eggManager?.nearestEggDistance() ?? Infinity;
++    if (eggDist < graveDist && this.eggManager?.tryInteract()) return;
++
+     // Priority 1: Try to raise a resurrectable grave if active
+     if (this.activeGrave && this.activeGrave.resurrectable) {
+       this.tryRaiseGrave();
+@@ -937,6 +996,7 @@ export class GraveyardWorld extends Phaser.Scene {
+     // Update wizard light position
+     this.wizardLight.x = this.wizard.x;
+     this.wizardLight.y = this.wizard.y;
++    if (this.slayerGlow) this.slayerGlow.setPosition(this.wizard.x - 6, this.wizard.y - 28).setDepth(this.wizard.y + 1);
+ 
+     // Update shadow
+     this.shadow.x = this.wizard.x;
+@@ -956,7 +1016,13 @@ export class GraveyardWorld extends Phaser.Scene {
+   private moveWizard(delta: number): void {
+     if (this.ritualActive) return;
+ 
+-    const speed = WALK_SPEED;
++    if (this.time.now < this.flinchUntil) { this.wizard.setVelocity(0, 0); return; }
++    // N4/M4: Shift (or full joystick tilt) = sprint
++    let sprint = !!this.shiftKey?.isDown;
++    const joy = (this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } })?.joystick;
++    if (joy?.active) { const f = joy.getForce(); if (Math.hypot(f.forceX, f.forceY) > 0.95) sprint = true; }
++    this.sprinting = sprint;
++    const speed = WALK_SPEED * (sprint ? SPRINT_MULT : 1);
+     let dx = 0;
+     let dy = 0;
+ 
+@@ -1060,7 +1126,7 @@ export class GraveyardWorld extends Phaser.Scene {
+ 
+     // Footsteps
+     const surface = this.isOnPath(this.wizard.x, this.wizard.y) ? 'gravel' : 'grass';
+-    this.audio.updateFootsteps(delta, moving, surface);
++    this.audio.updateFootsteps(this.sprinting ? delta * 1.6 : delta, moving, surface);
+   }
+ 
+   private isOnPath(x: number, y: number): boolean {
+diff --git a/src/scenes/WitchFlyBy.ts b/src/scenes/WitchFlyBy.ts
+index 5d435f5..4a875b9 100644
+--- a/src/scenes/WitchFlyBy.ts
++++ b/src/scenes/WitchFlyBy.ts
+@@ -42,8 +42,8 @@ export class WitchFlyBy {
+   constructor(scene: Phaser.Scene, opts: WitchFlyByOptions) {
+     this.scene = scene;
+     this.opts = opts;
+-    // First fly-by: 12–20 s
+-    this.interval = Phaser.Math.Between(12000, 20000);
++    // N4/B2: first fly-by 45–120 s, so it never collides with the opening minutes
++    this.interval = Phaser.Math.Between(45000, 120000);
+   }
+ 
+   // ─── Public API ───────────────────────────────────────────────────────────
+@@ -55,7 +55,7 @@ export class WitchFlyBy {
+     this.timer += delta;
+     if (this.timer >= this.interval) {
+       this.timer = 0;
+-      this.interval = Phaser.Math.Between(35000, 75000);
++      this.interval = Phaser.Math.Between(45000, 120000);
+ 
+       if (this.opts.isSuppressed() || this.opts.isCrowActive()) {
+         // Defer: try again after a short random window
+@@ -78,11 +78,11 @@ export class WitchFlyBy {
+     this.spawnWitch();
+   }
+ 
+-  /** N3: black-cat omen — restart the fly-by even if one is in progress. */
++  /** N3/N4: black-cat omen summons the witch. If one is already flying, she IS the omen (never kill her mid-flight). */
+   forceSpawn(): void {
+-    if (this.active) this.cleanup();
+     this.timer = 0;
+-    this.interval = Phaser.Math.Between(35000, 75000);
++    this.interval = Phaser.Math.Between(45000, 120000);
++    if (this.active) return;
+     this.spawnWitch();
+   }
+ 
+diff --git a/src/scenes/mapLayout.ts b/src/scenes/mapLayout.ts
+index 50baec9..84a6a23 100644
+--- a/src/scenes/mapLayout.ts
++++ b/src/scenes/mapLayout.ts
+@@ -23,6 +23,11 @@ const RESURRECTABLES: TombstoneLayout[] = [
+   { id: 'road-rash',      x: 1110, y: 1045 },
+   { id: 'winamp',         x: 1360, y: 1040 },
+   { id: 'bouncing-logo',  x: 1480, y: 1050 },
++  // N4: real open-source classics + ELIZA
++  { id: 'doom',           x: 990,  y: 1040 },
++  { id: 'skifree',        x: 1235, y: 1060 },
++  { id: 'pac-man',        x: 930,  y: 820 },
++  { id: 'eliza',          x: 1610, y: 830 },
+ ];
+ 
+ // ─── Decorative rows (sort_priority 6–40) ────────────────────────────────
+diff --git a/src/scenes/worldAssets.ts b/src/scenes/worldAssets.ts
+index eb22056..76b69dd 100644
+--- a/src/scenes/worldAssets.ts
++++ b/src/scenes/worldAssets.ts
+@@ -173,6 +173,10 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
+   // Portraits / medals
+   load.image('medal_roadrash', 'assets/images/portraits/medal_roadrash.png');
+   load.image('medal_reader', 'assets/images/portraits/medal_reader.png');
++  load.image('medal_doom', 'assets/images/portraits/medal_doom.png');
++  load.image('medal_pacman', 'assets/images/portraits/medal_pacman.png');
++  load.image('medal_skifree', 'assets/images/portraits/medal_skifree.png');
++  load.image('medal_eliza', 'assets/images/portraits/medal_eliza.png');
+   load.image('medal_clicky', 'assets/images/portraits/medal_clicky.png');
+   load.image('medal_winamp', 'assets/images/portraits/medal_winamp.png');
+   load.image('medal_unmarked', 'assets/images/portraits/medal_unmarked.png');
+@@ -321,6 +325,10 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
+ 
+   // A7: Witch fly-by audio
+   load.audio('witch_cackle', ['assets/audio/sfx/witch_cackle.ogg', 'assets/audio/sfx/witch_cackle.mp3']);
++  // N4: CC0 thunder (rubberduck, WuxiaScrub) + horde scream (Vinrax, artisticdude) — see CREDITS
++  load.audio('thunder_crack', ['assets/audio/sfx/thunder_crack.ogg', 'assets/audio/sfx/thunder_crack.mp3']);
++  load.audio('thunder_rumble', ['assets/audio/sfx/thunder_rumble.ogg', 'assets/audio/sfx/thunder_rumble.mp3']);
++  load.audio('horde_scream', ['assets/audio/sfx/horde_scream.ogg', 'assets/audio/sfx/horde_scream.mp3']);
+   load.audio('witch_cackle_2', ['assets/audio/sfx/witch_cackle_2.ogg', 'assets/audio/sfx/witch_cackle_2.mp3']);
+ 
+   // B: Easter egg audio
+diff --git a/src/types/graves.ts b/src/types/graves.ts
+index da69a8d..73ac8c2 100644
+--- a/src/types/graves.ts
++++ b/src/types/graves.ts
+@@ -27,6 +27,8 @@ export interface GraveEntry {
+   game_credit?: string;
+   /** N3: iframe sandbox override (AI-written pages use 'allow-scripts' only) */
+   game_sandbox?: string;
++  /** N4: open the game edge-to-edge (Doom) */
++  game_fullscreen?: boolean;
+ }
+ 
+ /** The 5 resurrectable grave IDs */
+diff --git a/src/ui/GraveOverlay.ts b/src/ui/GraveOverlay.ts
+index d33a53e..1468020 100644
+--- a/src/ui/GraveOverlay.ts
++++ b/src/ui/GraveOverlay.ts
+@@ -62,10 +62,12 @@ export class GraveOverlay {
+     // Panel styled with frame_panel.png as border-image
+     const panel = document.createElement('div');
+     const baseUrl = import.meta.env.BASE_URL;
++    // N4: big games (Doom) take the whole screen
++    const fullBleed = !!(grave as { game_fullscreen?: boolean }).game_fullscreen;
+     panel.style.cssText = `
+       position: relative;
+-      width: min(92vw, 960px);
+-      height: min(86vh, 600px);
++      width: ${fullBleed ? '100vw' : 'min(92vw, 960px)'};
++      height: ${fullBleed ? '100vh' : 'min(86vh, 600px)'};
+       background: none;
+       border-image: url('${baseUrl}assets/images/ui/frame_panel.png') 60 64 60 64 fill;
+       border-style: solid;
+diff --git a/src/ui/Tombstone.ts b/src/ui/Tombstone.ts
+index e24d199..8fa7d79 100644
+--- a/src/ui/Tombstone.ts
++++ b/src/ui/Tombstone.ts
+@@ -18,6 +18,10 @@ const MEDALLION_KEYS: Record<string, string> = {
+   'space-cadet':    'medal_spacecadet',
+   '3d-pipes':       'medal_pipes',
+   'bouncing-logo':  'medal_bounce',
++  'doom':           'medal_doom',
++  'pac-man':        'medal_pacman',
++  'skifree':        'medal_skifree',
++  'eliza':          'medal_eliza',
+ };
+ 
+ /** Sprite keys per deco type (cycled by sort_priority) */

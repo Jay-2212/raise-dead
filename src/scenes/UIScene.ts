@@ -6,6 +6,8 @@ import Phaser from 'phaser';
 import { GraveEntry, extractYear } from '../types/graves';
 import { ProximityHint } from '../ui/ProximityHint';
 import { Joystick } from '../ui/Joystick';
+import { WorldMap, loadRaised } from '../ui/WorldMap';
+import { EGG_DEFINITIONS } from '../easter/eggDefinitions';
 
 export class UIScene extends Phaser.Scene {
   private hint!: ProximityHint;
@@ -21,6 +23,29 @@ export class UIScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'UIScene' });
+  }
+
+  private worldMap!: WorldMap;
+
+  /** N4: NineSlice is WebGL-only; on the Canvas fallback renderer use a plain framed rectangle. */
+  private makePanel(w: number, h: number): Phaser.GameObjects.NineSlice {
+    if (this.game.renderer.type === Phaser.CANVAS) {
+      const r = this.add.rectangle(0, 0, w, h, 0x0e1526, 0.95).setStrokeStyle(2, 0xc9b98a, 0.85);
+      return r as unknown as Phaser.GameObjects.NineSlice;
+    }
+    return this.add.nineslice(0, 0, 'frame_panel', undefined, w, h, 60, 64, 60, 60);
+  }
+
+  /** N4: open/close the full map; the wizard stands still while it's open. */
+  private toggleFullMap(): void {
+    const w = this.scene.get('GraveyardWorld') as unknown as { ritualActive?: boolean; zombieWave?: { active: boolean }; mapOpen?: boolean };
+    if (!this.worldMap.fullOpen && (w?.ritualActive || w?.zombieWave?.active)) return;
+    this.worldMap.toggleFull();
+    if (w) w.mapOpen = this.worldMap.fullOpen;
+  }
+
+  update(_time: number, delta: number): void {
+    this.worldMap?.update(delta);
   }
 
   create(): void {
@@ -108,6 +133,33 @@ export class UIScene extends Phaser.Scene {
       this.scene.pause('UIScene');
       this.scene.pause('GraveyardWorld');
     });
+
+    // N4/M1–M2: minimap + full map
+    const mapBtn = this.add.text(12, 34, 'Map (J)', {
+      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '14px', color: '#5d6b80',
+    }).setOrigin(0, 0).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
+    mapBtn.on('pointerover', () => mapBtn.setColor('#c9b98a'));
+    mapBtn.on('pointerout', () => mapBtn.setColor('#5d6b80'));
+    mapBtn.on('pointerdown', () => this.toggleFullMap());
+    this.worldMap = new WorldMap(this, () => {
+      const w = this.scene.get('GraveyardWorld') as unknown as {
+        wizard?: { x: number; y: number };
+        tombstones?: Array<{ x: number; y: number; grave: GraveEntry }>;
+        eggManager?: { isFound(id: string): boolean };
+      };
+      return {
+        wizard: w?.wizard ? { x: w.wizard.x, y: w.wizard.y } : null,
+        graves: (w?.tombstones ?? []).map((t) => ({ id: t.grave.id, name: t.grave.name, x: t.x, y: t.y, resurrectable: !!t.grave.resurrectable })),
+        raised: loadRaised(),
+        eggs: EGG_DEFINITIONS.map((e) => ({ id: e.id, title: e.title, x: e.x, y: e.y, found: !!w?.eggManager?.isFound(e.id) })),
+      };
+    });
+    const kb = this.input.keyboard!;
+    kb.addCapture('TAB');
+    kb.on('keydown-J', () => this.toggleFullMap());
+    kb.on('keydown-TAB', () => this.toggleFullMap());
+    kb.on('keydown-N', () => this.worldMap.toggleMinimap());
+    kb.on('keydown-ESC', () => { if (this.worldMap.fullOpen) this.toggleFullMap(); });
 
     // P0-5: Create joystick in UIScene (zoom 1, not affected by world camera zoom)
     this.joystick = new Joystick(this);
@@ -204,11 +256,7 @@ export class UIScene extends Phaser.Scene {
     const PADDING_SIDE = 64; // Side padding inside frame
 
     // NineSlice panel
-    const panel = this.add.nineslice(
-      0, 0, 'frame_panel', undefined,
-      PANEL_W, PANEL_H,
-      60, 64, 60, 60
-    );
+    const panel = this.makePanel(PANEL_W, PANEL_H);
     panel.setOrigin(0.5, 0);
     panel.setName('panel');
 
@@ -377,11 +425,7 @@ export class UIScene extends Phaser.Scene {
     const PADDING_SIDE = 64;
 
     // NineSlice panel (same as plaque)
-    const panel = this.add.nineslice(
-      0, 0, 'frame_panel', undefined,
-      PANEL_W, PANEL_H,
-      60, 64, 60, 60
-    );
+    const panel = this.makePanel(PANEL_W, PANEL_H);
     panel.setOrigin(0.5, 0);
     panel.setName('panel');
 

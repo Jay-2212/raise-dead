@@ -8,6 +8,7 @@ import { RitualData } from '../types/ritual';
 import { Tombstone } from '../ui/Tombstone';
 import { AudioManager } from '../audio/AudioManager';
 import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
+import { markRaised } from '../ui/WorldMap';
 import { queueWorldAssets, createWizardAnimations } from './worldAssets';
 import { WitchFlyBy } from './WitchFlyBy'; // A7
 import { EasterEggManager } from '../easter/EasterEggManager'; // B
@@ -67,6 +68,8 @@ export class GraveyardWorld extends Phaser.Scene {
   /** N4: ambient-event spacing + lightning flinch + sprint */
   private lastAmbientEndAt = -100000;
   private flinchUntil = 0;
+  /** N4/M2: full map open (set by UIScene) — wizard holds still, F does nothing */
+  public mapOpen = false;
   private shiftKey!: Phaser.Input.Keyboard.Key;
   private sprinting = false;
   /** N6: click-to-move target (mouse players) and whether to interact on arrival. */
@@ -829,7 +832,12 @@ export class GraveyardWorld extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (this.ritualActive) return;
       // N4/Z3: during the horde any click / right-click / tap blasts the zombie under the pointer
-      if (this.zombieWave?.active && !(over && over.length > 0)) { this.zombieWave.castAt(p.worldX, p.worldY); return; }
+      if (this.zombieWave?.active && !(over && over.length > 0) && !this.zombieWave.isFailed && this.zombieWave.hasTargetAt(p.worldX, p.worldY)) {
+        this.moveTarget = null;
+        this.zombieWave.castAt(p.worldX, p.worldY);
+        return;
+      }
+      if (p.rightButtonDown()) return; // right-click only ever shoots
       if (p.wasTouch || (over && over.length > 0)) return;
       const wx = p.worldX;
       const wy = p.worldY;
@@ -873,8 +881,10 @@ export class GraveyardWorld extends Phaser.Scene {
 
   /** B: black-cat omen summons the witch right away. */
   /** N3: zombie hand egg starts a wave; onDone fires when the last zombie falls. */
-  public startZombieWave(onDone: () => void): void {
-    this.zombieWave.start(onDone);
+  public startZombieWave(onDone: () => void, onAbandon?: () => void): void {
+    this.moveTarget = null;
+    this.witch?.dismiss();
+    this.zombieWave.start(onDone, onAbandon);
   }
 
   public summonWitch(): void {
@@ -903,9 +913,9 @@ export class GraveyardWorld extends Phaser.Scene {
 
   /** N4/L1: the wizard jumps when lightning lands next to him. */
   public flinch(): void {
+    if (this.ritualActive) return;
     this.flinchUntil = this.time.now + 220;
     this.wizard.setVelocity(0, 0);
-    this.tweens.add({ targets: this.wizard, y: this.wizard.y - 6, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
     const t = this.add.text(this.wizard.x, this.wizard.y - 78, '!', {
       fontFamily: "'Pixelify Sans', sans-serif", fontSize: '22px', color: '#ffe066', stroke: '#000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(99999);
@@ -924,6 +934,7 @@ export class GraveyardWorld extends Phaser.Scene {
       return;
     }
 
+    if (this.mapOpen) return;
     // N4/B1: re-check what we're actually standing at; the nearer of grave / secret wins
     this.checkProximity();
     let graveDist = Infinity;
@@ -956,6 +967,9 @@ export class GraveyardWorld extends Phaser.Scene {
     if (!this.activeGrave) return;
     if (!this.activeGrave.resurrectable) return;
 
+    markRaised(this.activeGrave.id); // N4/M3: remember it for the map
+    this.witch?.dismiss();
+    this.eggManager?.cancelAmbient();
     const ts = this.tombstones.find((t) => t.grave.id === this.activeGrave!.id);
     const ritualData: RitualData = {
       graveId: this.activeGrave.id,
@@ -1016,7 +1030,7 @@ export class GraveyardWorld extends Phaser.Scene {
   private moveWizard(delta: number): void {
     if (this.ritualActive) return;
 
-    if (this.time.now < this.flinchUntil) { this.wizard.setVelocity(0, 0); return; }
+    if (this.mapOpen || this.time.now < this.flinchUntil) { this.wizard.setVelocity(0, 0); return; }
     // N4/M4: Shift (or full joystick tilt) = sprint
     let sprint = !!this.shiftKey?.isDown;
     const joy = (this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } })?.joystick;

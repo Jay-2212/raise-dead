@@ -82,8 +82,13 @@ export class WitchFlyBy {
   forceSpawn(): void {
     this.timer = 0;
     this.interval = Phaser.Math.Between(45000, 120000);
-    if (this.active) return;
+    if (this.active || this.opts.isCrowActive()) return;
     this.spawnWitch();
+  }
+
+  /** N4: make a flying witch leave at once (zombie wave / ritual starting). */
+  dismiss(): void {
+    if (this.active) this.cleanup();
   }
 
   // ─── Internal ─────────────────────────────────────────────────────────────

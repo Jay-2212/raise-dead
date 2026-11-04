@@ -69,9 +69,9 @@ export class GraveOverlay {
       width: ${fullBleed ? '100vw' : 'min(92vw, 960px)'};
       height: ${fullBleed ? '100vh' : 'min(86vh, 600px)'};
       background: none;
-      border-image: url('${baseUrl}assets/images/ui/frame_panel.png') 60 64 60 64 fill;
+      border-image: ${fullBleed ? 'none' : `url('${baseUrl}assets/images/ui/frame_panel.png') 60 64 60 64 fill`};
       border-style: solid;
-      border-width: 60px 64px;
+      border-width: ${fullBleed ? '0' : '60px 64px'};
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -93,7 +93,7 @@ export class GraveOverlay {
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding: 24px 32px;
+      padding: ${(grave as { game_fullscreen?: boolean }).game_fullscreen ? '0' : '24px 32px'};
       overflow: hidden;
     `;
 
@@ -143,7 +143,7 @@ export class GraveOverlay {
     if (gamePath) compactHeader = true;
 
     // Now build the header based on compactHeader flag
-    this.buildHeader(grave, baseUrl, content, appContainer, compactHeader);
+    if (!(grave as { game_fullscreen?: boolean }).game_fullscreen) this.buildHeader(grave, baseUrl, content, appContainer, compactHeader);
 
     // Add app container to content
     content.appendChild(appContainer);
@@ -173,7 +173,7 @@ export class GraveOverlay {
     });
     exitBtn.addEventListener('click', () => this.triggerExit());
     exitBtn.addEventListener('touchend', () => this.triggerExit());
-    content.appendChild(exitBtn);
+    if (!(grave as { game_fullscreen?: boolean }).game_fullscreen) content.appendChild(exitBtn);
 
     // N7: a corner close button too (testers looked for an X)
     const xBtn = document.createElement('button');
@@ -391,19 +391,25 @@ export class GraveOverlay {
     appContainer.style.overflow = 'hidden';
     appContainer.style.display = 'flex';
     appContainer.style.flexDirection = 'column';
-    appContainer.style.height = 'min(68vh, 62vw)';
+    const full = !!grave.game_fullscreen;
+    appContainer.style.height = full ? '100vh' : 'min(68vh, 62vw)';
     appContainer.style.minHeight = '260px';
+    if (full) appContainer.style.width = '100%';
 
     const iframe = document.createElement('iframe');
     iframe.src = `${baseUrl}${grave.game}`;
     iframe.title = grave.name;
     iframe.setAttribute('sandbox', grave.game_sandbox ?? 'allow-scripts allow-same-origin allow-pointer-lock');
     iframe.setAttribute('allow', 'fullscreen; autoplay');
-    iframe.style.cssText = 'flex: 1; width: 100%; border: 1px solid #2b3a4f; border-radius: 6px; background: #000; display: block;';
+    iframe.allowFullscreen = true;
+    iframe.style.cssText = full
+      ? 'flex: 1; width: 100%; height: 100%; border: 0; background: #000; display: block;'
+      : 'flex: 1; width: 100%; border: 1px solid #2b3a4f; border-radius: 6px; background: #000; display: block;';
     iframe.addEventListener('load', () => {
       try {
         // Esc inside the game still lays it to rest (same-origin static content we host)
-        iframe.contentWindow?.addEventListener('keydown', (e: KeyboardEvent) => {
+        // (DOOM uses Esc for its own menu: close it with the ✕ instead)
+        if (!full) iframe.contentWindow?.addEventListener('keydown', (e: KeyboardEvent) => {
           if (e.key === 'Escape') this.triggerExit();
         });
       } catch { /* cross-origin: rely on the button */ }
@@ -411,7 +417,7 @@ export class GraveOverlay {
     });
     appContainer.appendChild(iframe);
 
-    if (grave.game_credit) {
+    if (grave.game_credit && !full) {
       const credit = document.createElement('p');
       credit.textContent = `${grave.game_credit} · Esc or the button below to lay it to rest.`;
       credit.style.cssText = "font-family: 'Pixelify Sans', sans-serif; font-size: 0.75rem; color: #7d8ba0; margin: 6px 0 0; text-align: center;";

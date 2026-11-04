@@ -14,7 +14,7 @@
 </style></head><body>
 <div id="wrap"><canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas></div>
 <div id="load"><div>Raising DOOM (1993 engine) with Freedoom levels…</div><div id="bar"><i></i></div><div id="pct">0%</div><button id="start">Click to play</button></div>
-<div id="ui"><button id="fs">⛶ Full screen</button><span id="help">WASD move · mouse/←→ turn · Space fire · E open doors · Shift run · Esc menu</span></div>
+<div id="ui"><button id="fs">⛶ Full screen</button><span id="help">WASD move · mouse/←→ turn · Space fire · E open doors · Shift run · Esc menu · ✕ (top-right) to leave</span></div>
 <script>
 (function(){
  const parts=['freedoom1.wad.part0','freedoom1.wad.part1'];const TOTAL=28795076;
@@ -24,13 +24,13 @@
  window.__wadPromise=(async()=>{const all=[];for(const p of parts){all.push(...await fetchPart(p));}const out=new Uint8Array(got);let o=0;for(const c of all){out.set(c,o);o+=c.length;}return out;})();
  window.__wadPromise.then(()=>{pct.textContent='Ready';start.style.display='block';}).catch(e=>{pct.textContent='Could not load: '+e.message;});
  start.addEventListener('click',()=>{document.getElementById('load').style.display='none';const cv=document.getElementById('canvas');cv.focus();boot();});
- document.getElementById('fs').addEventListener('click',()=>{const el=document.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen).call(el);document.getElementById('canvas').focus();});
+ document.getElementById('fs').addEventListener('click',()=>{const el=document.documentElement;try{var r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el);if(r&&r.catch)r.catch(function(){});}catch(e){}document.getElementById('canvas').focus();});
  function boot(){
   window.Module={noInitialRun:true,
    preRun:[async()=>{}],
    onRuntimeInitialized:async()=>{const wad=await window.__wadPromise;Module.FS.writeFile('/freedoom1.wad',wad);
      const cfg=await (await fetch('default.cfg')).text();Module.FS.writeFile('/default.cfg',cfg);
-     (window.callMain||Module.callMain)(['-iwad','/freedoom1.wad','-window','-nogui','-config','/default.cfg','-nomusic']);},
+     (window.callMain||Module.callMain)(['-iwad','/freedoom1.wad','-window','-nogui','-config','/default.cfg','-nomusic']);setTimeout(function(){document.getElementById('canvas').focus();},300);},
    canvas:document.getElementById('canvas'),print:()=>{},printErr:t=>console.warn(t),setStatus:()=>{}};
   const s=document.createElement('script');s.src='websockets-doom.js';document.body.appendChild(s);
  }

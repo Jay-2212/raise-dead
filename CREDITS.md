@@ -116,3 +116,6 @@ Road Rash, Google Reader, Clippy, Winamp and other product names referenced in R
 | Thunder rumble SFX | WuxiaScrub | CC0 1.0 | https://opengameart.org/content/rain-long-thunder — `assets/audio/sfx/thunder_rumble` (cut 21–30 s) |
 | Horde scream SFX (mixed) | Vinrax + artisticdude | CC0 1.0 | https://opengameart.org/content/horror-scream1 + https://opengameart.org/content/zombies-sound-pack — `assets/audio/sfx/horde_scream` |
 | Medals (medal_doom, medal_pacman, medal_skifree, medal_eliza) | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |
+| ELIZA (1966) rules engine | Joseph Weizenbaum; rewritten for Raise Dead (original code); Meta Muse Spark fills gaps via /api/eliza/reply | Original (rewrite) | Classic ELIZA by Joseph Weizenbaum (1966); rules engine rewritten from scratch for Raise Dead |
+| Danse Macabre (rhythm game music) | Kevin MacLeod (incompetech.com) | CC-BY 4.0 | https://creativecommons.org/licenses/by/4.0/ — public/games/rhythm/danse_macabre.{ogg,mp3} (105 s excerpt) |
+| Star Cadet sound effects | Raise Dead team | CC0 1.0 (project original) | Original WebAudio synth by Raise Dead; no Microsoft audio used |

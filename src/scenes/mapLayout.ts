@@ -25,9 +25,9 @@ const RESURRECTABLES: TombstoneLayout[] = [
   { id: 'bouncing-logo',  x: 1480, y: 1050 },
   // N4: real open-source classics + ELIZA
   { id: 'doom',           x: 990,  y: 1040 },
-  { id: 'skifree',        x: 1235, y: 1060 },
-  { id: 'pac-man',        x: 930,  y: 820 },
-  { id: 'eliza',          x: 1610, y: 830 },
+  { id: 'skifree',        x: 1600, y: 1060 },
+  { id: 'pac-man',        x: 1680, y: 720 },
+  { id: 'eliza',          x: 1690, y: 990 },
 ];
 
 // ─── Decorative rows (sort_priority 6–40) ────────────────────────────────
