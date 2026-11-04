@@ -74,6 +74,16 @@ export class GraveyardWorld extends Phaser.Scene {
   private sprinting = false;
   /** N6: click-to-move target (mouse players) and whether to interact on arrival. */
   private moveTarget: { x: number; y: number; interact: boolean } | null = null;
+  private tapLatch = { left: 0, right: 0, up: 0, down: 0, sprint: 0 };
+  private installTapLatch(): void {
+    const map: Record<string, 'left' | 'right' | 'up' | 'down'> = {
+      ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
+    };
+    this.input.keyboard?.on('keydown', (ev: KeyboardEvent) => {
+      const dir = map[ev.code];
+      if (dir) { this.tapLatch[dir] = this.time.now + 220; if (ev.shiftKey) this.tapLatch.sprint = this.time.now + 220; }
+    });
+  }
   private moveStuckMs = 0;
   private moveBestDist: number | undefined = undefined;
   private lastProxGraveId: string | null = null;
@@ -812,6 +822,7 @@ export class GraveyardWorld extends Phaser.Scene {
 
   private setupInput(): void {
     this.cursors = this.input.keyboard!.createCursorKeys();
+    this.installTapLatch();
     this.wasd = {
       up:    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
       down:  this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
@@ -1033,6 +1044,8 @@ export class GraveyardWorld extends Phaser.Scene {
     if (this.mapOpen || this.time.now < this.flinchUntil) { this.wizard.setVelocity(0, 0); return; }
     // N4/M4: Shift (or full joystick tilt) = sprint
     let sprint = !!this.shiftKey?.isDown;
+    const latchSprint = this.time.now < this.tapLatch.sprint;
+    if (latchSprint) sprint = true;
     const joy = (this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } })?.joystick;
     if (joy?.active) { const f = joy.getForce(); if (Math.hypot(f.forceX, f.forceY) > 0.95) sprint = true; }
     this.sprinting = sprint;
@@ -1040,11 +1053,13 @@ export class GraveyardWorld extends Phaser.Scene {
     let dx = 0;
     let dy = 0;
 
-    // Keyboard
-    if (this.cursors.left.isDown  || this.wasd.left.isDown)  dx -= 1;
-    if (this.cursors.right.isDown || this.wasd.right.isDown) dx += 1;
-    if (this.cursors.up.isDown    || this.wasd.up.isDown)    dy -= 1;
-    if (this.cursors.down.isDown  || this.wasd.down.isDown)  dy += 1;
+    // Keyboard (a quick tap still takes a step: on slow machines a press can begin and end between two frames)
+    const now = this.time.now;
+    const L = this.tapLatch;
+    if (this.cursors.left.isDown  || this.wasd.left.isDown  || now < L.left)  dx -= 1;
+    if (this.cursors.right.isDown || this.wasd.right.isDown || now < L.right) dx += 1;
+    if (this.cursors.up.isDown    || this.wasd.up.isDown    || now < L.up)    dy -= 1;
+    if (this.cursors.down.isDown  || this.wasd.down.isDown  || now < L.down)  dy += 1;
 
     // P0-5: Joystick now lives in UIScene; get normalized force from there
     const uiScene = this.scene.get('UIScene') as { joystick?: { active: boolean; getForce(): { forceX: number; forceY: number } } };

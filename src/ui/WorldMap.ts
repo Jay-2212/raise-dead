@@ -152,8 +152,8 @@ export class WorldMap {
       if (raised) raisedCount++;
       g.fillStyle(raised ? 0x7fd1d8 : 0x6a7686, 1).fillRoundedRect(px - 4, py - 6, 8, 11, 3);
       if (!raised) g.lineStyle(1, 0xc9b98a, 0.9).strokeRoundedRect(px - 5, py - 7, 10, 13, 3);
-      const t = s.add.text(px, py + 8, raised ? gr.name : '?', {
-        fontFamily: "'Pixelify Sans', sans-serif", fontSize: raised ? '10px' : '11px', color: raised ? '#bfeef2' : '#c9b98a',
+      const t = s.add.text(px, py + 8, raised ? gr.name : gr.name + ' ?', {
+        fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: raised ? '#bfeef2' : '#c9b98a',
       }).setOrigin(0.5, 0);
       c.add(t);
     }
@@ -191,7 +191,7 @@ export class WorldMap {
     const found = foundIds.size;
     const eggTotal = d.eggs.length;
     const title = s.add.text(width / 2, oy - 40, 'Map of the Graveyard', { fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#d9f2ee' }).setOrigin(0.5);
-    const cap = s.add.text(width / 2, oy + PH + 16, `Graves raised ${raisedCount}/${total}  ·  Secrets ${found}/${eggTotal}  ·  ? = something still hidden  ·  Esc / J / click to close`, {
+    const cap = s.add.text(width / 2, oy + PH + 16, `Graves raised ${raisedCount}/${total}  ·  Secrets ${found}/${eggTotal}  ·  ? = not raised yet / secret still hidden  ·  Esc / J / click to close`, {
       fontFamily: "'Pixelify Sans', sans-serif", fontSize: '13px', color: '#c9b98a',
     }).setOrigin(0.5, 0);
     c.add([title, cap]);
