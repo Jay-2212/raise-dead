@@ -3,6 +3,7 @@
  * then moves immediately to PreloadScene.
  */
 import Phaser from 'phaser';
+import { installMixer } from '../audio/Mixer';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -15,6 +16,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Music / Effects buses + silent fallback for not-yet-loaded sounds
+    installMixer(this.game);
+
     // Remove loading screen placeholder
     const el = document.getElementById('loading-screen');
     if (el) el.remove();

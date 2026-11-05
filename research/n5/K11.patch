@@ -1,0 +1,1505 @@
+diff --git a/public/_headers b/public/_headers
+index 71bf66a..b82ff24 100644
+--- a/public/_headers
++++ b/public/_headers
+@@ -9,23 +9,46 @@
+   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'
+   Cache-Control: public, max-age=86400
+ 
+-/assets/index-*
+-  Cache-Control: public, max-age=31536000, immutable
+-
+-/assets/phaser-*
++# Vite's hashed bundles never change under the same name
++/assets/*.js
+   Cache-Control: public, max-age=31536000, immutable
+ 
++# Game art/audio/fonts keep stable names: a week fresh, then revalidate in the background
+ /assets/audio/*
+-  Cache-Control: public, max-age=86400
++  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+ 
+ /assets/images/*
+-  Cache-Control: public, max-age=86400
++  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+ 
+ /assets/voice/*
+-  Cache-Control: public, max-age=86400
++  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+ 
+ /assets/fonts/*
+-  Cache-Control: public, max-age=86400
++  Cache-Control: public, max-age=2592000, immutable
++
++/data/*
++  Cache-Control: public, max-age=300, stale-while-revalidate=3600
++
++# Heavy grave payloads (loaded only when their grave is opened): long-lived
++/games/doom/freedoom1.wad.*
++  ! Cache-Control
++  Cache-Control: public, max-age=2592000, immutable
++
++/games/doom/websockets-doom.wasm
++  ! Cache-Control
++  Cache-Control: public, max-age=2592000
++
++/games/rhythm/danse_macabre.*
++  ! Cache-Control
++  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
++
++/games/*/vendor/*
++  ! Cache-Control
++  Cache-Control: public, max-age=2592000
++
++/games/*/lib/*
++  ! Cache-Control
++  Cache-Control: public, max-age=2592000
+ 
+ /index.html
+   Cache-Control: no-cache
+diff --git a/public/games/space-cadet/src/render/index.js b/public/games/space-cadet/src/render/index.js
+index cdd0df0..6cd1fd9 100644
+--- a/public/games/space-cadet/src/render/index.js
++++ b/public/games/space-cadet/src/render/index.js
+@@ -48,11 +48,13 @@ function createFallbackRenderer(canvas, why) {
+       const g = c.getContext('2d');
+       if (!g) return;
+       g.fillStyle = '#05050c'; g.fillRect(0, 0, cw, ch);
+-      g.fillStyle = '#c9c9d8'; g.font = `${Math.max(12, Math.round(cw / 18))}px system-ui, sans-serif`; g.textAlign = 'center';
+-      g.fillText('WebGL is not available', cw / 2, ch / 2 - 6);
+-      g.font = `${Math.max(10, Math.round(cw / 28))}px system-ui, sans-serif`;
+-      g.fillStyle = '#8a8aa0';
+-      g.fillText('The 3D table needs a WebGL-capable browser.', cw / 2, ch / 2 + 16);
++      g.textAlign = 'center';
++      g.fillStyle = '#e8dcc0'; g.font = `${Math.max(12, Math.round(cw / 20))}px system-ui, sans-serif`;
++      g.fillText('The table sleeps in the dark', cw / 2, ch / 2 - 10);
++      g.font = `${Math.max(10, Math.round(cw / 30))}px system-ui, sans-serif`;
++      g.fillStyle = '#8a96a8';
++      g.fillText('Its 3D view needs WebGL. Turn on hardware', cw / 2, ch / 2 + 12);
++      g.fillText('acceleration in your browser, then reopen this grave.', cw / 2, ch / 2 + 12 + Math.max(12, Math.round(cw / 26)));
+     } catch (e) { /* nothing to do */ }
+   };
+   paint();
+@@ -80,7 +82,12 @@ export function createRenderer(opts) {
+   let renderer;
+   try {
+     const canvas = opts.canvas || (typeof document !== 'undefined' ? document.createElement('canvas') : undefined);
+-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: false, powerPreference: 'high-performance' });
++    try {
++      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: false, powerPreference: 'high-performance' });
++    } catch (first) {
++      // Polish: some GPUs/drivers refuse the high-performance + MSAA context but accept a plain one
++      renderer = new THREE.WebGLRenderer({ canvas: opts.canvas || document.createElement('canvas'), antialias: false, alpha: false, stencil: false });
++    }
+   } catch (e) {
+     return createFallbackRenderer(opts.canvas || null, e);
+   }
+diff --git a/src/audio/Mixer.ts b/src/audio/Mixer.ts
+new file mode 100644
+index 0000000..991ba90
+--- /dev/null
++++ b/src/audio/Mixer.ts
+@@ -0,0 +1,123 @@
++/**
++ * Mixer — two volume buses (Music, Effects) on top of Phaser's WebAudio sound manager.
++ *
++ *  - Every sound created through game.sound.add / play is routed to the music bus when its key is
++ *    a music track, otherwise to the effects bus (SFX + ambience + voices).
++ *  - Levels are 0..1, default 0.7, saved in localStorage (rd_vol_music / rd_vol_fx).
++ *  - Gain follows an audio taper (level²) under a lowered master, so 70% sits around -8 dB:
++ *    the game used to be too loud at its old fixed volumes.
++ *  - A sound whose key is not in the cache yet (deferred assets still loading) plays silence
++ *    instead of throwing.
++ *  - unlock() resumes the AudioContext inside a user gesture; it never throws and never blocks.
++ */
++import Phaser from 'phaser';
++
++export type Bus = 'music' | 'fx';
++
++const MASTER = 0.85;
++const DEFAULT_LEVEL = 0.7;
++const STORE: Record<Bus, string> = { music: 'rd_vol_music', fx: 'rd_vol_fx' };
++const MUSIC_KEYS = new Set(['title_waltz', 'moonlit_lullaby', 'chant_drone_loop']);
++export const SILENCE_KEY = '__rd_silence';
++
++type AnyManager = Phaser.Sound.BaseSoundManager & {
++  context?: AudioContext;
++  destination?: AudioNode;
++  add: (key: string, config?: Phaser.Types.Sound.SoundConfig) => Phaser.Sound.BaseSound;
++};
++type NodeSound = { pannerNode?: AudioNode | null; spatialNode?: AudioNode | null; volumeNode?: AudioNode | null };
++
++const levels: Record<Bus, number> = { music: DEFAULT_LEVEL, fx: DEFAULT_LEVEL };
++const buses: Partial<Record<Bus, GainNode>> = {};
++let manager: AnyManager | null = null;
++const listeners = new Set<(bus: Bus, level: number) => void>();
++
++function readLevel(bus: Bus): number {
++  try {
++    const raw = localStorage.getItem(STORE[bus]);
++    if (raw === null) return DEFAULT_LEVEL;
++    const v = Number(raw);
++    return Number.isFinite(v) ? Phaser.Math.Clamp(v, 0, 1) : DEFAULT_LEVEL;
++  } catch {
++    return DEFAULT_LEVEL;
++  }
++}
++
++const gainFor = (level: number): number => level * level;
++
++function apply(bus: Bus): void {
++  const node = buses[bus];
++  if (node && manager?.context) {
++    node.gain.setTargetAtTime(gainFor(levels[bus]), manager.context.currentTime, 0.03);
++  } else if (manager && !manager.context) {
++    // HTML5 Audio fallback: no buses, so one master volume follows the effects level
++    manager.volume = MASTER * gainFor(Math.max(levels.fx, levels.music));
++  }
++}
++
++/** Install once, right after the Phaser.Game exists (BootScene). Safe to call again. */
++export function installMixer(game: Phaser.Game): void {
++  const mgr = game.sound as AnyManager;
++  if (manager === mgr) return;
++  manager = mgr;
++  levels.music = readLevel('music');
++  levels.fx = readLevel('fx');
++
++  const ctx = mgr.context;
++  if (!ctx || !mgr.destination) {
++    apply('fx');
++    return;
++  }
++  mgr.volume = MASTER;
++  for (const bus of ['music', 'fx'] as Bus[]) {
++    const g = ctx.createGain();
++    g.gain.value = gainFor(levels[bus]);
++    g.connect(mgr.destination);
++    buses[bus] = g;
++  }
++  if (!game.cache.audio.exists(SILENCE_KEY)) {
++    game.cache.audio.add(SILENCE_KEY, ctx.createBuffer(1, 1, 22050));
++  }
++
++  const origAdd = mgr.add.bind(mgr);
++  mgr.add = (key: string, config?: Phaser.Types.Sound.SoundConfig) => {
++    const known = game.cache.audio.exists(key);
++    const sound = origAdd(known ? key : SILENCE_KEY, config);
++    const s = sound as unknown as NodeSound;
++    const out = s.pannerNode ?? s.spatialNode ?? s.volumeNode;
++    const bus = buses[MUSIC_KEYS.has(key) ? 'music' : 'fx'];
++    if (out && bus) {
++      try {
++        out.disconnect();
++        out.connect(bus);
++      } catch { /* leave Phaser's default routing */ }
++    }
++    return sound;
++  };
++}
++
++export function getLevel(bus: Bus): number {
++  return levels[bus];
++}
++
++export function setLevel(bus: Bus, level: number): void {
++  levels[bus] = Phaser.Math.Clamp(level, 0, 1);
++  try { localStorage.setItem(STORE[bus], levels[bus].toFixed(2)); } catch { /* private mode */ }
++  apply(bus);
++  listeners.forEach((fn) => fn(bus, levels[bus]));
++}
++
++export function onLevelChange(fn: (bus: Bus, level: number) => void): () => void {
++  listeners.add(fn);
++  return () => listeners.delete(fn);
++}
++
++/** Resume audio inside a user gesture. Fire-and-forget: entry never waits on it. */
++export function unlockAudio(): void {
++  const ctx = manager?.context;
++  if (!ctx || ctx.state === 'running') return;
++  try {
++    const p = ctx.resume();
++    if (p && typeof p.catch === 'function') p.catch(() => { /* stays silent, game still runs */ });
++  } catch { /* ignore */ }
++}
+diff --git a/src/scenes/BootScene.ts b/src/scenes/BootScene.ts
+index a54ff99..0367803 100644
+--- a/src/scenes/BootScene.ts
++++ b/src/scenes/BootScene.ts
+@@ -3,6 +3,7 @@
+  * then moves immediately to PreloadScene.
+  */
+ import Phaser from 'phaser';
++import { installMixer } from '../audio/Mixer';
+ 
+ export class BootScene extends Phaser.Scene {
+   constructor() {
+@@ -15,6 +16,9 @@ export class BootScene extends Phaser.Scene {
+   }
+ 
+   create(): void {
++    // Music / Effects buses + silent fallback for not-yet-loaded sounds
++    installMixer(this.game);
++
+     // Remove loading screen placeholder
+     const el = document.getElementById('loading-screen');
+     if (el) el.remove();
+diff --git a/src/scenes/GraveyardWorld.ts b/src/scenes/GraveyardWorld.ts
+index de8762c..4ac2327 100644
+--- a/src/scenes/GraveyardWorld.ts
++++ b/src/scenes/GraveyardWorld.ts
+@@ -9,7 +9,7 @@ import { Tombstone } from '../ui/Tombstone';
+ import { AudioManager } from '../audio/AudioManager';
+ import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
+ import { markRaised } from '../ui/WorldMap';
+-import { queueWorldAssets, createWizardAnimations } from './worldAssets';
++import { queueWorldAssets, queueDeferredAssets, createWizardAnimations } from './worldAssets';
+ import { WitchFlyBy } from './WitchFlyBy'; // A7
+ import { EasterEggManager } from '../easter/EasterEggManager'; // B
+ import { ZombieWave } from '../easter/ZombieWave'; // N3
+@@ -182,6 +182,10 @@ export class GraveyardWorld extends Phaser.Scene {
+     // Launch UIScene on top
+     this.scene.launch('UIScene');
+ 
++    // Perf: ritual / voice / egg sounds stream in after the graveyard is already playable
++    queueDeferredAssets(this.load);
++    if (this.load.list.size > 0) this.load.start();
++
+     // Listen for ritual fully ended (when ResurrectionRitual completes the exit sequence)
+     this.events.on('ritualFullyEnded', () => {
+       this.eggManager?.clearHint(); // N3: re-show egg prompt after a ritual
+diff --git a/src/scenes/TitleScene.ts b/src/scenes/TitleScene.ts
+index 7812d13..d971e13 100644
+--- a/src/scenes/TitleScene.ts
++++ b/src/scenes/TitleScene.ts
+@@ -1,13 +1,15 @@
+ /**
+  * TitleScene — full-screen keyart, title text, "Click to enter" prompt,
+- * and a Credits button. First click unlocks audio and starts the waltz.
++ * and a Credits button. One click / tap / Enter / Space unlocks audio and enters the graveyard.
+  */
+ import Phaser from 'phaser';
+ import { queueWorldAssets, createWizardAnimations } from './worldAssets';
++import { unlockAudio } from '../audio/Mixer';
+ 
+ export class TitleScene extends Phaser.Scene {
+   private waltz: Phaser.Sound.BaseSound | null = null;
+-  private audioUnlocked = false;
++  private entering = false;
++  private progressText: Phaser.GameObjects.Text | null = null;
+ 
+   constructor() {
+     super({ key: 'TitleScene' });
+@@ -15,6 +17,7 @@ export class TitleScene extends Phaser.Scene {
+ 
+   create(): void {
+     const { width, height } = this.scale;
++    this.entering = false;
+ 
+     // P1-18: Read saved mute state and apply
+     const isMuted = localStorage.getItem('rd_muted') === '1';
+@@ -47,8 +50,9 @@ export class TitleScene extends Phaser.Scene {
+       strokeThickness: 3,
+     }).setOrigin(0.5, 0.5);
+ 
+-    // "Click to enter" prompt
+-    const clickPrompt = this.add.text(width / 2, height - 120, 'Click to enter the graveyard · or Press Enter/Space', {
++    // One press enters: a single click, tap, Enter or Space.
++    const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
++    const clickPrompt = this.add.text(width / 2, height - 120, touch ? 'Tap to enter the graveyard' : 'Click or press Enter to enter the graveyard', {
+       fontFamily: "'Pixelify Sans', sans-serif",
+       fontSize: '26px',
+       color: '#f3ecc8',
+@@ -75,127 +79,71 @@ export class TitleScene extends Phaser.Scene {
+ 
+     creditsBtn.on('pointerover', () => creditsBtn.setColor('#c9b98a'));
+     creditsBtn.on('pointerout',  () => creditsBtn.setColor('#5d6b80'));
+-    creditsBtn.on('pointerdown', (event: Phaser.Input.Pointer) => {
+-      // P1-4: Don't process if pointer is over another element
+-      // Simple fix: just launch Credits without triggering the input listener
++    creditsBtn.on('pointerdown', () => {
+       this.scene.launch('CreditsScene', { from: 'TitleScene' });
+     });
+ 
+     // Start background loading of world assets
+     queueWorldAssets(this.load);
+-    
+-    // Create progress text for loading feedback
+-    const progressText = this.add.text(width / 2, height / 2 + 80, 'Summoning… 0%', {
++
++    // Loading feedback (only shown while the graveyard is still being summoned)
++    this.progressText = this.add.text(width / 2, height / 2 + 80, 'Summoning… 0%', {
+       fontFamily: "'Pixelify Sans', sans-serif",
+       fontSize: '16px',
+       color: '#5d6b80',
+     }).setOrigin(0.5, 0.5);
+ 
+-    // Listen to loader progress and completion
+     this.load.on('progress', (v: number) => {
+-      progressText.setText(`Summoning… ${Math.round(v * 100)}%`);
++      this.progressText?.setText(`Summoning… ${Math.round(v * 100)}%`);
+     });
+ 
+     this.load.once('complete', () => {
+-      progressText.destroy();
++      this.progressText?.destroy();
++      this.progressText = null;
+       createWizardAnimations(this);
+       this.registry.set('worldLoaded', true);
+     });
+ 
+     this.load.start();
+ 
+-    // Input — first click unlocks audio and starts waltz
+-    let firstInteraction = true;
+-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+-      // P1-4: Check if Credits scene is active
+-      if (!this.scene.isActive('CreditsScene')) {
+-        if (firstInteraction) {
+-          firstInteraction = false;
+-          this.handleFirstInteraction(clickPrompt);
+-        } else if (this.audioUnlocked) {
+-          // P1-5: Second click to enter graveyard
+-          this.enterGraveyard();
+-        }
+-      }
+-    });
++    // The waltz starts right away where the browser allows autoplay; otherwise it is simply silent.
++    this.waltz = this.sound.add('title_waltz', { loop: true, volume: 0 });
++    this.waltz.play();
++    this.tweens.add({ targets: this.waltz, volume: 0.45, duration: 1200 });
+ 
+-    // Keyboard listeners for Enter/Space
+-    const enterKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+-    const spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+-    enterKey.on('down', () => {
+-      if (firstInteraction) {
+-        firstInteraction = false;
+-        this.handleFirstInteraction(clickPrompt);
+-      } else if (this.audioUnlocked) {
+-        // P1-5: Enter key to proceed to graveyard on second press
+-        this.enterGraveyard();
+-      }
+-    });
+-    spaceKey.on('down', () => {
+-      if (firstInteraction) {
+-        firstInteraction = false;
+-        this.handleFirstInteraction(clickPrompt);
+-      } else if (this.audioUnlocked) {
+-        // P1-5: Space key to proceed to graveyard on second press
+-        this.enterGraveyard();
+-      }
++    // Input: the first press (pointer or key) unlocks audio AND enters. No second confirmation.
++    this.input.on('pointerdown', (_p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
++      if (over.includes(creditsBtn)) return;
++      this.enter(clickPrompt);
+     });
++    const kb = this.input.keyboard!;
++    kb.on('keydown-ENTER', () => this.enter(clickPrompt));
++    kb.on('keydown-SPACE', () => this.enter(clickPrompt));
+   }
+ 
+-  private handleFirstInteraction(clickPrompt: Phaser.GameObjects.Text): void {
+-    if (!this.audioUnlocked) {
+-      // P1-5: First interaction unlocks audio and starts waltz, but doesn't enter yet
+-      this.audioUnlocked = true;
+-      // Start waltz
+-      this.waltz = this.sound.add('title_waltz', { loop: true, volume: 0 });
+-      this.waltz.play();
+-      
+-      // Fade in the waltz so user hears it
+-      this.tweens.add({
+-        targets: this.waltz,
+-        volume: 0.45,
+-        duration: 1000,
+-      });
+-      
+-      // Change prompt text
+-      clickPrompt.setText('Click again · or press Enter/Space · to enter the graveyard');
+-      return; // Don't proceed to graveyard yet
+-    }
+-
+-    // P1-5: Second interaction enters the graveyard
+-    // Fade out waltz then transition
+-    clickPrompt.setText('Entering…');
+-    if (this.waltz && 'setVolume' in this.waltz) {
+-      this.tweens.add({
+-        targets: this.waltz,
+-        volume: 0,
+-        duration: 800,
+-        onComplete: () => this.enterGraveyard(),
+-      });
+-    } else {
+-      this.time.delayedCall(300, () => this.enterGraveyard());
++  private enter(clickPrompt: Phaser.GameObjects.Text): void {
++    if (this.entering || this.scene.isActive('CreditsScene')) return;
++    this.entering = true;
++    // Same gesture resumes the AudioContext; if the browser refuses, entry carries on silently.
++    unlockAudio();
++    this.tweens.killTweensOf(clickPrompt);
++    clickPrompt.setAlpha(1).setText('Entering…');
++    if (this.waltz) {
++      this.tweens.killTweensOf(this.waltz);
++      this.tweens.add({ targets: this.waltz, volume: 0, duration: 380 });
+     }
+-  }
+-
+-  private enterGraveyard(): void {
+-    // Check if world assets are already loaded
+-    const worldLoaded = this.registry.get('worldLoaded');
+-    
+-    if (worldLoaded) {
+-      // Assets are loaded, proceed immediately
++    if (this.registry.get('worldLoaded')) {
+       this.performTransition();
+     } else {
+-      // Still loading — wait for completion
+-      this.load.once('complete', () => {
+-        this.performTransition();
+-      });
++      this.load.once('complete', () => this.performTransition());
+     }
+   }
+ 
+   private performTransition(): void {
+     this.cameras.main.fadeOut(400, 0, 0, 0);
+     this.cameras.main.once('camerafadeoutcomplete', () => {
+-      this.waltz?.destroy();
++      // kill the fade tween first: a tween writing volume to a destroyed sound throws and stalls the loop
++      if (this.waltz) { this.tweens.killTweensOf(this.waltz); this.waltz.destroy(); this.waltz = null; }
+       this.scene.start('GraveyardWorld');
+     });
+   }
+diff --git a/src/scenes/UIScene.ts b/src/scenes/UIScene.ts
+index 62810ec..c78d8a5 100644
+--- a/src/scenes/UIScene.ts
++++ b/src/scenes/UIScene.ts
+@@ -7,6 +7,7 @@ import { GraveEntry, extractYear } from '../types/graves';
+ import { ProximityHint } from '../ui/ProximityHint';
+ import { Joystick } from '../ui/Joystick';
+ import { WorldMap, loadRaised } from '../ui/WorldMap';
++import { VolumeControl } from '../ui/VolumeControl';
+ import { EGG_DEFINITIONS } from '../easter/eggDefinitions';
+ 
+ export class UIScene extends Phaser.Scene {
+@@ -15,7 +16,7 @@ export class UIScene extends Phaser.Scene {
+   private plaqueVisible = false;
+   private loreCard!: Phaser.GameObjects.Container | null;
+   private loreCardVisible = false;
+-  private muteBtn!: Phaser.GameObjects.Text;
++  private volume!: VolumeControl;
+   private joystick!: Joystick;
+   private secretsCounter!: Phaser.GameObjects.Text;
+   private loreCardHideTimer: Phaser.Time.TimerEvent | null = null;
+@@ -90,12 +91,8 @@ export class UIScene extends Phaser.Scene {
+     const isMuted = localStorage.getItem('rd_muted') === '1';
+     this.sound.mute = isMuted;
+ 
+-    // Mute button
+-    this.muteBtn = this.add.text(width - 12, 12, isMuted ? '🔇' : '🔊', {
+-      fontSize: '22px',
+-    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+-    this.muteBtn.setInteractive({ useHandCursor: true });
+-    this.muteBtn.on('pointerdown', () => {
++    // Speaker icon + Music / Effects sliders (hover to slide out; tap on touch screens)
++    this.volume = new VolumeControl(this, width - 10, 8, isMuted, () => {
+       const world = this.scene.get('GraveyardWorld') as { audio?: { toggleMute(): void; isMuted: boolean } };
+       if (world?.audio) {
+         world.audio.toggleMute();
+@@ -141,13 +138,25 @@ export class UIScene extends Phaser.Scene {
+     mapBtn.on('pointerover', () => mapBtn.setColor('#c9b98a'));
+     mapBtn.on('pointerout', () => mapBtn.setColor('#5d6b80'));
+     mapBtn.on('pointerdown', () => this.toggleFullMap());
++    let treeCache: Array<{ x: number; y: number }> | null = null;
++    let markCache: Array<{ kind: 'lantern' | 'crypt' | 'well'; x: number; y: number }> = [];
+     this.worldMap = new WorldMap(this, () => {
+       const w = this.scene.get('GraveyardWorld') as unknown as {
+         wizard?: { x: number; y: number };
+         tombstones?: Array<{ x: number; y: number; grave: GraveEntry }>;
+         eggManager?: { isFound(id: string): boolean };
+       };
++      if (!treeCache?.length && w) {
++        const kids = ((w as unknown as Phaser.Scene).children?.list ?? []).filter((o) => o instanceof Phaser.GameObjects.Image) as Phaser.GameObjects.Image[];
++        treeCache = kids.filter((o) => o.texture?.key?.startsWith('tree_')).map((o) => ({ x: o.x, y: o.y }));
++        const kinds: Record<string, 'lantern' | 'crypt' | 'well'> = { jackolantern_lit: 'lantern', crypt: 'crypt', crypt_open: 'crypt', well: 'well' };
++        markCache = kids.filter((o) => kinds[o.texture?.key]).map((o) => ({ kind: kinds[o.texture.key], x: o.x, y: o.y }));
++      }
++      const cam = (w as unknown as Phaser.Scene | undefined)?.cameras?.main;
+       return {
++        trees: treeCache ?? [],
++        marks: markCache,
++        view: cam ? { x: cam.worldView.x, y: cam.worldView.y, width: cam.worldView.width, height: cam.worldView.height } : null,
+         wizard: w?.wizard ? { x: w.wizard.x, y: w.wizard.y } : null,
+         graves: (w?.tombstones ?? []).map((t) => ({ id: t.grave.id, name: t.grave.name, x: t.x, y: t.y, resurrectable: !!t.grave.resurrectable })),
+         raised: loadRaised(),
+@@ -222,7 +231,7 @@ export class UIScene extends Phaser.Scene {
+   }
+ 
+   private updateMuteIcon(muted: boolean): void {
+-    this.muteBtn.setText(muted ? '🔇' : '🔊');
++    this.volume.setMuted(muted);
+   }
+ 
+   private onProximityChanged(grave: GraveEntry | null): void {
+diff --git a/src/scenes/worldAssets.ts b/src/scenes/worldAssets.ts
+index 76b69dd..9427c2c 100644
+--- a/src/scenes/worldAssets.ts
++++ b/src/scenes/worldAssets.ts
+@@ -5,7 +5,7 @@
+ import Phaser from 'phaser';
+ 
+ /**
+- * Queue all world and ritual assets into the loader.
++ * Queue the assets the graveyard needs on its first screen (world art, music, ambience, footsteps, UI).
+  * Phaser automatically skips keys already in cache, making this safe to call multiple times.
+  */
+ export function queueWorldAssets(load: Phaser.Loader.LoaderPlugin): void {
+@@ -14,6 +14,16 @@ export function queueWorldAssets(load: Phaser.Loader.LoaderPlugin): void {
+   queueWorldAudio(load);
+ }
+ 
++/**
++ * Perf: sounds the first graveyard screen never needs (ritual, voices, egg and horde sfx).
++ * Queued by GraveyardWorld after it is on screen, so one Enter lands fast. Until a key arrives,
++ * the Mixer plays silence for it instead of throwing.
++ */
++export function queueDeferredAssets(load: Phaser.Loader.LoaderPlugin): void {
++  load.setPath(import.meta.env.BASE_URL);
++  queueDeferredAudio(load);
++}
++
+ /**
+  * Create wizard animations. Safe to call multiple times — only creates if not already exists.
+  */
+@@ -292,6 +302,9 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
+   load.audio('prompt_press_f', ['assets/audio/ui/prompt_press_f.ogg', 'assets/audio/ui/prompt_press_f.mp3']);
+   load.audio('ritual_confirm', ['assets/audio/ui/ritual_confirm.ogg', 'assets/audio/ui/ritual_confirm.mp3']);
+ 
++}
++
++function queueDeferredAudio(load: Phaser.Loader.LoaderPlugin): void {
+   // Exorcism / ritual
+   load.audio('rune_sparkle_short', ['assets/audio/exorcism/rune_sparkle_short.ogg', 'assets/audio/exorcism/rune_sparkle_short.mp3']);
+   load.audio('rune_sparkles', ['assets/audio/exorcism/rune_sparkles.ogg', 'assets/audio/exorcism/rune_sparkles.mp3']);
+diff --git a/src/ui/GraveOverlay.ts b/src/ui/GraveOverlay.ts
+index 22599a8..9ef13fd 100644
+--- a/src/ui/GraveOverlay.ts
++++ b/src/ui/GraveOverlay.ts
+@@ -122,6 +122,7 @@ export class GraveOverlay {
+     panel: HTMLElement,
+     gameContainer: HTMLElement
+   ): Promise<void> {
++    const fullBleed = !!grave.game_fullscreen;
+     let compactHeader = false;
+ 
+     // Try loading Phase 2 app module to check for compactHeader flag
+@@ -179,7 +180,7 @@ export class GraveOverlay {
+     const xBtn = document.createElement('button');
+     xBtn.textContent = '✕';
+     xBtn.setAttribute('aria-label', 'Close');
+-    xBtn.title = 'Close (Esc)';
++    xBtn.title = fullBleed ? 'Leave (Esc opens the game menu)' : 'Close (Esc)';
+     xBtn.style.cssText = `
+       position: absolute; top: 6px; right: 8px; z-index: 5;
+       width: 34px; height: 34px; border-radius: 50%;
+@@ -202,10 +203,17 @@ export class GraveOverlay {
+     }
+ 
+     // Add Esc key handler to still exit
++    // Polish: full-screen games (DOOM) own Esc for their menu wherever focus is, so Esc never
++    // quits them by surprise; it hands focus back to the game and points at the ✕ instead.
+     const handleEsc = (e: KeyboardEvent) => {
+-      if (e.key === 'Escape') {
+-        this.triggerExit();
++      if (e.key !== 'Escape') return;
++      if (fullBleed) {
++        e.preventDefault();
++        overlay.querySelector('iframe')?.focus();
++        xBtn.animate?.([{ transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(201,185,138,0.8)' }, { transform: 'scale(1.18)', boxShadow: '0 0 0 8px rgba(201,185,138,0)' }, { transform: 'scale(1)' }], { duration: 650 });
++        return;
+       }
++      this.triggerExit();
+     };
+     document.addEventListener('keydown', handleEsc);
+     // Store for cleanup
+diff --git a/src/ui/VolumeControl.ts b/src/ui/VolumeControl.ts
+new file mode 100644
+index 0000000..c0d9b5b
+--- /dev/null
++++ b/src/ui/VolumeControl.ts
+@@ -0,0 +1,214 @@
++/**
++ * VolumeControl — the speaker icon (top-right) plus a small bone-and-moonlight panel with two
++ * sliders, Music and Effects, that slides out to the left of it.
++ *  - Desktop: hover the icon to open; the panel stays while the pointer is on it. Click = mute.
++ *  - Touch: first tap opens the panel, a tap on the icon while open mutes, a tap elsewhere closes.
++ *  - Levels live in the Mixer (default 70%, saved in localStorage).
++ */
++import Phaser from 'phaser';
++import { Bus, getLevel, setLevel } from '../audio/Mixer';
++
++const BONE = 0xe8dcc0;
++const BONE_DIM = 0xc9b98a;
++const MOON = 0x7fd1d8;
++const NIGHT = 0x0b1020;
++const TRACK = 0x1c2a4a;
++
++const PANEL_W = 204;
++const PANEL_H = 44;
++const TRACK_X = 66;
++const TRACK_W = 100;
++
++interface Row { bus: Bus; y: number; fill: Phaser.GameObjects.Rectangle; knob: Phaser.GameObjects.Arc; glow: Phaser.GameObjects.Arc; value: Phaser.GameObjects.Text }
++
++export class VolumeControl {
++  private scene: Phaser.Scene;
++  private icon: Phaser.GameObjects.Graphics;
++  private hit: Phaser.GameObjects.Zone;
++  private panel: Phaser.GameObjects.Container;
++  private panelBg: Phaser.GameObjects.Rectangle;
++  private rows: Row[] = [];
++  private open = false;
++  private hoverIcon = false;
++  private hoverPanel = false;
++  private dragging: Row | null = null;
++  private closeTimer: Phaser.Time.TimerEvent | null = null;
++  private muted: boolean;
++  private readonly ix: number;
++  private readonly iy: number;
++  private readonly panelX: number;
++
++  constructor(scene: Phaser.Scene, rightX: number, topY: number, muted: boolean, private onToggleMute: () => void) {
++    this.scene = scene;
++    this.muted = muted;
++    this.ix = rightX - 14;
++    this.iy = topY + 14;
++
++    this.icon = scene.add.graphics().setScrollFactor(0).setDepth(112);
++    this.hit = scene.add.zone(this.ix, this.iy, 34, 34).setScrollFactor(0).setDepth(113).setInteractive({ useHandCursor: true });
++
++    this.panelX = this.ix - 22 - PANEL_W;
++    this.panel = scene.add.container(this.panelX, topY - 2).setScrollFactor(0).setDepth(111).setAlpha(0).setVisible(false);
++    this.panelBg = scene.add.rectangle(0, 0, PANEL_W, PANEL_H, NIGHT, 0.86).setOrigin(0).setStrokeStyle(1, BONE_DIM, 0.75);
++    const inner = scene.add.rectangle(3, 3, PANEL_W - 6, PANEL_H - 6).setOrigin(0).setStrokeStyle(1, MOON, 0.16);
++    this.panelBg.setInteractive();
++    this.panel.add([this.panelBg, inner]);
++    this.addRow('music', 'MUSIC', 14);
++    this.addRow('fx', 'EFFECTS', 31);
++
++    this.drawIcon();
++    this.wire();
++  }
++
++  setMuted(m: boolean): void {
++    this.muted = m;
++    this.drawIcon();
++  }
++
++  setVisible(v: boolean): void {
++    this.icon.setVisible(v);
++    this.hit.setVisible(v);
++    if (!v) this.close(true);
++  }
++
++  // ─── build ────────────────────────────────────────────────────────────────
++
++  private addRow(bus: Bus, label: string, y: number): void {
++    const s = this.scene;
++    const txt = s.add.text(12, y, label, {
++      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: '#c9b98a',
++    }).setOrigin(0, 0.5);
++    txt.setLetterSpacing?.(1);
++    const track = s.add.rectangle(TRACK_X, y, TRACK_W, 3, TRACK, 1).setOrigin(0, 0.5).setStrokeStyle(1, 0x3b4658, 1);
++    const fill = s.add.rectangle(TRACK_X, y, 0, 3, BONE, 0.95).setOrigin(0, 0.5);
++    const glow = s.add.circle(TRACK_X, y, 8, MOON, 0.18);
++    const knob = s.add.circle(TRACK_X, y, 4.5, 0xf3ecc8, 1).setStrokeStyle(1.5, MOON, 0.9);
++    const value = s.add.text(PANEL_W - 10, y, '', {
++      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: '#8796ad',
++    }).setOrigin(1, 0.5);
++    const zone = s.add.zone(TRACK_X - 8, y - 9, TRACK_W + 16, 18).setOrigin(0).setInteractive({ useHandCursor: true });
++    this.panel.add([txt, track, fill, glow, knob, value, zone]);
++    const row: Row = { bus, y, fill, knob, glow, value };
++    this.rows.push(row);
++    zone.on('pointerdown', (p: Phaser.Input.Pointer) => { this.dragging = row; this.setFromPointer(row, p); });
++    zone.on('pointerover', () => { this.hoverPanel = true; this.cancelClose(); glow.setAlpha(0.32); });
++    zone.on('pointerout', () => { glow.setAlpha(0.18); });
++    this.paintRow(row);
++  }
++
++  private paintRow(row: Row): void {
++    const v = getLevel(row.bus);
++    const x = TRACK_X + v * TRACK_W;
++    row.fill.width = v * TRACK_W;
++    row.knob.x = x;
++    row.glow.x = x;
++    row.value.setText(`${Math.round(v * 100)}`);
++  }
++
++  private setFromPointer(row: Row, p: Phaser.Input.Pointer): void {
++    const local = p.x - this.panel.x - TRACK_X;
++    const v = Math.round(Phaser.Math.Clamp(local / TRACK_W, 0, 1) * 20) / 20; // 5% steps
++    if (v !== getLevel(row.bus)) setLevel(row.bus, v);
++    this.paintRow(row);
++  }
++
++  /** Bone speaker with moonlit sound waves; muted shows a thin X. */
++  private drawIcon(): void {
++    const g = this.icon;
++    const x = this.ix - 6, y = this.iy;
++    g.clear();
++    g.fillStyle(NIGHT, 0.55).fillCircle(this.ix, this.iy, 15);
++    g.lineStyle(1, BONE_DIM, this.open || this.hoverIcon ? 0.9 : 0.45).strokeCircle(this.ix, this.iy, 15);
++    g.fillStyle(BONE, 1);
++    g.fillRect(x - 5, y - 3, 4, 6);
++    g.fillTriangle(x - 1, y - 3, x + 4, y - 7.5, x + 4, y + 7.5);
++    g.fillTriangle(x - 1, y - 3, x - 1, y + 3, x + 4, y + 7.5);
++    if (this.muted) {
++      g.lineStyle(1.8, 0xd98a8a, 1);
++      g.lineBetween(x + 7, y - 4, x + 14, y + 4);
++      g.lineBetween(x + 14, y - 4, x + 7, y + 4);
++    } else {
++      g.lineStyle(1.6, MOON, 0.95);
++      g.beginPath(); g.arc(x + 4, y, 5, -0.8, 0.8); g.strokePath();
++      g.lineStyle(1.4, MOON, 0.6);
++      g.beginPath(); g.arc(x + 4, y, 9, -0.8, 0.8); g.strokePath();
++    }
++  }
++
++  // ─── behaviour ───────────────────────────────────────────────────────────
++
++  private wire(): void {
++    const s = this.scene;
++    this.hit.on('pointerover', () => { this.hoverIcon = true; this.cancelClose(); this.drawIcon(); if (!this.isTouch()) this.show(); });
++    this.hit.on('pointerout', () => { this.hoverIcon = false; this.drawIcon(); this.scheduleClose(); });
++    this.hit.on('pointerdown', (p: Phaser.Input.Pointer) => {
++      if (p.wasTouch && !this.open) { this.show(); return; }
++      this.onToggleMute();
++    });
++    this.panelBg.on('pointerover', () => { this.hoverPanel = true; this.cancelClose(); });
++    this.panelBg.on('pointerout', () => { this.hoverPanel = false; this.scheduleClose(); });
++    s.input.on('pointermove', (p: Phaser.Input.Pointer) => {
++      if (this.dragging && p.isDown) this.setFromPointer(this.dragging, p);
++      if (this.open && !this.dragging) {
++        const inside = this.containsPanel(p.x, p.y);
++        if (inside !== this.hoverPanel) { this.hoverPanel = inside; if (!inside) this.scheduleClose(); else this.cancelClose(); }
++      }
++    });
++    s.input.on('pointerup', () => { if (this.dragging) { this.dragging = null; this.scheduleClose(); } });
++    s.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
++      if (this.open && !this.containsPanel(p.x, p.y) && !this.containsIcon(p.x, p.y)) this.close();
++    });
++  }
++
++  private isTouch(): boolean {
++    return !!this.scene.input.activePointer?.wasTouch;
++  }
++
++  private containsPanel(x: number, y: number): boolean {
++    return x >= this.panel.x - 4 && x <= this.ix + 16 && y >= this.panel.y - 4 && y <= this.panel.y + PANEL_H + 4;
++  }
++
++  private containsIcon(x: number, y: number): boolean {
++    return Math.abs(x - this.ix) <= 17 && Math.abs(y - this.iy) <= 17;
++  }
++
++  private show(): void {
++    this.cancelClose();
++    if (this.open) return;
++    this.open = true;
++    this.rows.forEach((r) => this.paintRow(r));
++    this.scene.tweens.killTweensOf(this.panel);
++    this.panel.setVisible(true).setX(this.panelX + 18);
++    this.scene.tweens.add({ targets: this.panel, x: this.panelX, alpha: 1, duration: 170, ease: 'Cubic.easeOut' });
++    this.drawIcon();
++  }
++
++  private scheduleClose(): void {
++    if (!this.open || this.dragging || this.isTouch()) return;
++    this.cancelClose();
++    this.closeTimer = this.scene.time.delayedCall(450, () => {
++      if (!this.hoverIcon && !this.hoverPanel && !this.dragging) this.close();
++    });
++  }
++
++  private cancelClose(): void {
++    this.closeTimer?.remove(false);
++    this.closeTimer = null;
++  }
++
++  private close(immediate = false): void {
++    if (!this.open) return;
++    this.open = false;
++    this.cancelClose();
++    this.dragging = null;
++    this.scene.tweens.killTweensOf(this.panel);
++    if (immediate) { this.panel.setVisible(false).setAlpha(0); }
++    else {
++      this.scene.tweens.add({
++        targets: this.panel, x: this.panelX + 18, alpha: 0, duration: 150, ease: 'Cubic.easeIn',
++        onComplete: () => this.panel.setVisible(false),
++      });
++    }
++    this.drawIcon();
++  }
++}
+diff --git a/src/ui/WorldMap.ts b/src/ui/WorldMap.ts
+index f291f70..a67d61c 100644
+--- a/src/ui/WorldMap.ts
++++ b/src/ui/WorldMap.ts
+@@ -1,15 +1,18 @@
+ /**
+- * WorldMap — N4/M1–M3. Lives in UIScene (camera zoom 1).
+- *  - Minimap (top-right, under the secrets counter): paths, graves (raised = teal, not yet = grey), wizard dot. N toggles.
+- *  - Full map (Map button / J / Tab, Esc or click to close): every area named, graves raised vs not,
+- *    secrets found shown with an icon at their real spot, unfound ones only as "?" in their area.
++ * WorldMap — N4/M1–M3, redrawn in the polish pass. Lives in UIScene (camera zoom 1).
++ *  - Minimap (top-right, under the secrets counter): a painted miniature of the graveyard
++ *    (grass, gravel paths, trees, old stones, moonlight, vignette) in a bone frame, with
++ *    tombstone markers for the graves you can raise (teal = raised, bone = waiting), the camera
++ *    view, found secrets and a heading arrow for the wizard. The caption names the grave nearest
++ *    to you, or the one under the pointer; clicking a grave marker walks there, clicking elsewhere
++ *    opens the full map. N toggles.
++ *  - Full map (Map button / J / Tab, Esc or click outside to close): same painted ground, every
++ *    area named, every grave labelled and clickable for fast travel, secrets as before.
+  * Raised graves persist in localStorage `rd_raised`.
+  */
+ import Phaser from 'phaser';
+-import { PATH_RECTS, MAP_LAYOUT } from '../scenes/mapLayout';
+-
+-const WORLD_W = 2400;
+-const WORLD_H = 1800;
++import { MAP_LAYOUT } from '../scenes/mapLayout';
++import { paintMapGround, WORLD_W, WORLD_H, PaintInput } from './mapPainter';
+ 
+ export interface MapRegion { name: string; x: number; y: number; egg?: string }
+ export const MAP_REGIONS: MapRegion[] = [
+@@ -28,6 +31,9 @@ export interface MapData {
+   graves: Array<{ id: string; name: string; x: number; y: number; resurrectable: boolean }>;
+   raised: Set<string>;
+   eggs: Array<{ id: string; title: string; x: number; y: number; found: boolean }>;
++  trees?: Array<{ x: number; y: number }>;
++  marks?: Array<{ kind: 'lantern' | 'crypt' | 'well'; x: number; y: number }>;
++  view?: { x: number; y: number; width: number; height: number } | null;
+ }
+ 
+ export function loadRaised(): Set<string> {
+@@ -40,43 +46,190 @@ export function markRaised(id: string): void {
+   try { localStorage.setItem('rd_raised', JSON.stringify([...s])); } catch { /* private mode */ }
+ }
+ 
++const BONE = 0xe8dcc0;
++const BONE_DIM = 0xc9b98a;
++const MOON = 0x7fd1d8;
++const NIGHT = 0x0b1020;
++const AMBER = 0xe8b04a;
++const FONT = "'Pixelify Sans', sans-serif";
++const DPR = 2;
++
++type G = Phaser.GameObjects.Graphics;
++
++/** Map labels use short names so the tight arcs of graves stay readable. */
++export function shortName(name: string): string {
++  return name
++    .replace(/\s*\(.*\)\s*$/, '')
++    .replace(/^3D Pinball:\s*/i, '')
++    .replace(/^The\s+/i, '')
++    .replace(/\s+the Paperclip$/i, '');
++}
++
++/** Tombstone marker: rounded top, flat base. */
++function tomb(g: G, x: number, y: number, w: number, h: number, fill: number, alpha = 1, outline?: number): void {
++  const r = w / 2;
++  g.fillStyle(0x000000, 0.45).fillRoundedRect(x - w / 2 + 0.8, y - h + 1.2, w, h, { tl: r, tr: r, bl: 1, br: 1 });
++  g.fillStyle(fill, alpha).fillRoundedRect(x - w / 2, y - h, w, h, { tl: r, tr: r, bl: 1, br: 1 });
++  if (outline !== undefined) g.lineStyle(1, outline, 0.9).strokeRoundedRect(x - w / 2 - 0.5, y - h - 0.5, w + 1, h + 1, { tl: r + 0.5, tr: r + 0.5, bl: 1, br: 1 });
++}
++
++/** Wizard: soft halo + an arrow pointing where he last walked. */
++function player(g: G, x: number, y: number, heading: number, size: number, pulse: number): void {
++  g.fillStyle(0xfff2c4, 0.16 + 0.12 * pulse).fillCircle(x, y, size * (1.9 + 0.5 * pulse));
++  const p = (a: number, r: number) => ({ x: x + Math.cos(heading + a) * r, y: y + Math.sin(heading + a) * r });
++  const tip = p(0, size * 1.25), l = p(2.45, size), rr = p(-2.45, size), back = p(Math.PI, size * 0.35);
++  g.fillStyle(0x000000, 0.6);
++  g.fillTriangle(tip.x + 0.6, tip.y + 0.8, l.x + 0.6, l.y + 0.8, back.x + 0.6, back.y + 0.8);
++  g.fillTriangle(tip.x + 0.6, tip.y + 0.8, rr.x + 0.6, rr.y + 0.8, back.x + 0.6, back.y + 0.8);
++  g.fillStyle(0xfff2c4, 1);
++  g.fillTriangle(tip.x, tip.y, l.x, l.y, back.x, back.y);
++  g.fillTriangle(tip.x, tip.y, rr.x, rr.y, back.x, back.y);
++  g.lineStyle(1, 0x2a2010, 0.8);
++  g.strokeTriangle(tip.x, tip.y, l.x, l.y, back.x, back.y);
++  g.strokeTriangle(tip.x, tip.y, rr.x, rr.y, back.x, back.y);
++}
++
++/** Drop shadow + night backing under the map. */
++function backing(g: G, w: number, h: number, r: number): void {
++  g.fillStyle(0x000000, 0.45).fillRoundedRect(-3, -1, w + 8, h + 8, r + 3);
++  g.fillStyle(NIGHT, 0.94).fillRoundedRect(0, 0, w, h, r);
++}
++
++/** Bone frame with corner studs, drawn around (0,0,w,h). */
++function frame(g: G, w: number, h: number, r: number): void {
++  g.lineStyle(3, NIGHT, 0.95).strokeRoundedRect(-1.5, -1.5, w + 3, h + 3, r + 1.5);
++  g.lineStyle(1.5, BONE_DIM, 0.9).strokeRoundedRect(-2.5, -2.5, w + 5, h + 5, r + 2.5);
++  g.lineStyle(1, MOON, 0.18).strokeRoundedRect(1, 1, w - 2, h - 2, Math.max(1, r - 1));
++  for (const [cx, cy] of [[-2.5, -2.5], [w + 2.5, -2.5], [-2.5, h + 2.5], [w + 2.5, h + 2.5]]) {
++    g.fillStyle(NIGHT, 1).fillCircle(cx, cy, 3.6);
++    g.fillStyle(BONE, 1).fillPoints([
++      new Phaser.Math.Vector2(cx, cy - 2.6), new Phaser.Math.Vector2(cx + 2.6, cy),
++      new Phaser.Math.Vector2(cx, cy + 2.6), new Phaser.Math.Vector2(cx - 2.6, cy),
++    ], true);
++  }
++}
++
+ export class WorldMap {
+   private scene: Phaser.Scene;
+   private getData: () => MapData;
++  private onTravel?: (x: number, y: number) => void;
+   private mini: Phaser.GameObjects.Container;
+-  private miniDyn: Phaser.GameObjects.Graphics;
++  private miniDyn!: G;
++  private miniGround: Phaser.GameObjects.Image | null = null;
++  private caption!: Phaser.GameObjects.Text;
++  private captionRight!: Phaser.GameObjects.Text;
+   private full: Phaser.GameObjects.Container | null = null;
+   private miniShown = true;
+   private miniTimer = 0;
+-  static readonly MW = 180;
+-  static readonly MH = 135;
++  private hoverId: string | null = null;
++  private heading = -Math.PI / 2;
++  private lastWiz: { x: number; y: number } | null = null;
++  private cache: MapData | null = null;
++  private fullSeq = 0;
++  static readonly MW = 216;
++  static readonly MH = 162;
++  static readonly CAP = 20;
+ 
+-  private onTravel?: (x: number, y: number) => void;
+   constructor(scene: Phaser.Scene, getData: () => MapData, onTravel?: (x: number, y: number) => void) {
+     this.scene = scene;
+     this.getData = getData;
+     this.onTravel = onTravel;
+     const { width } = scene.scale;
+-    const x = width - WorldMap.MW - 12;
+-    const y = 66;
++    const x = width - WorldMap.MW - 14;
++    const y = 68;
+     this.mini = scene.add.container(x, y).setDepth(105).setScrollFactor(0);
+-    const bg = scene.add.rectangle(0, 0, WorldMap.MW, WorldMap.MH, 0x0b1020, 0.72).setOrigin(0).setStrokeStyle(1, 0x5d6b80, 0.9);
+-    const paths = scene.add.graphics();
+-    paths.fillStyle(0x3b4658, 0.9);
+-    const sx = WorldMap.MW / WORLD_W, sy = WorldMap.MH / WORLD_H;
+-    for (const r of PATH_RECTS) paths.fillRect(r.x * sx, r.y * sy, Math.max(1, r.width * sx), Math.max(1, r.height * sy));
+-    this.miniDyn = scene.add.graphics();
+-    const label = scene.add.text(WorldMap.MW - 4, WorldMap.MH - 3, 'J: map · N: hide', {
+-      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '9px', color: '#8796ad',
+-    }).setOrigin(1, 1);
+-    this.mini.add([bg, paths, this.miniDyn, label]);
+-    bg.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleFull());
++    this.buildMini();
+     try { this.miniShown = localStorage.getItem('rd_minimap') !== '0'; } catch { /* ignore */ }
+     this.mini.setVisible(this.miniShown);
+   }
+ 
+   get fullOpen(): boolean { return !!this.full; }
+ 
++  // ─── minimap ─────────────────────────────────────────────────────────────
++
++  private buildMini(): void {
++    const s = this.scene;
++    const MW = WorldMap.MW, MH = WorldMap.MH, CAP = WorldMap.CAP;
++    const back = s.add.graphics();
++    backing(back, MW, MH + CAP, 7);
++    const fr = s.add.graphics();
++    frame(fr, MW, MH + CAP, 7);
++    const capBg = s.add.graphics();
++    capBg.lineStyle(1, BONE_DIM, 0.35).lineBetween(6, MH + 0.5, MW - 6, MH + 0.5);
++    this.miniDyn = s.add.graphics();
++    this.caption = s.add.text(8, MH + CAP / 2, '', { fontFamily: FONT, fontSize: '11px', color: '#e8dcc0' }).setOrigin(0, 0.5);
++    this.captionRight = s.add.text(MW - 7, MH + CAP / 2, 'J map', { fontFamily: FONT, fontSize: '10px', color: '#6f7d93' }).setOrigin(1, 0.5);
++    // compass tab
++    const tab = s.add.graphics();
++    tab.fillStyle(NIGHT, 0.95).fillRoundedRect(MW / 2 - 9, -10, 18, 12, 3);
++    tab.lineStyle(1, BONE_DIM, 0.8).strokeRoundedRect(MW / 2 - 9, -10, 18, 12, 3);
++    const north = s.add.text(MW / 2, -4, 'N', { fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#e8dcc0' }).setOrigin(0.5);
++    const hit = s.add.zone(0, 0, MW, MH + CAP).setOrigin(0).setInteractive({ useHandCursor: true });
++    hit.on('pointermove', (p: Phaser.Input.Pointer) => this.onMiniHover(p));
++    hit.on('pointerout', () => { this.hoverId = null; this.miniTimer = 0; });
++    hit.on('pointerdown', (p: Phaser.Input.Pointer) => this.onMiniClick(p));
++    this.mini.add([back, capBg, this.miniDyn, fr, this.caption, this.captionRight, tab, north, hit]);
++  }
++
++  private paintInput(d: MapData): PaintInput {
++    const grassTex = this.scene.textures.exists('ground_grass') ? this.scene.textures.get('ground_grass').getSourceImage() as CanvasImageSource : null;
++    return {
++      grass: grassTex,
++      trees: d.trees ?? [],
++      marks: d.marks ?? [],
++      stones: d.graves.filter((g) => !g.resurrectable).map((g) => ({ x: g.x, y: g.y })),
++    };
++  }
++
++  private makeGroundTexture(key: string, w: number, h: number, d: MapData, corner: number): string {
++    const tm = this.scene.textures;
++    if (tm.exists(key)) tm.remove(key);
++    const tex = tm.createCanvas(key, Math.round(w * DPR), Math.round(h * DPR));
++    if (!tex) return key;
++    paintMapGround(tex.getSourceImage() as HTMLCanvasElement, w, h, DPR, this.paintInput(d), corner);
++    tex.refresh();
++    tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
++    return key;
++  }
++
++  private ensureMiniGround(d: MapData): void {
++    if (this.miniGround) return;
++    const key = this.makeGroundTexture('rd_minimap_ground', WorldMap.MW, WorldMap.MH, d, 7);
++    this.miniGround = this.scene.add.image(0, 0, key).setOrigin(0).setDisplaySize(WorldMap.MW, WorldMap.MH);
++    this.mini.addAt(this.miniGround, 1); // above the backing, under markers and frame
++  }
++
++  private nearestGrave(d: MapData, x: number, y: number, maxD: number) {
++    let best: MapData['graves'][number] | null = null;
++    let bd = maxD;
++    for (const g of d.graves) {
++      if (!g.resurrectable) continue;
++      const dd = Math.hypot(g.x - x, g.y - y);
++      if (dd < bd) { bd = dd; best = g; }
++    }
++    return best;
++  }
++
++  private miniToWorld(p: Phaser.Input.Pointer): { x: number; y: number } {
++    return { x: ((p.x - this.mini.x) / WorldMap.MW) * WORLD_W, y: ((p.y - this.mini.y) / WorldMap.MH) * WORLD_H };
++  }
++
++  private onMiniHover(p: Phaser.Input.Pointer): void {
++    const d = this.cache ?? this.getData();
++    const w = this.miniToWorld(p);
++    const g = p.y - this.mini.y <= WorldMap.MH ? this.nearestGrave(d, w.x, w.y, 130) : null;
++    const id = g?.id ?? null;
++    if (id !== this.hoverId) { this.hoverId = id; this.miniTimer = 0; }
++  }
++
++  private onMiniClick(p: Phaser.Input.Pointer): void {
++    const d = this.cache ?? this.getData();
++    const w = this.miniToWorld(p);
++    const g = p.y - this.mini.y <= WorldMap.MH ? this.nearestGrave(d, w.x, w.y, 130) : null;
++    if (g && this.onTravel) this.onTravel(g.x, g.y + 44);
++    else this.toggleFull();
++  }
++
+   toggleMinimap(): void {
+     this.miniShown = !this.miniShown;
+     this.mini.setVisible(this.miniShown && !this.full);
+@@ -91,28 +244,73 @@ export class WorldMap {
+     if (!this.mini.visible) return;
+     this.miniTimer -= delta;
+     if (this.miniTimer > 0) return;
+-    this.miniTimer = 120;
++    this.miniTimer = 50;
+     const d = this.getData();
++    this.cache = d;
++    this.ensureMiniGround(d);
++    const MW = WorldMap.MW, MH = WorldMap.MH;
++    const sx = MW / WORLD_W, sy = MH / WORLD_H;
++    const t = this.scene.time.now / 1000;
++    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+     const g = this.miniDyn;
+-    const sx = WorldMap.MW / WORLD_W, sy = WorldMap.MH / WORLD_H;
+     g.clear();
++
++    // camera view
++    if (d.view) {
++      const vx = Phaser.Math.Clamp(d.view.x * sx, 0, MW), vy = Phaser.Math.Clamp(d.view.y * sy, 0, MH);
++      const vw = Math.min(MW - vx, d.view.width * sx), vh = Math.min(MH - vy, d.view.height * sy);
++      g.fillStyle(BONE, 0.05).fillRect(vx, vy, vw, vh);
++      g.lineStyle(1, BONE, 0.32).strokeRect(vx, vy, vw, vh);
++    }
++
++    // heading from movement
++    if (d.wizard) {
++      if (this.lastWiz) {
++        const dx = d.wizard.x - this.lastWiz.x, dy = d.wizard.y - this.lastWiz.y;
++        if (dx * dx + dy * dy > 4) this.heading = Math.atan2(dy, dx);
++      }
++      this.lastWiz = { ...d.wizard };
++    }
++    const near = d.wizard ? this.nearestGrave(d, d.wizard.x, d.wizard.y, 420) : null;
++    const focusId = this.hoverId ?? near?.id ?? null;
++
+     for (const gr of d.graves) {
+       if (!gr.resurrectable) continue;
+-      g.fillStyle(d.raised.has(gr.id) ? 0x7fd1d8 : 0x55606e, 1);
+-      g.fillRect(gr.x * sx - 1.5, gr.y * sy - 1.5, 3, 3);
++      const x = gr.x * sx, y = gr.y * sy + 2;
++      const raised = d.raised.has(gr.id);
++      const focus = gr.id === focusId;
++      if (raised) g.fillStyle(MOON, 0.22).fillCircle(x, y - 3, 5.5);
++      else g.fillStyle(AMBER, 0.10 + 0.14 * pulse).fillCircle(x, y - 3, 5 + pulse);
++      if (focus) g.lineStyle(1.2, 0xffffff, 0.9).strokeCircle(x, y - 3, 7);
++      tomb(g, x, y, 5, 7, raised ? MOON : BONE, 1, raised ? undefined : AMBER);
+     }
+     for (const e of d.eggs) {
+       if (!e.found) continue;
+-      g.fillStyle(0xe8b04a, 1);
+-      g.fillCircle(e.x * sx, e.y * sy, 1.6);
++      g.fillStyle(0x000000, 0.5).fillCircle(e.x * sx + 0.5, e.y * sy + 0.6, 2);
++      g.fillStyle(AMBER, 1).fillCircle(e.x * sx, e.y * sy, 1.7);
+     }
+-    if (d.wizard) {
+-      g.fillStyle(0xfff2c4, 1);
+-      g.fillCircle(d.wizard.x * sx, d.wizard.y * sy, 2.6);
+-      g.lineStyle(1, 0x000000, 0.6).strokeCircle(d.wizard.x * sx, d.wizard.y * sy, 3);
++    if (d.wizard) player(g, d.wizard.x * sx, d.wizard.y * sy, this.heading, 4.2, pulse);
++
++    // caption
++    const focus = focusId ? d.graves.find((x) => x.id === focusId) : null;
++    if (focus) {
++      const raised = d.raised.has(focus.id);
++      this.caption.setText(`${raised ? '✦' : '◆'} ${shortName(focus.name)}`).setColor(raised ? '#bfeef2' : '#f3e2b0');
++    } else {
++      const total = d.graves.filter((x) => x.resurrectable).length;
++      const raisedN = d.graves.filter((x) => x.resurrectable && d.raised.has(x.id)).length;
++      this.caption.setText(`Raised ${raisedN}/${total}`).setColor('#c9b98a');
++    }
++    // keep the caption inside the strip
++    const room = WorldMap.MW - 16 - this.captionRight.width - 6;
++    if (this.caption.width > room) {
++      let txt = this.caption.text;
++      while (txt.length > 4 && this.caption.width > room) { txt = txt.slice(0, -2); this.caption.setText(txt + '…'); }
+     }
+   }
+ 
++  // ─── full map ────────────────────────────────────────────────────────────
++
+   toggleFull(): void {
+     if (this.full) this.closeFull(); else this.openFull();
+   }
+@@ -129,40 +327,75 @@ export class WorldMap {
+     const s = this.scene;
+     const { width, height } = s.scale;
+     const d = this.getData();
+-    const PW = Math.min(width - 80, 880, (height - 150) * (WORLD_W / WORLD_H));
+-    const PH = PW * (WORLD_H / WORLD_W);
+-    const ox = (width - PW) / 2;
+-    const oy = Math.max(64, (height - PH) / 2);
++    const PW = Math.round(Math.min(width - 80, 880, (height - 150) * (WORLD_W / WORLD_H)));
++    const PH = Math.round(PW * (WORLD_H / WORLD_W));
++    const ox = Math.round((width - PW) / 2);
++    const oy = Math.round(Math.max(64, (height - PH) / 2));
+     const sx = PW / WORLD_W, sy = PH / WORLD_H;
+     const c = s.add.container(0, 0).setDepth(250).setScrollFactor(0).setAlpha(0);
+-    const dim = s.add.rectangle(0, 0, width, height, 0x000000, 0.66).setOrigin(0).setInteractive();
++    const dim = s.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
+     dim.on('pointerdown', () => this.closeFull());
+-    const panel = s.add.rectangle(ox - 10, oy - 10, PW + 20, PH + 20, 0x0e1526, 0.97).setOrigin(0).setStrokeStyle(2, 0xc9b98a, 0.8);
++    const key = this.makeGroundTexture(`rd_fullmap_ground_${++this.fullSeq % 2}`, PW, PH, d, 10);
++    const back = s.add.graphics().setPosition(ox, oy);
++    backing(back, PW, PH, 10);
++    const fr = s.add.graphics().setPosition(ox, oy);
++    frame(fr, PW, PH, 10);
++    const ground = s.add.image(ox, oy, key).setOrigin(0).setDisplaySize(PW, PH).setInteractive();
++    ground.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => ev.stopPropagation());
+     const g = s.add.graphics();
+-    g.fillStyle(0x16202c, 1).fillRect(ox, oy, PW, PH);
+-    g.fillStyle(0x3b4658, 1);
+-    for (const r of PATH_RECTS) g.fillRect(ox + r.x * sx, oy + r.y * sy, Math.max(1, r.width * sx), Math.max(1, r.height * sy));
+-    c.add([dim, panel, g]);
++    c.add([dim, back, ground, fr, g]);
++
++    const label = (x: number, y: number, txt: string, size: number, color: string, font = FONT) =>
++      s.add.text(x, y, txt, { fontFamily: font, fontSize: `${size}px`, color, stroke: '#05080f', strokeThickness: 3 });
++
++    // regions first (so grave labels sit above them)
++    const foundIds = new Set(d.eggs.filter((e) => e.found).map((e) => e.id));
++    for (const r of MAP_REGIONS) {
++      const px = ox + r.x * sx, py = oy + r.y * sy;
++      c.add(label(px, py - 26, r.name.toUpperCase(), 11, '#9fb0c4', "'Cinzel', serif").setOrigin(0.5).setAlpha(0.85));
++      if (r.egg && !foundIds.has(r.egg)) {
++        const q = label(px, py - 9, '?', 18, '#e8b04a', "'Cinzel', serif").setOrigin(0.5);
++        c.add(q);
++        s.tweens.add({ targets: q, alpha: { from: 1, to: 0.35 }, duration: 900, yoyo: true, repeat: -1 });
++      }
++    }
+ 
+-    // graves
++    // graves: the north arc is labelled above, the south arc below, alternating two tiers
+     let raisedCount = 0, total = 0;
+-    for (const gr of d.graves) {
++    const res = d.graves.filter((gr) => gr.resurrectable);
++    const north = res.filter((gr) => gr.y < 900).sort((a, b) => a.x - b.x);
++    const south = res.filter((gr) => gr.y >= 900).sort((a, b) => a.x - b.x);
++    const tierOf = new Map<string, { up: boolean; tier: number }>();
++    north.forEach((gr, i) => tierOf.set(gr.id, { up: true, tier: i % 2 }));
++    south.forEach((gr, i) => tierOf.set(gr.id, { up: false, tier: i % 2 }));
++    const northBase = oy + Math.min(...north.map((gr) => gr.y), 900) * sy;
++    const southBase = oy + Math.max(...south.map((gr) => gr.y), 900) * sy;
++    for (const gr of res) {
+       const px = ox + gr.x * sx, py = oy + gr.y * sy;
+-      if (!gr.resurrectable) { g.fillStyle(0x2a3340, 1).fillRect(px - 2, py - 3, 4, 6); continue; }
+       total++;
+       const raised = d.raised.has(gr.id);
+       if (raised) raisedCount++;
+-      g.fillStyle(raised ? 0x7fd1d8 : 0x6a7686, 1).fillRoundedRect(px - 4, py - 6, 8, 11, 3);
+-      if (!raised) g.lineStyle(1, 0xc9b98a, 0.9).strokeRoundedRect(px - 5, py - 7, 10, 13, 3);
+-      const t = s.add.text(px, py + 8, raised ? gr.name : gr.name + ' ?', {
+-        fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: raised ? '#bfeef2' : '#c9b98a',
+-      }).setOrigin(0.5, 0);
++      g.fillStyle(raised ? MOON : AMBER, raised ? 0.25 : 0.16).fillCircle(px, py - 5, 10);
++      tomb(g, px, py + 1, 9, 12, raised ? MOON : BONE, 1, raised ? undefined : AMBER);
++      const color = raised ? '#bfeef2' : '#f3e2b0';
++      const pos = tierOf.get(gr.id) ?? { up: false, tier: 0 };
++      const off = 6 + pos.tier * 15;
++      const ly = pos.up ? northBase - 14 - off : southBase + 5 + off;
++      const from = pos.up ? py - 13 : py + 3;
++      const to = pos.up ? ly - 1 : ly + 1;
++      if (Math.abs(to - from) > 4) {
++        g.lineStyle(1, raised ? MOON : BONE_DIM, 0.5);
++        g.lineBetween(px, from, px, to);
++      }
++      const t = label(px, ly, shortName(gr.name), 11, color).setOrigin(0.5, pos.up ? 1 : 0);
+       c.add(t);
+       if (this.onTravel) {
+-        // click a grave on the map to walk the wizard straight to it
+-        const hit = s.add.zone(px, py + 4, Math.max(44, t.width + 8), 30).setInteractive({ useHandCursor: true });
++        // click a grave (or its name) on the map to walk the wizard straight to it
++        const top = pos.up ? ly - 15 : py - 14;
++        const bottom = pos.up ? py + 4 : ly + 15;
++        const hit = s.add.zone(px, (top + bottom) / 2, Math.max(34, t.width + 8), bottom - top).setInteractive({ useHandCursor: true });
+         hit.on('pointerover', () => t.setColor('#ffffff'));
+-        hit.on('pointerout', () => t.setColor(raised ? '#bfeef2' : '#c9b98a'));
++        hit.on('pointerout', () => t.setColor(color));
+         hit.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
+           ev.stopPropagation();
+           this.onTravel?.(gr.x, gr.y + 44);
+@@ -172,41 +405,27 @@ export class WorldMap {
+       }
+     }
+ 
+-    // regions + secrets
+-    const foundIds = new Set(d.eggs.filter((e) => e.found).map((e) => e.id));
+-    for (const r of MAP_REGIONS) {
+-      const px = ox + r.x * sx, py = oy + r.y * sy;
+-      const name = s.add.text(px, py - 22, r.name.toUpperCase(), {
+-        fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#8796ad',
+-      }).setOrigin(0.5).setAlpha(0.9);
+-      c.add(name);
+-      if (r.egg && !foundIds.has(r.egg)) {
+-        const q = s.add.text(px, py - 6, '?', { fontFamily: "'Cinzel', serif", fontSize: '18px', color: '#e8b04a', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+-        c.add(q);
+-        s.tweens.add({ targets: q, alpha: { from: 1, to: 0.35 }, duration: 900, yoyo: true, repeat: -1 });
+-      }
+-    }
+     for (const e of d.eggs) {
+       if (!e.found) continue;
+       const px = ox + e.x * sx, py = oy + e.y * sy;
+-      g.fillStyle(0xe8b04a, 1).fillCircle(px, py, 4);
++      g.fillStyle(AMBER, 1).fillCircle(px, py, 4);
+       g.lineStyle(1, 0x000000, 0.7).strokeCircle(px, py, 4.5);
+-      const t = s.add.text(px + 7, py, e.title, { fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: '#f3d58c' }).setOrigin(0, 0.5);
+-      c.add(t);
++      c.add(label(px + 7, py, e.title, 10, '#f3d58c').setOrigin(0, 0.5));
+     }
+     if (d.wizard) {
+       const px = ox + d.wizard.x * sx, py = oy + d.wizard.y * sy;
+-      const you = s.add.circle(px, py, 5, 0xfff2c4).setStrokeStyle(2, 0x000000, 0.7);
+-      const lbl = s.add.text(px, py - 12, 'you', { fontFamily: "'Pixelify Sans', sans-serif", fontSize: '10px', color: '#fff2c4' }).setOrigin(0.5);
++      const you = s.add.graphics();
++      player(you, px, py, this.heading, 7, 0.6);
++      const lbl = label(px, py + 13, 'you', 10, '#fff2c4').setOrigin(0.5);
+       c.add([you, lbl]);
+-      s.tweens.add({ targets: you, scale: { from: 1, to: 1.5 }, alpha: { from: 1, to: 0.6 }, duration: 700, yoyo: true, repeat: -1 });
++      s.tweens.add({ targets: lbl, alpha: { from: 1, to: 0.55 }, duration: 700, yoyo: true, repeat: -1 });
+     }
+ 
+     const found = foundIds.size;
+     const eggTotal = d.eggs.length;
+-    const title = s.add.text(width / 2, oy - 40, 'Map of the Graveyard', { fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#d9f2ee' }).setOrigin(0.5);
+-    const cap = s.add.text(width / 2, oy + PH + 16, `Graves raised ${raisedCount}/${total}  ·  Secrets ${found}/${eggTotal}  ·  ? = not raised yet / secret still hidden  ·  click a grave to go there  ·  Esc / J to close`, {
+-      fontFamily: "'Pixelify Sans', sans-serif", fontSize: '13px', color: '#c9b98a',
++    const title = s.add.text(width / 2, oy - 34, 'Map of the Graveyard', { fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#e8dcc0', stroke: '#05080f', strokeThickness: 4 }).setOrigin(0.5);
++    const cap = s.add.text(width / 2, oy + PH + 14, `Graves raised ${raisedCount}/${total} (teal)  ·  Secrets ${found}/${eggTotal}  ·  ? = secret still hidden  ·  click a grave to go there  ·  Esc / J to close`, {
++      fontFamily: FONT, fontSize: '13px', color: '#c9b98a',
+     }).setOrigin(0.5, 0);
+     c.add([title, cap]);
+     this.full = c;
+diff --git a/src/ui/mapPainter.ts b/src/ui/mapPainter.ts
+new file mode 100644
+index 0000000..339ef5c
+--- /dev/null
++++ b/src/ui/mapPainter.ts
+@@ -0,0 +1,173 @@
++/**
++ * mapPainter — paints the static ground of the graveyard map (grass, paths, trees, the old
++ * stones, moonlight and vignette) into a canvas. Used by the minimap and the full map so both
++ * read as the same place. Dynamic markers (graves, player, secrets) are drawn on top in Phaser.
++ */
++import { PATH_RECTS, PathRect } from '../scenes/mapLayout';
++
++export const WORLD_W = 2400;
++export const WORLD_H = 1800;
++
++export interface PaintInput {
++  grass?: CanvasImageSource | null;
++  trees: Array<{ x: number; y: number }>;
++  stones: Array<{ x: number; y: number }>;
++  /** Landmarks read from the live world: lit pumpkins, the crypt, the well. */
++  marks?: Array<{ kind: 'lantern' | 'crypt' | 'well'; x: number; y: number }>;
++}
++
++type Ctx = CanvasRenderingContext2D;
++
++function rr(ctx: Ctx, x: number, y: number, w: number, h: number, r: number): void {
++  const anyCtx = ctx as Ctx & { roundRect?: (x: number, y: number, w: number, h: number, r: number) => void };
++  ctx.beginPath();
++  if (anyCtx.roundRect) anyCtx.roundRect(x, y, w, h, r);
++  else ctx.rect(x, y, w, h);
++}
++
++/** Paint at w×h logical px; the canvas is expected to be w*dpr × h*dpr. */
++export function paintMapGround(canvas: HTMLCanvasElement, w: number, h: number, dpr: number, input: PaintInput, corner = 6): void {
++  const ctx = canvas.getContext('2d');
++  if (!ctx) return;
++  const sx = w / WORLD_W;
++  const sy = h / WORLD_H;
++  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
++  ctx.clearRect(0, 0, w, h);
++  ctx.save();
++  rr(ctx, 0, 0, w, h, corner);
++  ctx.clip();
++
++  // ── Ground: deep moonlit grass ───────────────────────────────────────────
++  ctx.fillStyle = '#12302f';
++  ctx.fillRect(0, 0, w, h);
++  if (input.grass) {
++    try {
++      const pat = ctx.createPattern(input.grass, 'repeat');
++      if (pat) {
++        // world tile is 256 px; keep a little texture so the ground reads as grass, not felt
++        const k = Math.max(sx * 1.6, 0.12);
++        pat.setTransform?.(new DOMMatrix([k, 0, 0, k, 0, 0]));
++        ctx.globalAlpha = 0.45;
++        ctx.fillStyle = pat;
++        ctx.fillRect(0, 0, w, h);
++        ctx.globalAlpha = 1;
++      }
++    } catch { /* pattern unsupported: flat grass is fine */ }
++  }
++  // soft tonal patches so the field is not uniform
++  const seed = (n: number) => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
++  for (let i = 0; i < 26; i++) {
++    const px = seed(i + 1) * w, py = seed(i + 50) * h, r = (0.06 + seed(i + 99) * 0.1) * w;
++    const g = ctx.createRadialGradient(px, py, 0, px, py, r);
++    const light = i % 3 === 0;
++    g.addColorStop(0, light ? 'rgba(76,130,112,0.16)' : 'rgba(6,20,22,0.22)');
++    g.addColorStop(1, 'rgba(0,0,0,0)');
++    ctx.fillStyle = g;
++    ctx.fillRect(px - r, py - r, r * 2, r * 2);
++  }
++
++  // ── Paths: one connected gravel network (edge pass, then fill, then highlight) ──
++  const rects: PathRect[] = PATH_RECTS;
++  const pr = (r: PathRect, grow: number) => {
++    const x = r.x * sx - grow, y = r.y * sy - grow;
++    const ww = Math.max(1.2, r.width * sx) + grow * 2, hh = Math.max(1.2, r.height * sy) + grow * 2;
++    rr(ctx, x, y, ww, hh, Math.min(2.2, Math.min(ww, hh) / 2));
++  };
++  const edge = Math.max(0.8, w / 260);
++  ctx.fillStyle = 'rgba(6,8,12,0.6)';
++  for (const r of rects) { pr(r, edge + 0.6); ctx.fill(); }
++  ctx.fillStyle = '#3d363b';
++  for (const r of rects) { pr(r, 0); ctx.fill(); }
++  // main roads (48 px and wider in the world) get a pale crown; footpaths stay plain
++  ctx.fillStyle = 'rgba(214,200,178,0.09)';
++  for (const r of rects) { if (Math.min(r.width, r.height) >= 48) { pr(r, -Math.max(0.6, edge * 0.7)); ctx.fill(); } }
++  // gravel speckle
++  ctx.fillStyle = 'rgba(200,190,175,0.13)';
++  for (const r of rects) {
++    const n = Math.round((r.width * r.height) / 9000);
++    for (let i = 0; i < n; i++) {
++      const px = (r.x + seed(r.x + i * 7.3) * r.width) * sx;
++      const py = (r.y + seed(r.y + i * 3.1) * r.height) * sy;
++      ctx.fillRect(px, py, Math.max(0.5, w / 600), Math.max(0.5, w / 600));
++    }
++  }
++
++  // central plaza: a pale ring where the wizard wakes
++  const cx = 1200 * sx, cy = 900 * sy;
++  ctx.strokeStyle = 'rgba(232,220,192,0.28)';
++  ctx.lineWidth = Math.max(0.8, w / 300);
++  ctx.beginPath(); ctx.ellipse(cx, cy, 70 * sx, 52 * sy, 0, 0, Math.PI * 2); ctx.stroke();
++
++  // ── Old stones (decorative graves) ───────────────────────────────────────
++  const sw = Math.max(1.6, 18 * sx), sh = Math.max(2.2, 24 * sy);
++  for (const s of input.stones) {
++    const x = s.x * sx, y = s.y * sy;
++    ctx.fillStyle = 'rgba(0,0,0,0.35)';
++    ctx.fillRect(x - sw / 2 + 0.4, y - sh + 0.8, sw, sh);
++    ctx.fillStyle = '#8c95a0';
++    rr(ctx, x - sw / 2, y - sh, sw, sh, sw / 2.2);
++    ctx.fill();
++  }
++
++  // ── Trees: twisted dark crowns (three lobes) with a faint moonlit rim ──────
++  const tr = Math.max(1.6, 26 * sx);
++  for (const t of input.trees) {
++    const x = t.x * sx, y = (t.y - 30) * sy;
++    ctx.fillStyle = 'rgba(0,0,0,0.38)';
++    ctx.beginPath(); ctx.ellipse(x + tr * 0.4, y + tr * 0.55, tr * 1.25, tr * 0.8, 0, 0, Math.PI * 2); ctx.fill();
++    const lobes = [[-0.55, 0.1, 0.8], [0.5, 0.15, 0.8], [0, -0.35, 0.9]];
++    ctx.fillStyle = '#0d1a22';
++    for (const [lx, ly, lr] of lobes) { ctx.beginPath(); ctx.arc(x + lx * tr, y + ly * tr, lr * tr, 0, Math.PI * 2); ctx.fill(); }
++    ctx.fillStyle = 'rgba(127,190,205,0.16)';
++    ctx.beginPath(); ctx.arc(x - tr * 0.2, y - tr * 0.6, tr * 0.42, 0, Math.PI * 2); ctx.fill();
++  }
++
++  // ── Landmarks ─────────────────────────────────────────────────────────────
++  // moonlit clearing on Moon Hill (south)
++  const mx = 1088 * sx, my = 1640 * sy, mr = 120 * sx;
++  const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
++  mg.addColorStop(0, 'rgba(200,235,240,0.20)');
++  mg.addColorStop(1, 'rgba(200,235,240,0)');
++  ctx.fillStyle = mg; ctx.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
++  const u = Math.max(1, 14 * sx);
++  for (const m of input.marks ?? []) {
++    const x = m.x * sx, y = m.y * sy;
++    if (m.kind === 'lantern') {
++      const r = Math.max(3, 60 * sx);
++      const lg = ctx.createRadialGradient(x, y - u * 0.5, 0, x, y - u * 0.5, r);
++      lg.addColorStop(0, 'rgba(255,170,70,0.55)');
++      lg.addColorStop(1, 'rgba(255,170,70,0)');
++      ctx.fillStyle = lg; ctx.fillRect(x - r, y - r - u, r * 2, r * 2);
++      ctx.fillStyle = '#f0a040';
++      ctx.beginPath(); ctx.arc(x, y - u * 0.5, Math.max(0.9, u * 0.55), 0, Math.PI * 2); ctx.fill();
++    } else if (m.kind === 'crypt') {
++      const cw = u * 3.2, ch = u * 2.2;
++      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x - cw / 2 + 0.6, y - ch + 0.8, cw, ch);
++      ctx.fillStyle = '#6c7380'; ctx.fillRect(x - cw / 2, y - ch, cw, ch);
++      ctx.beginPath(); ctx.moveTo(x - cw / 2 - u * 0.3, y - ch); ctx.lineTo(x, y - ch - u * 1.3); ctx.lineTo(x + cw / 2 + u * 0.3, y - ch); ctx.closePath();
++      ctx.fillStyle = '#8a92a0'; ctx.fill();
++      ctx.fillStyle = '#141820'; ctx.fillRect(x - u * 0.45, y - ch * 0.62, u * 0.9, ch * 0.62);
++    } else if (m.kind === 'well') {
++      ctx.fillStyle = 'rgba(0,0,0,0.4)';
++      ctx.beginPath(); ctx.arc(x + 0.6, y - u + 0.8, u * 1.25, 0, Math.PI * 2); ctx.fill();
++      ctx.fillStyle = '#7d8592';
++      ctx.beginPath(); ctx.arc(x, y - u, u * 1.25, 0, Math.PI * 2); ctx.fill();
++      ctx.fillStyle = '#0a1420';
++      ctx.beginPath(); ctx.arc(x, y - u, u * 0.7, 0, Math.PI * 2); ctx.fill();
++    }
++  }
++
++  // ── Moonlight wash from the north-east + vignette ────────────────────────
++  const moon = ctx.createRadialGradient(w * 0.72, h * 0.18, 0, w * 0.72, h * 0.18, w * 0.75);
++  moon.addColorStop(0, 'rgba(160,220,230,0.12)');
++  moon.addColorStop(1, 'rgba(160,220,230,0)');
++  ctx.fillStyle = moon;
++  ctx.fillRect(0, 0, w, h);
++  const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.28, w / 2, h / 2, Math.hypot(w, h) * 0.52);
++  vig.addColorStop(0, 'rgba(4,7,14,0)');
++  vig.addColorStop(0.6, 'rgba(4,7,14,0.35)');
++  vig.addColorStop(1, 'rgba(4,7,14,0.85)');
++  ctx.fillStyle = vig;
++  ctx.fillRect(0, 0, w, h);
++  ctx.restore();
++}

@@ -5,13 +5,23 @@
 import Phaser from 'phaser';
 
 /**
- * Queue all world and ritual assets into the loader.
+ * Queue the assets the graveyard needs on its first screen (world art, music, ambience, footsteps, UI).
  * Phaser automatically skips keys already in cache, making this safe to call multiple times.
  */
 export function queueWorldAssets(load: Phaser.Loader.LoaderPlugin): void {
   load.setPath(import.meta.env.BASE_URL);
   queueWorldImages(load);
   queueWorldAudio(load);
+}
+
+/**
+ * Perf: sounds the first graveyard screen never needs (ritual, voices, egg and horde sfx).
+ * Queued by GraveyardWorld after it is on screen, so one Enter lands fast. Until a key arrives,
+ * the Mixer plays silence for it instead of throwing.
+ */
+export function queueDeferredAssets(load: Phaser.Loader.LoaderPlugin): void {
+  load.setPath(import.meta.env.BASE_URL);
+  queueDeferredAudio(load);
 }
 
 /**
@@ -292,6 +302,9 @@ function queueWorldAudio(load: Phaser.Loader.LoaderPlugin): void {
   load.audio('prompt_press_f', ['assets/audio/ui/prompt_press_f.ogg', 'assets/audio/ui/prompt_press_f.mp3']);
   load.audio('ritual_confirm', ['assets/audio/ui/ritual_confirm.ogg', 'assets/audio/ui/ritual_confirm.mp3']);
 
+}
+
+function queueDeferredAudio(load: Phaser.Loader.LoaderPlugin): void {
   // Exorcism / ritual
   load.audio('rune_sparkle_short', ['assets/audio/exorcism/rune_sparkle_short.ogg', 'assets/audio/exorcism/rune_sparkle_short.mp3']);
   load.audio('rune_sparkles', ['assets/audio/exorcism/rune_sparkles.ogg', 'assets/audio/exorcism/rune_sparkles.mp3']);

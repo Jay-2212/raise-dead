@@ -48,11 +48,13 @@ function createFallbackRenderer(canvas, why) {
       const g = c.getContext('2d');
       if (!g) return;
       g.fillStyle = '#05050c'; g.fillRect(0, 0, cw, ch);
-      g.fillStyle = '#c9c9d8'; g.font = `${Math.max(12, Math.round(cw / 18))}px system-ui, sans-serif`; g.textAlign = 'center';
-      g.fillText('WebGL is not available', cw / 2, ch / 2 - 6);
-      g.font = `${Math.max(10, Math.round(cw / 28))}px system-ui, sans-serif`;
-      g.fillStyle = '#8a8aa0';
-      g.fillText('The 3D table needs a WebGL-capable browser.', cw / 2, ch / 2 + 16);
+      g.textAlign = 'center';
+      g.fillStyle = '#e8dcc0'; g.font = `${Math.max(12, Math.round(cw / 20))}px system-ui, sans-serif`;
+      g.fillText('The table sleeps in the dark', cw / 2, ch / 2 - 10);
+      g.font = `${Math.max(10, Math.round(cw / 30))}px system-ui, sans-serif`;
+      g.fillStyle = '#8a96a8';
+      g.fillText('Its 3D view needs WebGL. Turn on hardware', cw / 2, ch / 2 + 12);
+      g.fillText('acceleration in your browser, then reopen this grave.', cw / 2, ch / 2 + 12 + Math.max(12, Math.round(cw / 26)));
     } catch (e) { /* nothing to do */ }
   };
   paint();
@@ -80,7 +82,12 @@ export function createRenderer(opts) {
   let renderer;
   try {
     const canvas = opts.canvas || (typeof document !== 'undefined' ? document.createElement('canvas') : undefined);
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: false, powerPreference: 'high-performance' });
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: false, powerPreference: 'high-performance' });
+    } catch (first) {
+      // Polish: some GPUs/drivers refuse the high-performance + MSAA context but accept a plain one
+      renderer = new THREE.WebGLRenderer({ canvas: opts.canvas || document.createElement('canvas'), antialias: false, alpha: false, stencil: false });
+    }
   } catch (e) {
     return createFallbackRenderer(opts.canvas || null, e);
   }

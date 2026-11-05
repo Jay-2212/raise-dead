@@ -7,6 +7,7 @@ import { GraveEntry, extractYear } from '../types/graves';
 import { ProximityHint } from '../ui/ProximityHint';
 import { Joystick } from '../ui/Joystick';
 import { WorldMap, loadRaised } from '../ui/WorldMap';
+import { VolumeControl } from '../ui/VolumeControl';
 import { EGG_DEFINITIONS } from '../easter/eggDefinitions';
 
 export class UIScene extends Phaser.Scene {
@@ -15,7 +16,7 @@ export class UIScene extends Phaser.Scene {
   private plaqueVisible = false;
   private loreCard!: Phaser.GameObjects.Container | null;
   private loreCardVisible = false;
-  private muteBtn!: Phaser.GameObjects.Text;
+  private volume!: VolumeControl;
   private joystick!: Joystick;
   private secretsCounter!: Phaser.GameObjects.Text;
   private loreCardHideTimer: Phaser.Time.TimerEvent | null = null;
@@ -90,12 +91,8 @@ export class UIScene extends Phaser.Scene {
     const isMuted = localStorage.getItem('rd_muted') === '1';
     this.sound.mute = isMuted;
 
-    // Mute button
-    this.muteBtn = this.add.text(width - 12, 12, isMuted ? '🔇' : '🔊', {
-      fontSize: '22px',
-    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
-    this.muteBtn.setInteractive({ useHandCursor: true });
-    this.muteBtn.on('pointerdown', () => {
+    // Speaker icon + Music / Effects sliders (hover to slide out; tap on touch screens)
+    this.volume = new VolumeControl(this, width - 10, 8, isMuted, () => {
       const world = this.scene.get('GraveyardWorld') as { audio?: { toggleMute(): void; isMuted: boolean } };
       if (world?.audio) {
         world.audio.toggleMute();
@@ -141,13 +138,25 @@ export class UIScene extends Phaser.Scene {
     mapBtn.on('pointerover', () => mapBtn.setColor('#c9b98a'));
     mapBtn.on('pointerout', () => mapBtn.setColor('#5d6b80'));
     mapBtn.on('pointerdown', () => this.toggleFullMap());
+    let treeCache: Array<{ x: number; y: number }> | null = null;
+    let markCache: Array<{ kind: 'lantern' | 'crypt' | 'well'; x: number; y: number }> = [];
     this.worldMap = new WorldMap(this, () => {
       const w = this.scene.get('GraveyardWorld') as unknown as {
         wizard?: { x: number; y: number };
         tombstones?: Array<{ x: number; y: number; grave: GraveEntry }>;
         eggManager?: { isFound(id: string): boolean };
       };
+      if (!treeCache?.length && w) {
+        const kids = ((w as unknown as Phaser.Scene).children?.list ?? []).filter((o) => o instanceof Phaser.GameObjects.Image) as Phaser.GameObjects.Image[];
+        treeCache = kids.filter((o) => o.texture?.key?.startsWith('tree_')).map((o) => ({ x: o.x, y: o.y }));
+        const kinds: Record<string, 'lantern' | 'crypt' | 'well'> = { jackolantern_lit: 'lantern', crypt: 'crypt', crypt_open: 'crypt', well: 'well' };
+        markCache = kids.filter((o) => kinds[o.texture?.key]).map((o) => ({ kind: kinds[o.texture.key], x: o.x, y: o.y }));
+      }
+      const cam = (w as unknown as Phaser.Scene | undefined)?.cameras?.main;
       return {
+        trees: treeCache ?? [],
+        marks: markCache,
+        view: cam ? { x: cam.worldView.x, y: cam.worldView.y, width: cam.worldView.width, height: cam.worldView.height } : null,
         wizard: w?.wizard ? { x: w.wizard.x, y: w.wizard.y } : null,
         graves: (w?.tombstones ?? []).map((t) => ({ id: t.grave.id, name: t.grave.name, x: t.x, y: t.y, resurrectable: !!t.grave.resurrectable })),
         raised: loadRaised(),
@@ -222,7 +231,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateMuteIcon(muted: boolean): void {
-    this.muteBtn.setText(muted ? '🔇' : '🔊');
+    this.volume.setMuted(muted);
   }
 
   private onProximityChanged(grave: GraveEntry | null): void {

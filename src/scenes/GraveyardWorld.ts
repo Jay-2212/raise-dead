@@ -9,7 +9,7 @@ import { Tombstone } from '../ui/Tombstone';
 import { AudioManager } from '../audio/AudioManager';
 import { MAP_LAYOUT, PATH_RECTS, PathRect, WIZARD_SPAWN } from './mapLayout';
 import { markRaised } from '../ui/WorldMap';
-import { queueWorldAssets, createWizardAnimations } from './worldAssets';
+import { queueWorldAssets, queueDeferredAssets, createWizardAnimations } from './worldAssets';
 import { WitchFlyBy } from './WitchFlyBy'; // A7
 import { EasterEggManager } from '../easter/EasterEggManager'; // B
 import { ZombieWave } from '../easter/ZombieWave'; // N3
@@ -181,6 +181,10 @@ export class GraveyardWorld extends Phaser.Scene {
 
     // Launch UIScene on top
     this.scene.launch('UIScene');
+
+    // Perf: ritual / voice / egg sounds stream in after the graveyard is already playable
+    queueDeferredAssets(this.load);
+    if (this.load.list.size > 0) this.load.start();
 
     // Listen for ritual fully ended (when ResurrectionRitual completes the exit sequence)
     this.events.on('ritualFullyEnded', () => {

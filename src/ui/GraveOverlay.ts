@@ -122,6 +122,7 @@ export class GraveOverlay {
     panel: HTMLElement,
     gameContainer: HTMLElement
   ): Promise<void> {
+    const fullBleed = !!grave.game_fullscreen;
     let compactHeader = false;
 
     // Try loading Phase 2 app module to check for compactHeader flag
@@ -179,7 +180,7 @@ export class GraveOverlay {
     const xBtn = document.createElement('button');
     xBtn.textContent = '✕';
     xBtn.setAttribute('aria-label', 'Close');
-    xBtn.title = 'Close (Esc)';
+    xBtn.title = fullBleed ? 'Leave (Esc opens the game menu)' : 'Close (Esc)';
     xBtn.style.cssText = `
       position: absolute; top: 6px; right: 8px; z-index: 5;
       width: 34px; height: 34px; border-radius: 50%;
@@ -202,10 +203,17 @@ export class GraveOverlay {
     }
 
     // Add Esc key handler to still exit
+    // Polish: full-screen games (DOOM) own Esc for their menu wherever focus is, so Esc never
+    // quits them by surprise; it hands focus back to the game and points at the ✕ instead.
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        this.triggerExit();
+      if (e.key !== 'Escape') return;
+      if (fullBleed) {
+        e.preventDefault();
+        overlay.querySelector('iframe')?.focus();
+        xBtn.animate?.([{ transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(201,185,138,0.8)' }, { transform: 'scale(1.18)', boxShadow: '0 0 0 8px rgba(201,185,138,0)' }, { transform: 'scale(1)' }], { duration: 650 });
+        return;
       }
+      this.triggerExit();
     };
     document.addEventListener('keydown', handleEsc);
     // Store for cleanup
