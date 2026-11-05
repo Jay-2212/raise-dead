@@ -123,6 +123,8 @@ function queueWorldImages(load: Phaser.Loader.LoaderPlugin): void {
   // World tiles
   load.image('ground_grass', 'assets/images/world/ground_grass.png');
   load.image('ground_path', 'assets/images/world/ground_path.png');
+  // K12: baked miniature of the real world art for the minimap + full map (~235 KB)
+  load.image('map_world', 'assets/images/map/world_map.png');
 
   // Tombstones
   load.image('tomb_plain', 'assets/images/world/tomb_plain.png');

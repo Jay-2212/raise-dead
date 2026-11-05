@@ -119,3 +119,4 @@ Road Rash, Google Reader, Clippy, Winamp and other product names referenced in R
 | ELIZA (1966) rules engine | Joseph Weizenbaum; rewritten for Raise Dead (original code); Meta Muse Spark fills gaps via /api/eliza/reply | Original (rewrite) | Classic ELIZA by Joseph Weizenbaum (1966); rules engine rewritten from scratch for Raise Dead |
 | Danse Macabre (rhythm game music) | Kevin MacLeod (incompetech.com) | CC-BY 4.0 | https://creativecommons.org/licenses/by/4.0/ — public/games/rhythm/danse_macabre.{ogg,mp3} (105 s excerpt) |
 | Star Cadet sound effects | Raise Dead team | CC0 1.0 (project original) | Original WebAudio synth by Raise Dead; no Microsoft audio used |
+| Graveyard map image (world_map.png) | Raise Dead team | Same as the world art it is rendered from (see entries above) | Rendered from the game's own world art by `scripts/bake-world-map.mjs` — `public/assets/images/map/world_map.png` |

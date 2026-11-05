@@ -6,8 +6,10 @@
  *    view, found secrets and a heading arrow for the wizard. The caption names the grave nearest
  *    to you, or the one under the pointer; clicking a grave marker walks there, clicking elsewhere
  *    opens the full map. N toggles.
- *  - Full map (Map button / J / Tab, Esc or click outside to close): same painted ground, every
+ *  - Full map (Map button / J / Tab, Esc or click outside to close): same ground, every
  *    area named, every grave labelled and clickable for fast travel, secrets as before.
+ *  - K12: the ground is the real world art (baked `map_world` texture, see mapPainter), so labels
+ *    sit on dark plates and markers carry a night outline to stay readable over grass and trees.
  * Raised graves persist in localStorage `rd_raised`.
  */
 import Phaser from 'phaser';
@@ -69,6 +71,8 @@ export function shortName(name: string): string {
 function tomb(g: G, x: number, y: number, w: number, h: number, fill: number, alpha = 1, outline?: number): void {
   const r = w / 2;
   g.fillStyle(0x000000, 0.45).fillRoundedRect(x - w / 2 + 0.8, y - h + 1.2, w, h, { tl: r, tr: r, bl: 1, br: 1 });
+  // K12: night outline so the marker reads over grass, cobbles and trees
+  g.fillStyle(NIGHT, 0.9).fillRoundedRect(x - w / 2 - 1, y - h - 1, w + 2, h + 2, { tl: r + 1, tr: r + 1, bl: 1.5, br: 1.5 });
   g.fillStyle(fill, alpha).fillRoundedRect(x - w / 2, y - h, w, h, { tl: r, tr: r, bl: 1, br: 1 });
   if (outline !== undefined) g.lineStyle(1, outline, 0.9).strokeRoundedRect(x - w / 2 - 0.5, y - h - 0.5, w + 1, h + 1, { tl: r + 0.5, tr: r + 0.5, bl: 1, br: 1 });
 }
@@ -116,6 +120,7 @@ export class WorldMap {
   private mini: Phaser.GameObjects.Container;
   private miniDyn!: G;
   private miniGround: Phaser.GameObjects.Image | null = null;
+  private miniGroundBaked = false;
   private caption!: Phaser.GameObjects.Text;
   private captionRight!: Phaser.GameObjects.Text;
   private full: Phaser.GameObjects.Container | null = null;
@@ -173,7 +178,9 @@ export class WorldMap {
 
   private paintInput(d: MapData): PaintInput {
     const grassTex = this.scene.textures.exists('ground_grass') ? this.scene.textures.get('ground_grass').getSourceImage() as CanvasImageSource : null;
+    const base = this.scene.textures.exists('map_world') ? this.scene.textures.get('map_world').getSourceImage() as CanvasImageSource : null;
     return {
+      base,
       grass: grassTex,
       trees: d.trees ?? [],
       marks: d.marks ?? [],
@@ -184,16 +191,23 @@ export class WorldMap {
   private makeGroundTexture(key: string, w: number, h: number, d: MapData, corner: number): string {
     const tm = this.scene.textures;
     if (tm.exists(key)) tm.remove(key);
-    const tex = tm.createCanvas(key, Math.round(w * DPR), Math.round(h * DPR));
+    const input = this.paintInput(d);
+    // K12: the baked world art is drawn 1:1 with the game's 1280x720 backbuffer. A 2x canvas would be
+    // minified by the renderer (pixelArt => nearest), which speckles the grass; 1x keeps it clean.
+    const dpr = input.base ? 1 : DPR;
+    const tex = tm.createCanvas(key, Math.round(w * dpr), Math.round(h * dpr));
     if (!tex) return key;
-    paintMapGround(tex.getSourceImage() as HTMLCanvasElement, w, h, DPR, this.paintInput(d), corner);
+    paintMapGround(tex.getSourceImage() as HTMLCanvasElement, w, h, dpr, input, corner);
     tex.refresh();
     tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
     return key;
   }
 
   private ensureMiniGround(d: MapData): void {
-    if (this.miniGround) return;
+    const baked = this.scene.textures.exists('map_world');
+    if (this.miniGround && (this.miniGroundBaked || !baked)) return;
+    if (this.miniGround) { this.miniGround.destroy(); this.miniGround = null; }
+    this.miniGroundBaked = baked;
     const key = this.makeGroundTexture('rd_minimap_ground', WorldMap.MW, WorldMap.MH, d, 7);
     this.miniGround = this.scene.add.image(0, 0, key).setOrigin(0).setDisplaySize(WorldMap.MW, WorldMap.MH);
     this.mini.addAt(this.miniGround, 1); // above the backing, under markers and frame
@@ -259,8 +273,9 @@ export class WorldMap {
     if (d.view) {
       const vx = Phaser.Math.Clamp(d.view.x * sx, 0, MW), vy = Phaser.Math.Clamp(d.view.y * sy, 0, MH);
       const vw = Math.min(MW - vx, d.view.width * sx), vh = Math.min(MH - vy, d.view.height * sy);
-      g.fillStyle(BONE, 0.05).fillRect(vx, vy, vw, vh);
-      g.lineStyle(1, BONE, 0.32).strokeRect(vx, vy, vw, vh);
+      g.fillStyle(BONE, 0.06).fillRect(vx, vy, vw, vh);
+      g.lineStyle(2.5, NIGHT, 0.55).strokeRect(vx, vy, vw, vh);
+      g.lineStyle(1, BONE, 0.7).strokeRect(vx, vy, vw, vh);
     }
 
     // heading from movement
@@ -347,15 +362,28 @@ export class WorldMap {
 
     const label = (x: number, y: number, txt: string, size: number, color: string, font = FONT) =>
       s.add.text(x, y, txt, { fontFamily: font, fontSize: `${size}px`, color, stroke: '#05080f', strokeThickness: 3 });
+    // K12: a dark rounded plate behind a label so it stays readable over the busy world art
+    const plate = (t: Phaser.GameObjects.Text, alpha = 0.78, border = BONE_DIM): Phaser.GameObjects.Graphics => {
+      const bnd = t.getBounds();
+      const p = s.add.graphics();
+      const px = 4, py = 1;
+      p.fillStyle(NIGHT, alpha).fillRoundedRect(bnd.x - px, bnd.y - py, bnd.width + px * 2, bnd.height + py * 2, 4);
+      p.lineStyle(1, border, 0.38).strokeRoundedRect(bnd.x - px + 0.5, bnd.y - py + 0.5, bnd.width + px * 2 - 1, bnd.height + py * 2 - 1, 4);
+      return p;
+    };
+    const plated = (t: Phaser.GameObjects.Text, alpha?: number, border?: number) => { c.add([plate(t, alpha, border), t]); return t; };
 
     // regions first (so grave labels sit above them)
     const foundIds = new Set(d.eggs.filter((e) => e.found).map((e) => e.id));
     for (const r of MAP_REGIONS) {
       const px = ox + r.x * sx, py = oy + r.y * sy;
-      c.add(label(px, py - 26, r.name.toUpperCase(), 11, '#9fb0c4', "'Cinzel', serif").setOrigin(0.5).setAlpha(0.85));
+      plated(label(px, py - 26, r.name.toUpperCase(), 11, '#c3d0de', "'Cinzel', serif").setOrigin(0.5), 0.62, MOON);
       if (r.egg && !foundIds.has(r.egg)) {
         const q = label(px, py - 9, '?', 18, '#e8b04a', "'Cinzel', serif").setOrigin(0.5);
-        c.add(q);
+        const disc = s.add.graphics();
+        disc.fillStyle(NIGHT, 0.72).fillCircle(px, py - 8, 10);
+        disc.lineStyle(1, AMBER, 0.45).strokeCircle(px, py - 8, 10);
+        c.add([disc, q]);
         s.tweens.add({ targets: q, alpha: { from: 1, to: 0.35 }, duration: 900, yoyo: true, repeat: -1 });
       }
     }
@@ -384,11 +412,13 @@ export class WorldMap {
       const from = pos.up ? py - 13 : py + 3;
       const to = pos.up ? ly - 1 : ly + 1;
       if (Math.abs(to - from) > 4) {
-        g.lineStyle(1, raised ? MOON : BONE_DIM, 0.5);
+        g.lineStyle(3, NIGHT, 0.7);
+        g.lineBetween(px, from, px, to);
+        g.lineStyle(1, raised ? MOON : BONE_DIM, 0.85);
         g.lineBetween(px, from, px, to);
       }
       const t = label(px, ly, shortName(gr.name), 11, color).setOrigin(0.5, pos.up ? 1 : 0);
-      c.add(t);
+      plated(t, 0.82, raised ? MOON : BONE_DIM);
       if (this.onTravel) {
         // click a grave (or its name) on the map to walk the wizard straight to it
         const top = pos.up ? ly - 15 : py - 14;
@@ -410,14 +440,15 @@ export class WorldMap {
       const px = ox + e.x * sx, py = oy + e.y * sy;
       g.fillStyle(AMBER, 1).fillCircle(px, py, 4);
       g.lineStyle(1, 0x000000, 0.7).strokeCircle(px, py, 4.5);
-      c.add(label(px + 7, py, e.title, 10, '#f3d58c').setOrigin(0, 0.5));
+      plated(label(px + 8, py, e.title, 10, '#f3d58c').setOrigin(0, 0.5), 0.78, AMBER);
     }
     if (d.wizard) {
       const px = ox + d.wizard.x * sx, py = oy + d.wizard.y * sy;
       const you = s.add.graphics();
       player(you, px, py, this.heading, 7, 0.6);
-      const lbl = label(px, py + 13, 'you', 10, '#fff2c4').setOrigin(0.5);
-      c.add([you, lbl]);
+      const lbl = label(px, py + 14, 'you', 10, '#fff2c4').setOrigin(0.5);
+      c.add(you);
+      plated(lbl, 0.7, BONE);
       s.tweens.add({ targets: lbl, alpha: { from: 1, to: 0.55 }, duration: 700, yoyo: true, repeat: -1 });
     }
 

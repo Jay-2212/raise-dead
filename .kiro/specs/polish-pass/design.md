@@ -31,6 +31,25 @@
 - Full map uses the same painter; north-arc labels above, south-arc below, alternating two tiers with
   leader lines; every grave label is a fast-travel hit zone.
 
+## Map from the real world art (K12)
+- Problem: the painted map still read as grey roads on flat teal. Players expect a minimap of *this*
+  graveyard with its grass visible.
+- `scripts/bake-world-map.mjs` renders the live world at half scale (1200×900) in headless Chromium,
+  with HUD, fog, particles, wizard, crow/witch, eggs and the raisable tombstones hidden, in three passes
+  (all / grass only / everything but grass). `scripts/compose-world-map.py` softens the repeating grass
+  tile into a meadow, drops a soft shadow from trees, stones, paths and pumpkins onto it and lifts
+  contrast. pngquant → `public/assets/images/map/world_map.png` (~230 KB), loaded on the first screen
+  as `map_world`.
+- `paintMapGround` draws it when present (halving downscale steps, light moonlit wash, tonal patches,
+  slight dark vignette; the minimap gets a small contrast lift). The canvas is 1× for the baked art: a
+  2× canvas is minified with nearest filtering (pixelArt) and speckles the grass. The hand-painted map
+  stays as the fallback, and the minimap repaints itself once if `map_world` arrives late.
+- Readability over busier art: grave/region/secret/"you" labels sit on dark rounded plates with a thin
+  bone/teal/amber border; leader lines get a night underline; tombstone markers get a night outline;
+  the viewport box gets a dark outer stroke; hidden-secret "?" marks sit on dark discs.
+- Unchanged: teal raised / pulsing bone waiting markers, heading arrow, viewport box, N tab, caption,
+  leader-line labels, minimap click-to-walk and full-map click-to-fast-travel.
+
 ## Performance
 - `queueWorldAssets` = title + first graveyard screen. `queueDeferredAssets` (ritual, voices, egg/horde
   sfx) is started by `GraveyardWorld.create()` after the world is on screen.

@@ -9,4 +9,8 @@
 - [x] 7. DOOM Esc consistency; pinball WebGL retry + friendlier fallback text.
 - [x] 8. Headless Chromium checks: one Enter / one click / one tap enters; WASD moves; sliders open,
       drag, persist, close; minimap hover + click travel; full map fast travel; no page errors.
-- [ ] 9. Kiro K11: apply patch, build, commit; push; deploy; verify live.
+- [x] 9. Kiro K11: apply patch, build, commit; push; deploy; verify live.
+- [x] 10. Map from real world art: bake + compose scripts, `map_world` (≤300 KB) on the first screen,
+      mapPainter draws it with a light grade + vignette (painted map = fallback), plated labels,
+      outlined markers. Headless check: one Enter enters; minimap + full map screenshots; fast travel.
+- [ ] 11. Kiro K12: apply patch, build, commit; push; deploy; verify live.

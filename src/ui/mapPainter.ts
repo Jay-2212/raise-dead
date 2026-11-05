@@ -1,7 +1,13 @@
 /**
- * mapPainter — paints the static ground of the graveyard map (grass, paths, trees, the old
- * stones, moonlight and vignette) into a canvas. Used by the minimap and the full map so both
- * read as the same place. Dynamic markers (graves, player, secrets) are drawn on top in Phaser.
+ * mapPainter — paints the ground of the graveyard map into a canvas. Used by the minimap and the
+ * full map so both read as the same place. Dynamic markers (graves, player, secrets) are drawn on
+ * top in Phaser.
+ *
+ * K12: the map is now the real world art. `scripts/bake-world-map.mjs` renders the live graveyard
+ * (grass, cobble paths, decals, mounds, trees, old stones, pumpkins, crypt, well) at half scale into
+ * `public/assets/images/map/world_map.png` (1200x900, quantised, ~235 KB). When that texture is
+ * loaded it is downscaled here with a light moonlit grade and a dark vignette. The hand-painted
+ * version below stays as the fallback if the image is missing.
  */
 import { PATH_RECTS, PathRect } from '../scenes/mapLayout';
 
@@ -9,6 +15,8 @@ export const WORLD_W = 2400;
 export const WORLD_H = 1800;
 
 export interface PaintInput {
+  /** K12: baked miniature of the real world art (half scale of WORLD_W x WORLD_H). */
+  base?: CanvasImageSource | null;
   grass?: CanvasImageSource | null;
   trees: Array<{ x: number; y: number }>;
   stones: Array<{ x: number; y: number }>;
@@ -36,6 +44,8 @@ export function paintMapGround(canvas: HTMLCanvasElement, w: number, h: number, 
   ctx.save();
   rr(ctx, 0, 0, w, h, corner);
   ctx.clip();
+
+  if (input.base && paintBaked(ctx, w, h, dpr, input.base)) { ctx.restore(); return; }
 
   // ── Ground: deep moonlit grass ───────────────────────────────────────────
   ctx.fillStyle = '#12302f';
@@ -170,4 +180,74 @@ export function paintMapGround(canvas: HTMLCanvasElement, w: number, h: number, 
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, w, h);
   ctx.restore();
+}
+
+/** Size of an image source, or 0 when it is not ready. */
+function srcSize(img: CanvasImageSource): { w: number; h: number } {
+  const anyImg = img as { naturalWidth?: number; naturalHeight?: number; width?: number | SVGAnimatedLength; height?: number | SVGAnimatedLength };
+  const w = anyImg.naturalWidth || (typeof anyImg.width === 'number' ? anyImg.width : 0);
+  const h = anyImg.naturalHeight || (typeof anyImg.height === 'number' ? anyImg.height : 0);
+  return { w, h };
+}
+
+/**
+ * K12: draw the baked world art, downscaled in halving steps so grass and cobbles stay crisp
+ * instead of aliasing, then grade it for night and vignette the edges. Returns false if the image
+ * is not usable (the caller falls back to the painted map).
+ */
+function paintBaked(ctx: Ctx, w: number, h: number, dpr: number, base: CanvasImageSource): boolean {
+  const { w: bw, h: bh } = srcSize(base);
+  if (!bw || !bh) return false;
+  const tw = Math.round(w * dpr), th = Math.round(h * dpr);
+  let src: CanvasImageSource = base;
+  let cw = bw, ch = bh;
+  try {
+    while (cw / 2 >= tw) {
+      const step = document.createElement('canvas');
+      step.width = Math.round(cw / 2); step.height = Math.round(ch / 2);
+      const sc = step.getContext('2d');
+      if (!sc) break;
+      sc.imageSmoothingEnabled = true;
+      sc.imageSmoothingQuality = 'high';
+      sc.drawImage(src, 0, 0, cw, ch, 0, 0, step.width, step.height);
+      src = step; cw = step.width; ch = step.height;
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    // the minimap is tiny: a little extra contrast keeps paths, trees and grass apart
+    // (ctx.filter is ignored where unsupported, which is fine)
+    if (w < 320) ctx.filter = 'contrast(1.18) saturate(1.15) brightness(1.1)';
+    ctx.drawImage(src, 0, 0, cw, ch, 0, 0, w, h);
+    ctx.filter = 'none';
+  } catch {
+    return false;
+  }
+
+  // soft tonal patches break up the repeat of the grass tile at map scale
+  const seed = (n: number) => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
+  for (let i = 0; i < 22; i++) {
+    const px = seed(i + 1) * w, py = seed(i + 50) * h, r = (0.07 + seed(i + 99) * 0.1) * w;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, i % 4 === 0 ? 'rgba(90,150,120,0.07)' : 'rgba(4,14,18,0.18)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(px - r, py - r, r * 2, r * 2);
+  }
+  // light moonlit grade: a cool, slightly darker wash keeps it in the night palette
+  ctx.fillStyle = 'rgba(8,18,34,0.14)';
+  ctx.fillRect(0, 0, w, h);
+  const moon = ctx.createRadialGradient(w * 0.72, h * 0.16, 0, w * 0.72, h * 0.16, w * 0.8);
+  moon.addColorStop(0, 'rgba(170,225,235,0.07)');
+  moon.addColorStop(1, 'rgba(170,225,235,0)');
+  ctx.fillStyle = moon;
+  ctx.fillRect(0, 0, w, h);
+  // slight dark vignette: the middle (where the graves are) stays clear
+  const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.hypot(w, h) * 0.56);
+  vig.addColorStop(0, 'rgba(4,7,14,0)');
+  const small = w < 320;
+  vig.addColorStop(0.65, small ? 'rgba(4,7,14,0.2)' : 'rgba(4,7,14,0.28)');
+  vig.addColorStop(1, small ? 'rgba(4,7,14,0.6)' : 'rgba(4,7,14,0.72)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, w, h);
+  return true;
 }
