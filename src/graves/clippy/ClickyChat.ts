@@ -638,6 +638,9 @@ export class ClickyChat {
             const msg = (lines && lines[Math.floor(Math.random() * lines.length)]) || 'Something went wrong.';
             this.bubbleEl.textContent = msg;
           }
+          if (error === 'lost_thread' && this.bubbleEl) {
+            this.bubbleEl.textContent = 'Clicky lost the thread, try again.';
+          }
 
           // Re-show current node's preset options in all error branches (so they're always tappable)
           const node = this.presets?.nodes[this.state.currentNodeId];

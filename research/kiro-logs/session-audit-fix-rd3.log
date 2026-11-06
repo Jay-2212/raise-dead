@@ -1,0 +1,44 @@
+[tool] Reading Joystick.ts:1, listing clippy
+[tool] status: Completed
+[tool] Reading api.ts:1
+[tool] status: Completed
+[tool] Searching for 'sendChat|error ===|case '|timeout|remaining|setDisabled|d...' in ClickyChat.ts
+[tool] status: Completed
+[tool] Searching for 'sendChat\(|onDone|error|remaining|disabled' in ClickyChat.ts
+[tool] status: Completed
+[tool] Reading ClickyChat.ts:546-675
+[tool] status: Completed
+[tool] Editing api.ts
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+[tool] status: Completed
+Now the joystick resize handling.
+[tool] Editing Joystick.ts
+[tool] Editing Joystick.ts
+[tool] Editing Joystick.ts
+[tool] status: Completed
+[tool] status: Completed
+[tool] status: Completed
+[tool] Running: npx tsc --noEmit; echo EXIT=$?
+[tool] status: Completed
+I fixed both bugs and `npx tsc --noEmit` passes (exit 0). I haven't tested either fix on a device or with a cut stream.
+
+**1. Joystick repositioning (`src/ui/Joystick.ts`)**
+- The joystick now listens for Phaser's scale `resize` event. On resize it moves the stick back to (140, height−140) and the F button to (width−140, height−140), the same positions as at startup.
+- The listener is removed when the scene shuts down, and also in `destroy()`.
+- The stick is moved with the plugin's `setPosition`. If that method isn't there, it sets `x`/`y` directly instead.
+- The F button is plain Phaser text, not a DOM element, so I skipped the accessible label as you said.
+
+**2. Clicky stream ending without `done`**
+- `src/graves/clippy/api.ts`: if the stream ends without a `done` event (connection cut or the server's 20 s abort), the client now reports `lost_thread`, or the server's error if it sent one. It no longer passes `remaining` in that case, so the local counter isn't decremented.
+- `src/graves/clippy/ClickyChat.ts`: on `lost_thread`, the bubble shows "Clicky lost the thread, try again." The existing error path already re-enables input, shows the preset options again and removes the unanswered question from the chat history. That last step happens because `remaining` is undefined.
+
+If the connection breaks in a way that makes the stream read throw, the existing catch still treats it as a generic error and shows the preset error line, not the new one. I left that as it was to keep the change minimal.
+
+**Files changed:**
+- `src/ui/Joystick.ts`
+- `src/graves/clippy/api.ts`
+- `src/graves/clippy/ClickyChat.ts`
+
+I made no commits, pushes or deploys.
+EXIT 0

@@ -17,6 +17,9 @@ interface RexJoystick extends JoystickForce {
   radius?: number;
   base?: any;
   thumb?: any;
+  x?: number;
+  y?: number;
+  setPosition?(x: number, y: number): unknown;
 }
 
 export class Joystick {
@@ -80,6 +83,26 @@ export class Joystick {
     this.fButton.on('pointerdown', () => {
       this.fButtonCallback?.();
     });
+
+    // Reposition on rotation / window resize; detach on scene shutdown.
+    scene.scale.on(Phaser.Scale.Events.RESIZE, this.onResize, this);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      scene.scale.off(Phaser.Scale.Events.RESIZE, this.onResize, this);
+    });
+  }
+
+  private onResize(gameSize: Phaser.Structs.Size): void {
+    const w = gameSize?.width ?? this.scene.scale.width;
+    const h = gameSize?.height ?? this.scene.scale.height;
+    if (this.joyStick) {
+      if (typeof this.joyStick.setPosition === 'function') {
+        this.joyStick.setPosition(140, h - 140);
+      } else {
+        this.joyStick.x = 140;
+        this.joyStick.y = h - 140;
+      }
+    }
+    this.fButton?.setPosition(w - 140, h - 140);
   }
 
   /** Get normalised force from joystick ([-1, 1] range) */
@@ -126,6 +149,7 @@ export class Joystick {
   }
 
   destroy(): void {
+    this.scene.scale.off(Phaser.Scale.Events.RESIZE, this.onResize, this);
     this.joyStick?.destroy();
     this.fButton?.destroy();
   }

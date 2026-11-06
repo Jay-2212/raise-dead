@@ -1,0 +1,88 @@
+[tool] Running: cat .kiro/hooks/assets-credits.mjs; echo ----; cat .kiro/hooks/typecheck-lint.json; echo ----; ls .kiro .kiro/hooks .kiro/specs .kiro/specs/deploy-and-submission .kiro/agents 2>&1; echo --...
+[tool] status: Completed
+[tool] Running: ls /usr/share/common-licenses; ls /workspace/kirohome/.kiro/agents; head -c 3000 /workspace/kirohome/.kiro/agents/*.json 2>/dev/null | head -80; cat .kiro/hooks/assets-credits.json; grep -...
+[tool] status: Completed
+[tool] Running: cat /workspace/kirohome/.kiro/agents/agent_config.json.example; ls -la /usr/share/common-licenses/GPL-2; wc -l /usr/share/common-licenses/GPL-2; cat public/_headers; cat public/data/graves...
+[tool] status: Completed
+[tool] Running: cat -n functions/api/eliza/reply.ts; grep -rn "shake\|\.flash(" src --include=*.ts | head -30
+[tool] status: Completed
+[tool] Running: sed -n 250,420p src/scenes/ResurrectionRitual.ts | grep -n "shake\|flash\|alpha\|Light\|light\|burst" ; grep -n "flash\|shake" src/scenes/ExitRitual.ts
+[tool] status: Completed
+[tool] Reading ResurrectionRitual.ts:255-339
+[tool] status: Completed
+[tool] Running: python3 - <<'EOF' import re p='.kiro/hooks/assets-credits.mjs' s=open(p).read() s=s.replace("new URL('../../..', import.meta.url).pathname","fileURLToPath(new URL('../..', import.meta.url)...
+[tool] status: Completed
+[tool] Introspecting
+[tool] status: Completed
+[tool] Creating raise-dead.json
+[tool] Running: head -5 .kiro/specs/deploy-and-submission/*.md .kiro/steering/tech.md .kiro/steering/structure.md; echo ======; cat .kiro/specs/deploy-and-submission/tasks.md; which kiro-cli
+[tool] status: Completed
+[tool] status: Completed
+[tool] Running: grep -n "^name\|compatibility_date\|pages_build_output_dir\|\[vars\]\|PAGES_ORIGIN" wrangler.toml; grep -n "dev.vars\|\.env" .gitignore; grep -n "^#" CREDITS.md | head -20; grep -n -i "tra...
+[tool] status: Completed
+[tool] Running: for f in .kiro/specs/deploy-and-submission/requirements.md .kiro/specs/deploy-and-submission/design.md .kiro/specs/deploy-and-submission/tasks.md .kiro/steering/tech.md .kiro/steering/stru...
+[tool] status: Completed
+[tool] Running: grep -c "Superseded (2026-11-06)" .kiro/steering/*.md .kiro/specs/deploy-and-submission/*.md; head -3 .kiro/steering/tech.md
+[tool] status: Completed
+Now DOOM licence files, README, CREDITS sync.
+[tool] Running: cp /usr/share/common-licenses/GPL-2 public/games/doom/COPYING-GPL2.txt && head -3 public/games/doom/COPYING-GPL2.txt cat > public/games/doom/NOTICE.md <<'EOF' # DOOM grave: licence notice ...
+[tool] status: Completed
+[tool] Running: cp CREDITS.md public/CREDITS.md && cmp CREDITS.md public/CREDITS.md && echo synced; ls public/games/muse public/games/rhythm; grep -n "TODO" CREDITS.md | head; grep -rn "id === 'clippy'\|'...
+[tool] status: Completed
+[tool] Running: grep -n "clippy\|unmarked\|winamp\|game\b\|\.game" src/ui/GraveOverlay.ts | head -30; grep -n "Winamp\|winamp" public/games/rhythm/index.html | head -3
+[tool] status: Completed
+[tool] Running: grep -rn "muse/winamp" src public/data functions 2>/dev/null | head; grep -n "^## What rises" -A12 README.md | head -14
+[tool] status: Completed
+[tool] Running: python3 - <<'EOF' p='README.md'; s=open(p).read() old=s[s.index('| **Road Rash**, **Winamp**'):s.index('\nPlus six Halloween')] new='''| **Road Rash** | A playable tribute | Written by Mus...
+[tool] status: Completed
+[tool] Running: python3 - <<'EOF' p='README.md'; s=open(p).read() s=s.replace("and the Road Rash / Winamp tributes (`public/games/muse/`)","and the Road Rash tribute (`public/games/muse/road-rash.html`)")...
+[tool] status: Completed
+[tool] Running: sed -n 78,90p src/scenes/GraveyardWorld.ts; grep -n "whiteFill\b.*=\|holyBurst\b.*=" src/scenes/ResurrectionRitual.ts
+[tool] status: Completed
+[tool] Running: python3 - <<'EOF' p='src/scenes/ResurrectionRitual.ts'; s=open(p).read() a=""" // Camera shake build-up const gwScene""" assert a in s s=s.replace(a,""" // Camera shake build-up (sk...
+[tool] status: Completed
+[tool] Reading ResurrectionRitual.ts:1-20
+[tool] status: Completed
+[tool] Running: python3 - <<'EOF' p='src/scenes/ResurrectionRitual.ts'; s=open(p).read() h=""" /** True when the user asked the OS for reduced motion: skip the ritual shake and dim the flash. */ const red...
+[tool] status: Completed
+[tool] Running: set -o pipefail; npm run build >/tmp/b.log 2>&1; echo build=$?; npm run typecheck:functions >/tmp/t.log 2>&1; echo tcf=$?; ls public/games/doom; git status --short
+[tool] status: Completed
+[tool] Running: tail -20 /tmp/b.log
+[tool] status: Completed
+[tool] Running: git diff --stat src/graves/clippy/; git diff src/graves/clippy/ | head -60; sed -n 40,50p src/graves/clippy/ClickyChat.ts
+[tool] status: Completed
+The `src/graves/clippy/` files changed while I was working. I didn't make those edits, so I'll leave them alone and re-run the build in case the other edit was still in progress.
+[tool] Running: sleep 20; set -o pipefail; git diff --stat src/graves/clippy/; npm run build >/tmp/b.log 2>&1; echo build=$?; tail -4 /tmp/b.log; npm run typecheck:functions >/tmp/t.log 2>&1; echo tcf=$?
+[tool] status: Completed
+All 10 items are done. `npm run build` exits 0 (only Vite's usual chunk-size warning) and `npm run typecheck:functions` exits 0, both checked with `pipefail`.
+
+**Hook result (item 1).** The fixed `assets-credits` hook now runs from the right root, and it **fails with 100 uncredited files**. Examples are `wizard/*.png`, `world/tomb_*.png`, `kenney/*.png` and several sfx. The old parent-folder match had been letting these pass, and the hook could never have succeeded before because its path pointed one level above the repo. The fix for this is new CREDITS entries, which I didn't add because they were out of scope. Until then, the new agent's write hook will warn on every write.
+
+**Something to check.** Midway through, `src/graves/clippy/ClickyChat.ts` and `src/graves/clippy/api.ts` changed, and I didn't make those edits. One build failed with a TS2322 error in `ClickyChat.ts` while they were half-done. The rebuild about 20 seconds later passed, and I left both files untouched.
+
+**Files changed:**
+- **`.kiro/hooks/assets-credits.mjs`**: the root is now `fileURLToPath(new URL('../..', import.meta.url))`, and only the filename or its stem counts as credited.
+- **`.kiro/hooks/typecheck-lint.json`**: the lint step is now `npm run typecheck:functions` and fails as an error. The trigger pattern now covers `functions/**/*.ts` instead of `worker/`.
+- **`package.json`**: `lint` is now `eslint src/`. ESLint isn't a devDependency, so the script still won't run until it's installed.
+- **`.kiro/agents/raise-dead.json`** (new):
+  - Auto-approves only the read-type tools.
+  - Blocks writes to `.dev.vars`, `dist/` and `node_modules/`.
+  - Loads the README, CREDITS and steering files as resources.
+  - After each write, runs `npm run typecheck`, `npm run typecheck:functions` and the assets-credits hook.
+  - `kiro-cli agent validate` exits 0.
+- **Superseded note** added at the top of `.kiro/specs/deploy-and-submission/{requirements,design,tasks}.md` and `.kiro/steering/{tech,structure}.md`.
+- **`tasks.md`**: ticked tasks 9 and 10 (build and typecheck pass), 14 (`.gitignore` has `.dev.vars` and `.env`), 19 (README links CREDITS) and 23 (the trademark disclaimer exists).
+- **`public/games/doom/COPYING-GPL2.txt`** (new): copied from `/usr/share/common-licenses/GPL-2`.
+- **`public/games/doom/NOTICE.md`** (new): names the engine and the source exactly as CREDITS.md records it (`https://github.com/cloudflare/doom-wasm`, via npm `@nicejsisverycool/tizendoom`).
+- **`README.md`**:
+  - The "What rises" table now lists every resurrectable grave in `graves.json`. Winamp points to `games/rhythm/`, and DOOM, Pac-Man, SkiFree, ELIZA and Bouncing Logo were added.
+  - The Muse section no longer says Muse Spark wrote the Winamp tribute.
+  - The trademark line now says DOOM runs the GPL-2 Chocolate Doom engine with Freedoom data.
+- **`public/CREDITS.md`**: copied from the root file, which added the Night 3 and Night 4 sections. The voice-licence TODO is still there.
+- **`functions/api/eliza/reply.ts`**:
+  - Each `history[].text` now goes through the same `isBlocked`/`INJECTION_REGEX` check and gets the same 422 `moderated` response.
+  - The 502 body is now just `{ error: 'upstream' }`, and the detail goes to `console.error`.
+  - The injection check also blocks `<`, `>`, `http:`/`https:` and phrases like "act as". Any ELIZA line in the history containing one of those will now reject the whole request.
+- **`public/_headers`**: added `frame-ancestors 'self'` to the `/*` CSP. `/games/*` already had it.
+- **`src/scenes/ResurrectionRitual.ts`**: added a `reducedMotion()` check. When it's on, the camera shake is skipped, the holy-light burst stops at 0.4 opacity and the white fill at 0.6. The `shake()` and `flash()` calls in the Easter-egg and fast-travel code are unchanged.
+EXIT 0

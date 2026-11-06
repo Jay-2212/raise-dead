@@ -6,6 +6,23 @@ Built for **Kiroween** and the **Meta Global AI Dev Hackathon**. The code is wri
 
 Built during the hackathon window (Oct 31 – Nov 4 2026). Play it: **https://raise-dead.pages.dev**
 
+## Screenshots
+| | |
+|---|---|
+| ![The wizard at spawn in the graveyard](docs/screenshots/01_spawn_grounding.png) | ![Resurrection ritual in progress](docs/screenshots/06_ritual_02.png) |
+| ![A raised grave open in the overlay](docs/screenshots/08_overlay.png) | ![Chatting with Clicky](docs/screenshots/11_clicky_chat.png) |
+
+More in [`docs/screenshots/`](docs/screenshots).
+
+## Judge's 2-minute path
+1. Open **https://raise-dead.pages.dev**.
+2. Press Enter or Space, or click/tap once, to enter (one press, no confirmation step).
+3. Walk with WASD or the arrow keys, or drag the on-screen joystick on a phone.
+4. Walk up to a glowing grave and press **F** (tap F on touch) to raise it. **Esc** lays it back to rest.
+5. Raise **Clicky the Paperclip**: tap a preset answer, then type one question of your own (Muse Spark streams the reply).
+6. Raise the **Unmarked Grave** and enter a name such as *Contra* (one of the suggestions). Names raised before are served from the D1 cache, so they load instantly.
+7. Find an Easter egg: the black cat that crosses your path, or the Bloody Mary well (walk up and press F three times quickly).
+
 ## What rises
 | Grave | What you get | How it was made |
 |---|---|---|
@@ -29,6 +46,22 @@ Plus six Halloween **Easter eggs** that teach the lore behind the holiday: a bla
 
 ## How it was built
 Kiro CLI is the coding harness ([`.kiro/`](.kiro) holds the specs, steering and hooks). We ran it like a consultancy: Hark (planning), Grok 4.7 and Gemini (via Antigravity) reviewed every plan and diff in council rounds (`research/`), and Kiro (claude-haiku-4.5) executed the agreed changes step by step to stay inside a tiny credit budget.
+
+## How Kiro built this
+**One feature end to end: Clicky.**
+- Brief: [`research/muse-clicky-brief.md`](research/muse-clicky-brief.md), written by Hark. Kiro's first build pass reads it in [`research/kiro-logs/session17-clicky.log`](research/kiro-logs/session17-clicky.log).
+- Review: Grok's findings are in [`research/clicky-grok-review-1.md`](research/clicky-grok-review-1.md) to `-3.md`. Kiro fixed them in `session18-clicky-fixA.log` through `session22-clicky-fixD.log`.
+- Spec: [`.kiro/specs/clippy-grave/`](.kiro/specs/clippy-grave) holds `requirements.md`, `design.md` and `tasks.md`. Kiro rewrote these from the brief in `session18-clicky-fixA.log`. `tasks.md` splits the work into Session A (client, Kiro) and Session B (Pages Functions + D1, Hark).
+
+**Steering** ([`.kiro/steering/`](.kiro/steering)): `product.md`, `tech.md`, `structure.md`, plus `polish.md` (`inclusion: always`). `tech.md` and `structure.md` describe the original Worker plan and are marked as superseded. `polish.md` sets rules such as "Entry is always ONE press" (see the single-press handler in `src/scenes/TitleScene.ts`) and "The paperclip is 'Clicky', never the other name". Kiro checked that second rule with a `grep` for the old name in [`research/kiro-logs/session-n5-k11.log`](research/kiro-logs/session-n5-k11.log).
+
+**Hooks** ([`.kiro/hooks/`](.kiro/hooks)):
+- `assets-credits` warns when a file under `public/assets/` has no `CREDITS.md` entry.
+- `typecheck-lint` runs `npm run typecheck` and `npm run typecheck:functions` when a `.ts` file changes.
+
+**Agent** ([`.kiro/agents/raise-dead.json`](.kiro/agents/raise-dead.json)): a project agent that loads README, CREDITS and steering as resources. It denies writes to `.dev.vars`, `dist/` and `node_modules/`, allow-lists the build and typecheck commands, and runs a typecheck after each write.
+
+**Authorship.** Kiro wrote most of the app code and applied the changes in logged sessions (`research/kiro-logs/`). Hark, an AI agent, planned the work, wrote the briefs and some patches (for example `research/n5/K11.patch`) that Kiro applied, and did deploys; the session logs show which is which. Grok, Gemini via Antigravity, and Muse Spark reviewed the plans and diffs. This entry uses no MCP server.
 
 ## Run locally
 ```bash

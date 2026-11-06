@@ -57,6 +57,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
 
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 20000);
+  let billed = false;
   try {
     const messages = [
       { role: 'system', content: SYSTEM },
@@ -69,6 +70,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
       body: JSON.stringify({ model: env.MUSE_MODEL || 'muse-spark-1.3-contributor', reasoning_effort: env.MUSE_EFFORT || 'minimal', max_tokens: 800, messages }),
     });
     if (!up.ok) throw new Error('upstream ' + up.status);
+    billed = true;
     const data = (await up.json()) as { choices?: { message?: { content?: string } }[] };
     let out = (data.choices?.[0]?.message?.content || '').replace(/\s+/g, ' ').trim();
     out = out.replace(/^ELIZA:\s*/i, '').slice(0, 240);
@@ -76,8 +78,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     return reply({ reply: out });
   } catch (e) {
     console.error('eliza upstream error:', String((e as Error)?.message || e).slice(0, 200));
-    // Upstream failed: give back the reserved per-IP and daily quota.
-    try {
+    // Upstream failed before a billed reply: give back the reserved per-IP and daily quota.
+    if (!billed) try {
       await db.batch([
         db.prepare('UPDATE quota SET used = used - 1 WHERE k = ? AND used > 0').bind(ipK),
         db.prepare('UPDATE quota SET used = used - 1 WHERE k = ? AND used > 0').bind(dayK),

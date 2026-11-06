@@ -191,9 +191,10 @@ export async function sendChat(
         }
       }
 
-      // Stream ended without explicit done frame (e.g. connection cut after content)
+      // Stream ended without explicit done frame (connection cut / server 20 s abort):
+      // treat as an error and never pass remaining, so the local counter is not decremented.
       if (!gotDone) {
-        onDone(remaining, error);
+        onDone(undefined, error ?? 'lost_thread');
       }
     } finally {
       reader.releaseLock();

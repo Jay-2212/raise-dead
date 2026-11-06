@@ -1,0 +1,35 @@
+[tool] Running: git show --stat 8013c48 && git show 8013c48 | head -c 60000
+[tool] status: Completed
+[tool] Running: cat public/_headers; echo ----; sed -n 225,380p src/scenes/ResurrectionRitual.ts; echo ----; grep -rn "frame-ancestors\|Content-Security-Policy\|X-Frame" functions/ src/ public/games --inc...
+[tool] status: Completed
+[tool] Running: grep -n "sandbox\|iframe.src\|\.src =\|srcdoc" src/ui/GraveOverlay.ts src/graves/unmarked-grave/UnmarkedGrave.ts src/graves/*/*.ts | head -30; echo ----; grep -n "Content-Security-Policy\|...
+[tool] status: Completed
+[tool] Running: grep -n "iframe" public/games/pipes/screensaver.js | head -5; grep -n "game_sandbox" data/graves.json public/data/graves.json 2>/dev/null | head; git log --oneline -1 -- functions/api/unma...
+[tool] status: Completed
+[tool] Running: sed -n 34,78p functions/api/eliza/reply.ts; echo ----; grep -n "whiteFill" src/scenes/*.ts src/ui/*.ts | head -20; echo ----; sed -n 545,575p src/graves/clippy/ClickyChat.ts
+[tool] status: Completed
+[tool] Running: grep -rn "iframe" src --include=*.ts | grep -v "^\s*//" | grep -n "src\|createElement" | head; sed -n 335,345p src/graves/clippy/ClickyChat.ts; grep -n "questionsLeftEl.textContent\|update...
+[tool] status: Completed
+[tool] Running: sed -n 428,482p src/scenes/ResurrectionRitual.ts; grep -n "token" src/graves/clippy/api.ts | head
+[tool] status: Completed
+[tool] Running: grep -o '"game": *"[^"]*"' public/data/graves.json | sort -u; diff <(git show 8013c48:data/graves.json) <(git show 8013c48:public/data/graves.json) >/dev/null && echo same
+[tool] status: Completed
+[tool] Running: grep -n "incremental\|tsBuildInfo\|composite" tsconfig.json functions/tsconfig.json; git status --porcelain | head -5; echo ---; npx tsc --noEmit && echo APP_OK; npx tsc -p functions --noE...
+[tool] status: Completed
+I found no P0 or P1 regressions in 8013c48. I checked the diff against the code around it. Two low-priority (P2) notes and one caveat follow.
+
+**What I checked**
+- **New CSP rule `frame-ancestors 'self'` on `/*`:** All nine graves with a `game` field point into `/games/*`. That block already sent `frame-ancestors 'self'` before this commit (`! Content-Security-Policy` replaces the `/*` CSP there), so the game iframes behave as before. The rule checks the parent page's origin, so opaque-origin frames like Road Rash (`sandbox="allow-scripts"`) still load. The only real change is that the top-level page can no longer be embedded by other sites.
+- **`/api/unmarked/play/*`:** `_headers` rules don't apply to Pages Functions responses. That route sets its own `PLAY_CSP` (`functions/api/unmarked/_shared.ts:111`), which already includes `frame-ancestors 'self'` and `sandbox allow-scripts`. No interaction.
+- **Clicky input:** Phaser listens on `window` in the bubble phase, so `stopPropagation` on the input blocks movement and map keys. Escape is exempt and still reaches the `document` handler in `GraveOverlay.ts:218`. Enter still submits.
+- **Clicky session failure:** `remaining` keeps its default of 5 and the warning text is set after `buildDOM`. Nothing overwrites it until a chat finishes (`ClickyChat.ts:601`).
+- **Reduced-motion ritual:** the early `return` at `ResurrectionRitual.ts:261` comes after the sparks are added and skips only the shake. `openOverlay()` still runs from the flash tween's `onComplete`, so the ritual path finishes. The exit flash and fade-out are unchanged.
+- **Unmarked Grave:** the message listener is now tracked and removed on `dispose()` and on re-show. The IP-hash `try/catch` and the new error copy are fine.
+- **ELIZA:** the history filter is type-safe, the 502 body no longer leaks upstream detail, and the refund reverses the same `ipK` and `dayK` keys that were reserved.
+
+**Issues**
+1. [P2] `functions/api/eliza/reply.ts:~77`: the refund also runs when the upstream call succeeded but returned empty content (`throw new Error('empty')`). That call was billed, so a visitor can use up tokens without spending quota. Minimal fix: set `let billed = false;` and set it to `true` after `up.ok`, then refund only when `!billed`.
+2. [P2] `public/_headers:2`: `frame-ancestors 'self'` on `/` stops any external gallery or judge page from embedding the live demo in an iframe. If you need that, list those origins on the `/` and `/index.html` rules. Otherwise leave it.
+
+**Caveat:** `npm run typecheck` and `npm run typecheck:functions` both pass, but they ran against the working tree, not the commit. The tree has uncommitted edits in `ClickyChat.ts`, `api.ts`, `Joystick.ts`, `README.md` and `product.md`, so those results don't cover 8013c48 exactly. I did not open the deployed site to test it.
+EXIT 0

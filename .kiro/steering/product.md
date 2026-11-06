@@ -1,5 +1,7 @@
 # Product — Raise Dead: Graveyard of Lost Apps
 
+> **Superseded in part (2026-11-06):** the "Resurrectable graves (launch)" table and the Cloudflare Worker `/api/ai` proxy below describe the original plan. The shipped graves are listed in README.md. The shipped backend is Cloudflare Pages Functions + D1 with these routes (see `functions/api/`): `/api/clicky/session`, `/api/clicky/chat`, `/api/clicky/usage`, `/api/unmarked/raise`, `/api/unmarked/play/:slug`, `/api/eliza/reply`.
+
 ## One-liner
 A moonlit Halloween graveyard where you walk up to tombstones of dead software, press F to perform a resurrection ritual, and play fully working tribute apps built from permissively-licensed OSS code and original art.
 

@@ -1,0 +1,55 @@
+[tool] Running: ls /workspace/work/devpost-shots/rd/ | head -50; echo ---; ls .kiro .kiro/specs .kiro/hooks .kiro/agents .kiro/steering research research/kiro-logs 2>&1 | head -80; echo ---; find function...
+[tool] status: Completed
+[tool] Running: grep -rIn -i -E "youtu\.?be" --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=public . | grep -v -i "youtube link\|youtube url\|unlisted youtube\|upload.*youtube" | head -20; ec...
+[tool] Searching for 'keydown|addKey|KeyCodes\.|'keydown|anyKey|pointerdown|joy...' in src
+[tool] status: Completed
+[tool] status: Completed
+[tool] Running: sed -n 105,130p src/scenes/TitleScene.ts; echo ---; sed -n 88,100p src/scenes/GraveyardWorld.ts; grep -n "KeyCodes\.\(F\|M\|UP\|LEFT\|ESC\)\|createCursorKeys\|keydown-F\|keydown-M" -r src ...
+[tool] status: Completed
+[tool] Running: grep -n -i "id:\|name:\|cat\|mary\|well" src/easter/eggDefinitions.ts | head -30; echo ---; grep -rn -i "contra" --include=*.ts --include=*.md --include=*.json --include=*.sql src function...
+[tool] status: Completed
+[tool] Running: sed -n 1,6p research/kiro-logs/session-n5-k11.log | cut -c1-300; sed -n 12,22p research/kiro-logs/session-n5-k11.log | cut -c1-250; sed -n 83,90p .kiro/specs/clippy-grave/tasks.md; grep -n...
+[tool] status: Completed
+[tool] Running: mkdir -p docs/screenshots && cd /workspace/work/devpost-shots/rd && cp 01_spawn_grounding.png 06_ritual_02.png 06_witch.png 08_overlay.png 11_clicky_chat.png /workspace/raise-dead/docs/scr...
+[tool] status: Completed
+Now the README edits.
+[tool] Editing README.md
+[tool] Editing README.md
+[tool] status: Completed
+[tool] status: Completed
+[tool] Running: grep -n -i "cache\|SELECT" functions/api/unmarked/raise.ts | head -6; sed -n 60,72p src/easter/eggDefinitions.ts; sed -n 20,26p src/easter/eggDefinitions.ts; grep -n "trigger" src/easter/e...
+[tool] status: Completed
+[tool] Running: grep -n -i -A6 "triple-f" src/easter/EasterEggManager.ts | head -20
+[tool] status: Completed
+[tool] Editing README.md
+[tool] Running: grep -n "^## " README.md; grep -n -i "Clicky, never\|one press\|ONE press" .kiro/steering/polish.md
+[tool] status: Completed
+[tool] status: Completed
+[tool] Running: sed -n 49,51p README.md; grep -c "" research/kiro-logs/session17-clicky.log; grep -n -i "tasks.md\|specs/clippy" research/kiro-logs/session1[7-9]*.log research/kiro-logs/session2[0-2]*.log...
+[tool] status: Completed
+[tool] Editing README.md
+[tool] Running: ls research/n5/K11.patch research/clicky-grok-review-3.md research/kiro-logs/session22-clicky-fixD.log research/p15-muse-review.md; grep -n "^export const onRequest" -r functions | sed 's/...
+[tool] status: Completed
+[tool] status: Completed
+[tool] Editing product.md
+[tool] Running: git status --short -- README.md .kiro docs src functions | head; git diff --stat -- README.md .kiro/steering/product.md
+[tool] status: Completed
+[tool] status: Completed
+I finished all five items. I didn't touch `src/` or `functions/`, and I made no commits, pushes or deploys. The `src/` files that show as modified in git status (`ClickyChat.ts`, `api.ts`, `Joystick.ts`) are the other session's edits.
+
+**Where I changed your wording to match the code:**
+- **Start:** "press any key" isn't accurate. `TitleScene.ts` only enters on Enter, Space, or a click/tap, so the README says that.
+- **Bloody Mary well:** it needs F pressed three times quickly (`triggerType: 'triple-f'` in `eggDefinitions.ts`), so I wrote that rather than a single F.
+- **Contra:** it's one of the suggested names in `UnmarkedGrave.ts`, and `functions/api/unmarked/raise.ts` serves cached names instantly. I couldn't check the live D1 database, so the README says names raised before load from the cache rather than promising Contra is already cached.
+
+**Other checks:**
+- **Demo video placeholder:** I added it. The repo has no YouTube link to this project's video. The only YouTube mentions are in planning notes (the submission checklist and video script) and comments in other people's bundled code.
+- **Clicky path:** the brief, Grok's three reviews, the spec files and the session logs all exist under the names the README cites. `session18-clicky-fixA.log` shows Kiro rewriting the spec files. `session-n5-k11.log` shows the `grep` for "Clippy".
+- **No MCP server:** the agent file doesn't mention MCP, and there's no MCP config in `.kiro/` or in the home `.kiro/settings`.
+- **Routes in `product.md`:** I checked the six routes against the handlers in `functions/api/`.
+
+**Files changed:**
+- `README.md`: 35 lines added (demo-video placeholder under the title, a "Screenshots" table with 4 images, "Judge's 2-minute path", and "How Kiro built this" at about 17 lines).
+- `.kiro/steering/product.md`: one dated superseded note added at the top, nothing else rewritten.
+- `docs/screenshots/` (new): `01_spawn_grounding.png`, `06_ritual_02.png`, `06_witch.png`, `08_overlay.png`, `11_clicky_chat.png`. The README shows all of them except `06_witch.png`.
+EXIT 0

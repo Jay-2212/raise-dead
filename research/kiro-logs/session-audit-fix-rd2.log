@@ -1,0 +1,58 @@
+[tool] Reading ClickyChat.ts:1, api.ts:1
+[tool] status: Completed
+[tool] Reading UnmarkedGrave.ts:1, raise.ts:1
+[tool] Searching for 'Escape' in src
+[tool] status: Completed
+[tool] status: Completed
+[tool] Reading GraveOverlay.ts:196-230, GraveOverlay.ts:411-430
+[tool] status: Completed
+Escape is handled by a `document` keydown listener in GraveOverlay, so stopping propagation in the Clicky input must let Escape through. Applying the edits.
+[tool] Editing ClickyChat.ts
+[tool] Editing api.ts
+[tool] Editing api.ts
+[tool] status: Completed
+[tool] status: Completed
+[tool] status: Completed
+[tool] Searching for 'getSession\(|\.remaining\b' in src
+[tool] status: Completed
+[tool] Editing ClickyChat.ts
+[tool] status: Completed
+Now UnmarkedGrave: store the message handler and fix the network-error copy.
+[tool] Editing UnmarkedGrave.ts
+[tool] Editing UnmarkedGrave.ts
+[tool] Editing UnmarkedGrave.ts
+[tool] Editing UnmarkedGrave.ts
+[tool] status: Completed
+[tool] status: Completed
+[tool] status: Completed
+[tool] status: Completed
+Now raise.ts: wrap the IP hashing only.
+[tool] Editing raise.ts
+[tool] Running: npx tsc --noEmit; echo "tsc exit $?"; npm run typecheck:functions; echo "functions exit $?"
+[tool] status: Completed
+[tool] status: Completed
+All four fixes are in. `npx tsc --noEmit` and `npm run typecheck:functions` both exit 0. I haven't tested any of it in a browser.
+
+**Files changed:**
+- `src/graves/clippy/ClickyChat.ts`
+- `src/graves/clippy/api.ts`
+- `src/graves/unmarked-grave/UnmarkedGrave.ts`
+- `functions/api/unmarked/raise.ts`
+
+1. **Clicky chat input (`ClickyChat.ts`):** keydown and keyup on the input now stop propagation, so typed keys no longer reach Phaser. Escape is the one key let through. The overlay closes on Escape through a `document` keydown listener in `src/ui/GraveOverlay.ts`, so stopping Escape would have stopped it closing. Enter-to-send is unchanged.
+   - The Unmarked Grave input only stops keydown and also swallows Escape. I left it alone because that wasn't in scope.
+
+2. **Session failure (`api.ts` and `ClickyChat.ts`):** when the session request fails (network error or 5xx), `getSession()` now returns `remaining: null` instead of 0.
+   - Clicky then keeps the default counter of 5 and puts "Clicky can't be reached right now. Tap a question above, or try typing again in a moment." in the "Questions left" line.
+   - Preset answers still work and typed chat isn't blocked. The first successful reply puts the real counter back.
+   - The Unmarked Grave also calls `getSession()` but only uses it to get a token, so the change doesn't affect it.
+
+3. **Unmarked Grave (`UnmarkedGrave.ts`):**
+   - The rd-error `message` handler is now stored and removed in `dispose()`. It's also removed before a new one is added on "Raise another", so handlers don't pile up.
+   - On a dropped connection the message now reads "The ritual faltered. If it didn't finish, try again in a moment."
+   - The server-confirmed `upstream` and `moderated` messages still say "Nothing was spent".
+
+4. **`raise.ts`:** `getIpKey` is wrapped in a try/catch and returns a 500 with `{ error: 'internal' }` if hashing fails. Quota and caching logic are untouched.
+
+None of the other session's files were touched, and nothing was committed, pushed or deployed.
+EXIT 0
