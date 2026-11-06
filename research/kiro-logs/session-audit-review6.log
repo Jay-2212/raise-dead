@@ -1,0 +1,46 @@
+[tool] Running: cd /workspace/raise-dead && node .kiro/hooks/assets-credits.mjs 2>&1 | head -150; echo; wc -l CREDITS.md; ls research | head -50
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && cat CREDITS.md | cut -c1-220; echo ----; wc -l research/public-assets.txt; find public/assets -iname '*.md' -o -iname '*.txt' | head;
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && sed -n '/Night 4/,$p' CREDITS.md | tail -n +16 | cut -c1-260; echo ----; find . -path ./node_modules -prune -o \( -name 'MANIFEST.json' -o -name 'STYLE.md' -o -...
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && for n in candy_chime cat_meow knock_wood pumpkin_carve witch_cackle witch_cackle_2 wolf_howl zombie_groan_2 zombie_groan_3; do echo "== $n: manifest=$(grep -c "...
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && node .kiro/hooks/assets-credits.mjs 2>&1 | grep -o 'public/assets/images/[^ ]*' | while read f; do s=${f#public/}; st=${s%.*}; m=$(node -e 'const j=require("./a...
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && grep -E 'movicx-wizard|sollision-mage' CREDITS.md | grep -o 'Shipped as.*\|| [^|]*|$'; grep -nE 'candy_chime|cat_meow|knock_wood|pumpkin_carve|witch_cackle|wolf...
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && sed -n 110,140p research/p15-brief.md | cut -c1-220; grep -n 'decal' research/n3/review-grok-1.md | head -3 | cut -c1-200; grep -rn 'decal_' research/n3 researc...
+[tool] status: Completed
+[tool] Running: cd /workspace/raise-dead && ls public/CREDITS.md && grep -cE 'witch_cackle|eggs/|decals' public/CREDITS.md; diff -q CREDITS.md public/CREDITS.md
+[tool] status: Completed
+None of the 100 files is undocumented (C = 0). Every one is either covered by a group row or prose in CREDITS.md (A), or sourced in another repo file (B). The hook fails because it matches each filename on its own, so folder rows, glob rows and prose don't count.
+
+| Folder | Files | Class | Evidence |
+|---|---|---|---|
+| audio/sfx/zombie_groan_2, _3 | 4 | A | "Zombie moans \| Darsycho … `zombie_groan_1..3`" |
+| audio/sfx/ (witch_cackle, witch_cackle_2, cat_meow, knock_wood, wolf_howl, candy_chime, pumpkin_carve) | 14 | B | `research/p15-brief.md` lines 127–133: author, licence and URL for each. These rows were never added to CREDITS.md. |
+| images/backgrounds/ | 2 | A + B | "All other images in `assets/images/` (world/, ui/, fx/, particles/, portraits/, backgrounds/) are original…"; also `assets/images/MANIFEST.json` (stem match, .png→.jpg) |
+| images/fx/ (fog, glow, rune) | 6 | A + B | Same "All other images…" sentence; MANIFEST.json |
+| images/fx/shadow_cast, shadow_contact | 2 | A (weak) + B | The "All other images…" sentence names fx/. Source is in p15-brief.md (Credits section). Not in MANIFEST. |
+| images/particles/ | 11 | A + B | "All other images…"; MANIFEST.json |
+| images/portraits/medal_* | 5 | A + B | "All other images…"; MANIFEST.json |
+| images/ui/ | 2 | A + B | "All other images…"; MANIFEST.json |
+| images/world/ | 15 | A + B | "All other images…"; MANIFEST.json |
+| images/kenney/ | 8 | A | "vendor/kenney-particle-pack/ … Shipped as `public/assets/images/kenney/`". `light_01` falls under the "vendor/kenney-light-masks/" row. |
+| images/wizard/ | 9 | A | "vendor/movicx-wizard/ … `public/assets/images/wizard/*.png`" |
+| images/eggs/zombie_a, zombie_b, zombie_hand | 3 | A | "Zombie sprites, zombie hand, medal_bounce.png \| Hark…" |
+| images/eggs/ (other 10) | 10 | B | `research/p15-brief.md` Credits section: "original to this project, generated with an AI image model…" |
+| images/decals/ | 9 | B | `research/p15-brief.md` (same line) |
+| **Total** | **100** | A 63 · B 37 · C 0 | |
+
+**C list:** none.
+
+**Issues found:**
+- The brief told the implementer to add its Credits rows to both `CREDITS.md` and `public/CREDITS.md`. That never happened. The two files are identical and contain no `witch_cackle`, `eggs/` or `decals` entries. Most of the B list (eggs, decals, egg SFX, 33 of 37) comes from this gap.
+- CREDITS.md still says "TODO: confirm exact model name before submission" in the original-images sentence.
+- The sentence that covers backgrounds/, world/, fx/ and the others is prose, not a table row. Rewriting it as a folder row (`world/*`, etc.) would not satisfy the hook either, because the hook matches filenames or stems.
+- `wolf_howl` is an AI-generated SFXMint sound labelled CC0. Check SFXMint's licence page before relying on that.
+- `portraits/medal_clippy.png` uses the name polish.md bans. The filename only affects internal consistency.
+- `research/public-assets.txt` only lists files, with no provenance, so I didn't use it as evidence.
+EXIT 0

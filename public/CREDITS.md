@@ -87,7 +87,7 @@ Full per-file list (purpose, duration, loop, loudness, source, license, author) 
 
 ## Trademark Disclaimer
 
-Road Rash, Google Reader, Clippy, Winamp and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos, art or code from the trademarked products are used in this project. All tribute implementations are built from permissively-licensed open-source code and original/generated art.
+Road Rash, Google Reader, Clippy, Winamp and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos or art from the trademarked products are used in this project. Tributes are built from open-source code (MIT, and the GPL-2.0 Chocolate Doom engine for the DOOM grave, see Night 4 additions) and original/generated art; the DOOM grave uses the free Freedoom data, not id Software's.
 
 
 ## Night 3 additions
@@ -120,3 +120,16 @@ Road Rash, Google Reader, Clippy, Winamp and other product names referenced in R
 | Danse Macabre (rhythm game music) | Kevin MacLeod (incompetech.com) | CC-BY 4.0 | https://creativecommons.org/licenses/by/4.0/ — public/games/rhythm/danse_macabre.{ogg,mp3} (105 s excerpt) |
 | Star Cadet sound effects | Raise Dead team | CC0 1.0 (project original) | Original WebAudio synth by Raise Dead; no Microsoft audio used |
 | Graveyard map image (world_map.png) | Raise Dead team | Same as the world art it is rendered from (see entries above) | Rendered from the game's own world art by `scripts/bake-world-map.mjs` — `public/assets/images/map/world_map.png` |
+
+## Phase 1.5 additions (Easter eggs, decals, shadows)
+
+| Asset | Author | License | Source |
+|---|---|---|---|
+| `assets/images/eggs/*`, `assets/images/decals/*` | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated from our prompts, downscaled/sliced by script; no third-party art |
+| `assets/images/fx/shadow_contact.png`, `fx/shadow_cast.png` | Raise Dead team | CC0 1.0 (project original) | Drawn procedurally |
+| witch_cackle | Joseph Sardin, BigSoundBank ("Strident Laughter") | CC0 1.0 | https://bigsoundbank.com/strident-laughter-s0489.html (trimmed, echo) |
+| witch_cackle_2 | Nocturnal_Vanguard (AuraVoice) ("Evil Cackle Laugh 1") | CC0 1.0 | https://opengameart.org/content/evil-cackle-laugh-1 (trimmed, echo) |
+| cat_meow | Joseph Sardin, BigSoundBank ("Meow cat #1") | CC0 1.0 | https://bigsoundbank.com/meow-cat-1-s1889.html (trimmed) |
+| knock_wood | Joseph Sardin, BigSoundBank ("Door Knock") | CC0 1.0 | https://bigsoundbank.com/door-knock-s0095.html (trimmed) |
+| wolf_howl | SFXMint ("Sustained Night Wolf Howl 01", AI-generated) | CC0 1.0 (as listed by SFXMint) | https://sfxmint.com/sounds/wolf-howl-01 (trimmed, echo) |
+| candy_chime, pumpkin_carve | Raise Dead team | CC0 1.0 (project original) | Original synthesis (ffmpeg) |
