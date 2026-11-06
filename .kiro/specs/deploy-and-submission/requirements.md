@@ -1,3 +1,5 @@
+> **Superseded (2026-11-06):** shipped architecture is Vite + Cloudflare Pages Functions (`functions/`) + D1; see README.
+
 # Deploy and Submission — Requirements
 
 ## Overview

@@ -1,9 +1,9 @@
 {
   "name": "typecheck-lint",
-  "description": "Runs TypeScript type-check (tsc --noEmit) and ESLint on the changed file when a .ts or .tsx file is saved.",
+  "description": "Runs TypeScript type-check (tsc --noEmit) and the Pages Functions type-check (tsc -p functions) when a .ts or .tsx file is saved.",
   "trigger": {
     "type": "file_change",
-    "pattern": "src/**/*.{ts,tsx},worker/**/*.ts"
+    "pattern": "src/**/*.{ts,tsx},functions/**/*.ts"
   },
   "steps": [
     {
@@ -12,9 +12,9 @@
       "on_failure": "error"
     },
     {
-      "name": "lint",
-      "command": "npm run lint -- --max-warnings 0",
-      "on_failure": "warn"
+      "name": "typecheck-functions",
+      "command": "npm run typecheck:functions",
+      "on_failure": "error"
     }
   ]
 }

@@ -1,3 +1,5 @@
+> **Superseded (2026-11-06):** shipped architecture is Vite + Cloudflare Pages Functions (`functions/`) + D1; see README.
+
 # Deploy and Submission — Tasks
 
 ## Worker infrastructure
@@ -13,14 +15,14 @@
 ## Build scripts
 - [ ] 7. Add/verify all scripts in `package.json`: `dev`, `build`, `typecheck`, `lint`, `deploy`.
 - [ ] 8. Configure ESLint (`eslint.config.ts` or `.eslintrc.cjs`); add `@typescript-eslint` rules; `--max-warnings 0` in lint script.
-- [ ] 9. Verify `npm run build` outputs `dist/index.html` and all assets.
-- [ ] 10. Verify `npm run typecheck` exits 0.
+- [x] 9. Verify `npm run build` outputs `dist/index.html` and all assets.
+- [x] 10. Verify `npm run typecheck` exits 0.
 - [ ] 11. Verify `npm run lint` exits 0.
 
 ## Secrets
 - [ ] 12. After first `wrangler login`, run `wrangler secret put META_API_KEY` and `wrangler secret put OXION_API_KEY`.
 - [ ] 13. Add `wrangler secret put OXION_BASE_URL` for the Oxion base URL.
-- [ ] 14. Confirm `.gitignore` includes `.dev.vars` and `*.env`; add `.dev.vars` for local secret overrides.
+- [x] 14. Confirm `.gitignore` includes `.dev.vars` and `*.env`; add `.dev.vars` for local secret overrides.
 
 ## First deploy
 - [ ] 15. Run `npm run deploy`; confirm Pages deploy succeeds and live URL responds HTTP 200.
@@ -29,13 +31,13 @@
 
 ## README
 - [ ] 18. Create `README.md` with: project title, one-liner, live demo badge/URL, screenshot, features list, local dev instructions, deploy instructions, tech stack table.
-- [ ] 19. Add "Licensing" section and link to CREDITS.md.
+- [x] 19. Add "Licensing" section and link to CREDITS.md.
 - [ ] 20. Add "Hackathon submissions" section noting both deadlines and submission links.
 
 ## CREDITS.md
 - [ ] 21. Create `CREDITS.md` with sections: Code libraries, Music, Visual assets, Fonts, Data; use `| Name | Author | Licence | URL |` table format.
 - [ ] 22. Populate with all required entries (minimum: Phaser 3, phaser3-rex-plugins, javascript-racer, feedsmith, ms-agent-js, webamp, jspaint, DOMPurify, Kenney packs, Komiku tracks, killedbygoogle data credit, rune font).
-- [ ] 23. Add trademark disclaimer paragraph.
+- [x] 23. Add trademark disclaimer paragraph.
 
 ## CREDITS hook check
 - [ ] 24. Run `.kiro/hooks/assets-credits` manually; verify it exits 0 (all assets credited).

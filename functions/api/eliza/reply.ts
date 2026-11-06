@@ -29,7 +29,9 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   if (text.length < 2) return reply({ error: 'empty' }, 400);
   if (isBlocked(text) || INJECTION_REGEX.test(text)) return reply({ error: 'moderated' }, 422);
   const history = Array.isArray(body.history) ? body.history.slice(-6).filter((h): h is { who: string; text: string } =>
-    !!h && typeof (h as { text?: unknown }).text === 'string' && ((h as { who?: unknown }).who === 'you' || (h as { who?: unknown }).who === 'eliza')) : [];
+    !!h && typeof (h as { text?: unknown }).text === 'string' && ((h as { who?: unknown }).who === 'you' || (h as { who?: unknown }).who === 'eliza'))
+    // Drop (don't reject) history lines that fail moderation, so a client can't smuggle injected turns past the text check.
+    .filter((h) => !isBlocked(h.text) && !INJECTION_REGEX.test(h.text)) : [];
 
   const ip = request.headers.get('CF-Connecting-IP');
   if (!ip && !isDev) return new Response(null, { status: 403 });
@@ -73,7 +75,15 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     if (!out) throw new Error('empty');
     return reply({ reply: out });
   } catch (e) {
-    return reply({ error: 'upstream', why: String((e as Error)?.message || e).slice(0, 60) }, 502);
+    console.error('eliza upstream error:', String((e as Error)?.message || e).slice(0, 200));
+    // Upstream failed: give back the reserved per-IP and daily quota.
+    try {
+      await db.batch([
+        db.prepare('UPDATE quota SET used = used - 1 WHERE k = ? AND used > 0').bind(ipK),
+        db.prepare('UPDATE quota SET used = used - 1 WHERE k = ? AND used > 0').bind(dayK),
+      ]);
+    } catch { /* best effort */ }
+    return reply({ error: 'upstream' }, 502);
   } finally {
     clearTimeout(timer);
   }

@@ -50,7 +50,12 @@ export const onRequest: PagesFunction<Env> = async ({ request, env, waitUntil })
   const token = tokenFrom(request);
   const tokId = token ? await verifyToken(env, token).catch(() => null) : null;
   if (!tokId) return reply({ error: 'session' }, 401);
-  const ipK = 'u-' + (await getIpKey(env, ip || '127.0.0.1'));
+  let ipK: string;
+  try {
+    ipK = 'u-' + (await getIpKey(env, ip || '127.0.0.1'));
+  } catch {
+    return reply({ error: 'internal' }, 500);
+  }
   const tokK = 'u-tok:' + tokId;
 
   // 1. Cache hit: free and instant

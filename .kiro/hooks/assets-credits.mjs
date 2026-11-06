@@ -13,8 +13,9 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = new URL('../../..', import.meta.url).pathname;
+const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ASSETS_DIR = join(REPO_ROOT, 'public', 'assets');
 const CREDITS_FILE = join(REPO_ROOT, 'CREDITS.md');
 
@@ -47,13 +48,8 @@ function collectFiles(dir) {
 function isCredited(filePath, creditsContent) {
   const name = basename(filePath);
   const stem = name.slice(0, name.lastIndexOf('.')) || name;
-  // Check for the filename, the stem, or the parent directory name
-  const parentDir = filePath.split('/').at(-2) ?? '';
-  return (
-    creditsContent.includes(name) ||
-    creditsContent.includes(stem) ||
-    creditsContent.includes(parentDir)
-  );
+  // Check for the filename or its stem
+  return creditsContent.includes(name) || creditsContent.includes(stem);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────

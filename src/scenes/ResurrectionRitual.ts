@@ -7,6 +7,10 @@ import { RitualData } from '../types/ritual';
 import { GraveEntry } from '../types/graves';
 import { GraveOverlay } from '../ui/GraveOverlay';
 
+/** True when the user asked the OS for reduced motion: skip the ritual shake and dim the flash. */
+const reducedMotion = (): boolean =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 interface VoiceLine {
   id: string;
   grave: string;
@@ -253,7 +257,8 @@ export class ResurrectionRitual extends Phaser.Scene {
       ) as unknown as Phaser.GameObjects.Particles.ParticleEmitter;
       this.sparkEmitter.setDepth(22);
 
-      // Camera shake build-up
+      // Camera shake build-up (skipped for prefers-reduced-motion)
+      if (reducedMotion()) return;
       const gwScene = this.scene.get('GraveyardWorld') as Phaser.Scene;
       const counterTween = this.tweens.addCounter({
         from: 0.004,
@@ -308,7 +313,7 @@ export class ResurrectionRitual extends Phaser.Scene {
 
       const burstTween = this.tweens.add({
         targets: this.holyBurst,
-        alpha: { from: 0, to: 1 },
+        alpha: { from: 0, to: reducedMotion() ? 0.4 : 1 },
         scale: { from: 0.4, to: 8 }, // Downscaled 1024→512 (2x), so 0.2→0.4, 4→8
         duration: 1200,
         ease: 'Quad.easeIn',
@@ -318,7 +323,7 @@ export class ResurrectionRitual extends Phaser.Scene {
       // White fill fades in
       const flashTween = this.tweens.add({
         targets: this.whiteFill,
-        alpha: 1,
+        alpha: reducedMotion() ? 0.6 : 1,
         duration: 1000,
         delay: 200,
         ease: 'Quad.easeIn',

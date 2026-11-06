@@ -1,0 +1,56 @@
+{
+  "name": "raise-dead",
+  "description": "Raise Dead project agent: Phaser 3 graveyard game on Vite + Cloudflare Pages Functions (functions/) + D1.",
+  "prompt": "You work on Raise Dead, a Phaser 3.90.0 + TypeScript + Vite game hosted on Cloudflare Pages with Pages Functions (functions/) and D1. Follow the steering files in .kiro/steering/ (polish.md is always-on; tech.md and structure.md partly describe a superseded architecture, so prefer README.md and the code when they disagree). Keep secrets out of src/, public/ and logs. Every new file under public/assets/ needs a CREDITS.md entry. Run `npm run typecheck` and `npm run typecheck:functions` after editing TypeScript.",
+  "tools": [
+    "read",
+    "grep",
+    "glob",
+    "code",
+    "write",
+    "shell"
+  ],
+  "allowedTools": [
+    "read",
+    "grep",
+    "glob",
+    "code"
+  ],
+  "toolsSettings": {
+    "write": {
+      "deniedPaths": [
+        ".dev.vars",
+        "dist/**",
+        "node_modules/**"
+      ]
+    },
+    "shell": {
+      "allowedCommands": [
+        "npm run typecheck",
+        "npm run typecheck:functions",
+        "npm run build",
+        "node \\.kiro/hooks/assets-credits\\.mjs"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "resources": [
+    "file://README.md",
+    "file://CREDITS.md",
+    "file://.kiro/steering/*.md"
+  ],
+  "hooks": {
+    "postToolUse": [
+      {
+        "matcher": "write",
+        "command": "npm run typecheck",
+        "timeout_ms": 120000
+      },
+      {
+        "matcher": "write",
+        "command": "npm run typecheck:functions",
+        "timeout_ms": 120000
+      }
+    ]
+  }
+}

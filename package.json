@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:functions": "tsc -p functions --noEmit",
-    "lint": "eslint src/ worker/"
+    "lint": "eslint src/"
   },
   "dependencies": {
     "phaser": "3.90.0",

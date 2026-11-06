@@ -88,3 +88,35 @@ Full per-file list (purpose, duration, loop, loudness, source, license, author) 
 ## Trademark Disclaimer
 
 Road Rash, Google Reader, Clippy, Winamp and other product names referenced in Raise Dead are trademarks of their respective owners. Raise Dead is an unofficial fan tribute, not affiliated with or endorsed by them. No original logos, art or code from the trademarked products are used in this project. All tribute implementations are built from permissively-licensed open-source code and original/generated art.
+
+
+## Night 3 additions
+
+| Asset | Author | License | Source |
+|---|---|---|---|
+| Star Cadet (3D Pinball Space Cadet remake) | Rich Dubbs | MIT | https://github.com/richdubbs/star-cadet — vendored in `public/games/space-cadet` (includes three.js 0.160.0, MIT) |
+| Pipes (3D Pipes screensaver remake) | 1j01 | MIT | https://github.com/1j01/pipes — vendored in `public/games/pipes` |
+| medal_spacecadet.png, medal_pipes.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |
+| public/games/muse/ (Road Rash and Winamp tributes) | Meta Muse Spark (muse-spark-1.3-contributor) | CC0 1.0 (project original) | AI-generated playable tributes written for Raise Dead; original shapes-only art |
+| Unmarked Grave games (public/games/unmarked/) | Meta Muse Spark (muse-spark-1.3-contributor) | CC0 1.0 (project original) | AI-generated on-demand playable tributes for any dead app; original shapes-only art; cached in D1; served sandboxed |
+| Zombie moans | Darsycho | CC0 1.0 | https://opengameart.org/content/zombie-moans — trimmed, normalised to `assets/audio/sfx/zombie_groan_1..3` |
+| Zombie noises and moans | ianzazz | CC0 1.0 | https://opengameart.org/content/zombie-noises-and-moans — zombie_die, zombie_hit, zombie_rise to `assets/audio/sfx/` |
+| Zombie sprites, zombie hand, medal_bounce.png | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated images for Raise Dead zombie-hand grave and Bouncing Logo screensaver |
+| The Bouncing Logo (public/games/bounce) | Raise Dead team | MIT (project original) | Original code for Raise Dead |
+
+## Night 4 additions
+
+| Asset | Author | License | Source |
+|---|---|---|---|
+| DOOM engine (websockets-doom.{js,wasm}) | Chocolate Doom / Cloudflare Doom WASM | GPL-2.0 | https://github.com/cloudflare/doom-wasm — prebuilt WebAssembly build via npm @nicejsisverycool/tizendoom |
+| Freedoom Phase 1 v0.13.0 | Freedoom project contributors | BSD-3-Clause | https://freedoom.github.io — `public/games/doom/freedoom1.wad.part0/1` (split for hosting; `FREEDOOM-COPYING.txt` included) |
+| Pac-Man HTML5 remake | mumuy (Haole Zheng) | MIT | https://github.com/mumuy/pacman — `public/games/pacman` (LICENSE included; Press Start 2P font, SIL OFL) |
+| SkiFree.js | Dan Hough | MIT | https://github.com/basicallydan/skifree.js — `public/games/skifree` (LICENSE.md included); sprites by Wing Wang Wao (Spriters Resource) after Chris Pirih's SkiFree (1991) |
+| Thunder crack SFX | rubberduck | CC0 1.0 | https://opengameart.org/content/100-cc0-sfx-2 — `assets/audio/sfx/thunder_crack` |
+| Thunder rumble SFX | WuxiaScrub | CC0 1.0 | https://opengameart.org/content/rain-long-thunder — `assets/audio/sfx/thunder_rumble` (cut 21–30 s) |
+| Horde scream SFX (mixed) | Vinrax + artisticdude | CC0 1.0 | https://opengameart.org/content/horror-scream1 + https://opengameart.org/content/zombies-sound-pack — `assets/audio/sfx/horde_scream` |
+| Medals (medal_doom, medal_pacman, medal_skifree, medal_eliza) | Hark (Raise Dead team) | CC0 1.0 (project original) | AI-generated medallion images for Raise Dead graveyard |
+| ELIZA (1966) rules engine | Joseph Weizenbaum; rewritten for Raise Dead (original code); Meta Muse Spark fills gaps via /api/eliza/reply | Original (rewrite) | Classic ELIZA by Joseph Weizenbaum (1966); rules engine rewritten from scratch for Raise Dead |
+| Danse Macabre (rhythm game music) | Kevin MacLeod (incompetech.com) | CC-BY 4.0 | https://creativecommons.org/licenses/by/4.0/ — public/games/rhythm/danse_macabre.{ogg,mp3} (105 s excerpt) |
+| Star Cadet sound effects | Raise Dead team | CC0 1.0 (project original) | Original WebAudio synth by Raise Dead; no Microsoft audio used |
+| Graveyard map image (world_map.png) | Raise Dead team | Same as the world art it is rendered from (see entries above) | Rendered from the game's own world art by `scripts/bake-world-map.mjs` — `public/assets/images/map/world_map.png` |

@@ -1,5 +1,6 @@
 export interface SessionResponse {
-  remaining: number;
+  /** null = session request failed (network/5xx); quota unknown, not spent */
+  remaining: number | null;
   daily: 'open' | 'closed';
   turnstile: boolean;
   token?: string;
@@ -42,7 +43,7 @@ export async function getSession(): Promise<SessionResponse> {
 
     return data;
   } catch (_e) {
-    return { remaining: 0, daily: 'open', turnstile: false };
+    return { remaining: null, daily: 'open', turnstile: false };
   }
 }
 

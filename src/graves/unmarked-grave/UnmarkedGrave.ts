@@ -15,6 +15,7 @@ export class UnmarkedGrave {
   private dotsTimer: number | null = null;
   private abort: AbortController | null = null;
   private remaining: number | null = null;
+  private msgHandler: ((ev: MessageEvent) => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.root = container;
@@ -33,6 +34,7 @@ export class UnmarkedGrave {
   dispose(): void {
     this.abort?.abort();
     if (this.dotsTimer !== null) window.clearInterval(this.dotsTimer);
+    if (this.msgHandler) { window.removeEventListener('message', this.msgHandler); this.msgHandler = null; }
     this.el?.remove();
     this.el = null;
   }
@@ -135,7 +137,7 @@ export class UnmarkedGrave {
       this.showGame(data.slug, data.name || name);
     } catch {
       this.busy = false;
-      if (this.el) this.showPicker('The ritual faltered. Nothing was spent; try again.');
+      if (this.el) this.showPicker("The ritual faltered. If it didn't finish, try again in a moment.");
       return;
     }
     this.busy = false;
@@ -155,12 +157,15 @@ export class UnmarkedGrave {
     frame.addEventListener('load', () => frame.focus());
     el.appendChild(frame);
     // N4/U4: the served page reports a crash in its first seconds; offer another raise instead of a dead screen
+    if (this.msgHandler) window.removeEventListener('message', this.msgHandler);
     const onMsg = (ev: MessageEvent) => {
       if (ev.source !== frame.contentWindow || !ev.data || ev.data.type !== 'rd-error') return;
       window.removeEventListener('message', onMsg);
+      this.msgHandler = null;
       const warn = this.text('p', 'This soul came back broken. Pick another name, or try again later.', "font-family:'Pixelify Sans',sans-serif;font-size:0.8rem;color:#e8b04a;margin:0;");
       el.insertBefore(warn, frame);
     };
+    this.msgHandler = onMsg;
     window.addEventListener('message', onMsg);
 
     const row = document.createElement('div');

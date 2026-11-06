@@ -43,10 +43,15 @@ export class ClickyChat {
     this.presets = await loadPresets();
 
     const session = await getSession();
-    this.state.remaining = session.remaining;
+    // null = session lookup failed (network/5xx): keep the default counter, don't treat it as spent
+    const sessionFailed = session.remaining === null;
+    if (session.remaining !== null) this.state.remaining = session.remaining;
     this.state.dailyClosed = session.daily === 'closed';
 
     this.buildDOM();
+    if (sessionFailed && this.questionsLeftEl) {
+      this.questionsLeftEl.textContent = "Clicky can't be reached right now. Tap a question above, or try typing again in a moment.";
+    }
 
     this.state.currentNodeId = this.presets.start;
     await this.showNode(this.state.currentNodeId, true);
@@ -273,10 +278,15 @@ export class ClickyChat {
       this.inputEl!.style.borderColor = '#3a4a66';
     });
     this.inputEl.addEventListener('keydown', (e) => {
+      // keep Phaser from seeing typed keys; Escape still bubbles to GraveOverlay's document handler
+      if (e.key !== 'Escape') e.stopPropagation();
       if (e.key === 'Enter') {
         e.preventDefault();
         this.handleTypedSubmit();
       }
+    });
+    this.inputEl.addEventListener('keyup', (e) => {
+      if (e.key !== 'Escape') e.stopPropagation();
     });
     this.inputEl.addEventListener('input', () => {
       const len = this.inputEl!.value.length;
